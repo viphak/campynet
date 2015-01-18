@@ -17,28 +17,28 @@ namespace Test
             int[] data = new int[size];
             int[] data2 = new int[size];
             Extent e = new Extent(size);
-            Int16 shortsize = (Int16)size;
+            Int16 shortsize = (Int16)size; // Unsupported type short cannot capture.
             Array_View<int> d = new Array_View<int>(size, ref data);
             Array_View<int> d2 = new Array_View<int>(size, ref data2);
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = size - j - 1;
+                d[j] = size - j - 1; // Capture size and d.
             });
             Parallel_For_Each.loop(e, (Index idx) =>
             {
                 int j = idx[0];
-                d2[j] = 1;
+                d2[j] = 1; // Capture d2.
             });
             Parallel_For_Each.loop(e, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = d[j] % 2;
+                d[j] = d[j] % 2;  // Capture d.
             });
             Parallel_For_Each.loop(e, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = d[j] + d2[j];
+                d[j] = d[j] + d2[j]; // Capture d and d2.
             });
             d.synchronize();
             for (int i = 0; i < size; ++i)
