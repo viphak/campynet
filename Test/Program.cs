@@ -17,12 +17,13 @@ namespace Test
             int[] data = new int[size];
             int[] data2 = new int[size];
             Extent e = new Extent(size);
+            Int16 shortsize = (Int16)size;
             Array_View<int> d = new Array_View<int>(size, ref data);
             Array_View<int> d2 = new Array_View<int>(size, ref data2);
-            Parallel_For_Each.loop(e, (Index idx) =>
+            Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = (int)size - j - 1;
+                d[j] = size - j - 1;
             });
             Parallel_For_Each.loop(e, (Index idx) =>
             {
