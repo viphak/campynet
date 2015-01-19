@@ -31,6 +31,12 @@ namespace Campy
 
         static public void loop(Extent extent, _Kernel_type _kernel)
         {
+            Accelerator_View view = new Accelerator_View();
+            loop(view, extent, _kernel);
+        }
+
+        static public void loop(Accelerator_View view, Extent extent, _Kernel_type _kernel)
+        {
             // Compile and link any "to do" work before any DLL loading.
             builder.Build();
 
@@ -45,7 +51,10 @@ namespace Campy
 
             // Set extent.
             CopyExtentToStaging(extent, ref obj);
- 
+
+            // Set extent.
+            CopyViewToStaging(view, ref obj);
+
             // Get address of thunk method.
             SR.MethodInfo mi2 = thunk.GetMethod("Thunk");
 
@@ -60,6 +69,10 @@ namespace Campy
 
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
+
+            // Get directory containing the assembly.
+            String full_path = Path.GetFullPath(kernel_assembly_file_name);
+            full_path = Path.GetDirectoryName(full_path);
 
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
             String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, mi.ReflectedType.FullName, mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
@@ -90,9 +103,9 @@ namespace Campy
             }
 
             // Create app domain in order to test the dll.
-            AppDomain dom = AppDomain.CreateDomain("something");
-            SR.AssemblyName assemblyName = new SR.AssemblyName();
-            assemblyName.CodeBase = assembly.Name;
+            //SR.AssemblyName assemblyName = new SR.AssemblyName();
+            //assemblyName.CodeBase = assembly.Name;
+            dll = SR.Assembly.LoadFile(full_path + "\\" + assembly.Name);
 
             // Determine if this kernel has been executed before.
             if (!assembly.executed_lambdas.Contains(kernel_full_name))
@@ -108,25 +121,25 @@ namespace Campy
 
                 if (!rebuild)
                 {
-                    dll = dom.Load(assemblyName);
+                    //dll = dom.Load(assemblyName);
 
                     // Get address of thunk class corresponding to lambda.
                     thunk = dll.GetType(campy_kernel_class_short_name);
                     if (thunk == null)
                     {
                         // Try to delete the app domain, but it usually the dll doesn't unload.
-                        AppDomain.Unload(dom);
-                        var hMod = IntPtr.Zero;
-                        LoadLibraryA(assembly.Name);
-                        if (GetModuleHandleExA(0, assembly.Name, ref hMod))
-                        {
-                            while (FreeLibrary(hMod))
-                            { }
-                        }
-                        dom = AppDomain.CreateDomain("something");
+                        //AppDomain.Unload(dom);
+                        //var hMod = IntPtr.Zero;
+                        //LoadLibraryA(assembly.Name);
+                        //if (GetModuleHandleExA(0, assembly.Name, ref hMod))
+                        //{
+                        //    while (FreeLibrary(hMod))
+                        //    { }
+                        //}
+                        //dom = AppDomain.CreateDomain("something");
+                        //dll = null;
                         rebuild = true;
                         // Force Dll unload.
-                        dll = null;
                     }
                 }
 
@@ -189,7 +202,7 @@ namespace Campy
             }
 
             // Load/reload assembly.
-            dll = dom.Load(assemblyName);
+            //dll = dom.Load(assemblyName);
             //dll = SR.Assembly.LoadFile(assembly.Name);
 
             // Get address of thunk class corresponding to lambda.
@@ -232,18 +245,44 @@ namespace Campy
             }
         }
 
+        private static void CopyViewToStaging(Accelerator_View view, ref object staging_object)
+        {
+            Type s = staging_object.GetType();
+            SR.FieldInfo[] sfi = s.GetFields();
+
+            bool found = false;
+            foreach (SR.FieldInfo field in sfi)
+            {
+                if (field.Name.Equals("accelerator_view"))
+                {
+                    if (found)
+                        throw new Exception("CopyViewToStaging encountered an internal error--found duplicate accelerator_view field in managed object.");
+                    found = true;
+                    field.SetValue(staging_object, view);
+                }
+            }
+            if (!found)
+                throw new Exception("CopyViewToStaging encountered an internal error--did not find accelerator_view field in managed object.");
+        }
+
         private static void CopyExtentToStaging(Extent extent, ref object staging_object)
         {
             Type s = staging_object.GetType();
             SR.FieldInfo[] sfi = s.GetFields();
 
+            bool found = false;
             foreach (SR.FieldInfo field in sfi)
             {
                 if (field.Name.Equals("extent"))
                 {
+                    if (found)
+                        throw new Exception("CopyExtentToStaging encountered an internal error--found duplicate extent field in managed object.");
+                    found = true;
                     field.SetValue(staging_object, extent);
                 }
             }
+            if (!found)
+                throw new Exception("CopyExtentToStaging encountered an internal error--did not find extent field in managed object.");
         }
     }
 }

@@ -56,6 +56,8 @@ namespace Campy
                 result += field_result + eol;
                 output.Dispose();
             }
+            result += "Accelerator_View^ accelerator_view;" + eol;
+            result += eol;
             result += "Extent^ extent;" + eol;
             result += eol;
             result += "// Closure delegate always named Thunk" + eol;
@@ -77,7 +79,8 @@ namespace Campy
                     result += "unm->" + fi.Name + " = " + fi.Name + ";" + eol;
                 }
             }
-            result += "unm->ne = extent->ne();" + eol;
+            result += "unm->native_accelerator_view = accelerator_view->nav();" + eol;
+            result += "unm->native_extent = extent->ne();" + eol;
             result += "unm->Thunk();" + eol;
             result += "}" + eol;
             result += "};" + eol;
@@ -118,7 +121,8 @@ namespace Campy
                 }
             }
             result += "void Thunk();" + eol;
-            result += "void * ne;" + eol;
+            result += "void * native_accelerator_view;" + eol;
+            result += "void * native_extent;" + eol;
             result += "};" + eol;
             _assembly.unmanaged_h_files.Add(unmanaged_h_file_name, result);
 
@@ -128,6 +132,7 @@ namespace Campy
             result += "#include \"" + unmanaged_h_file_name.Replace("\\", "\\\\") + "\"" + eol;
             result += "#include \"Native_Array_View.h\"" + eol;
             result += "#include \"Native_Extent.h\"" + eol + eol;
+            result += "#include \"Native_Accelerator_View.h\"" + eol;
             result += "using namespace concurrency;" + eol + eol;
             result += "void " + kernel_full_name + "_unmanaged::Thunk()" + eol;
             result += "{" + eol;
@@ -165,9 +170,15 @@ namespace Campy
                 }
             }
             result += "Campy::Types::Native_Extent<1> * data" + suffix
-                + " = (Campy::Types::Native_Extent<1> *)this->ne;" + eol;
+                + " = (Campy::Types::Native_Extent<1> *)this->native_extent;" + eol;
             result += "extent<1>& e"
                 + " = *(extent<1>*)data" + suffix + "->ne;" + eol;
+            suffix++;
+            result += "Campy::Types::Native_Accelerator_View * data" + suffix
+                + " = (Campy::Types::Native_Accelerator_View *)this->native_accelerator_view;" + eol;
+            result += "accelerator_view& _accerator_view"
+                + " = *(accelerator_view*)data" + suffix + "->nav;" + eol;
+            suffix++;
             result += "parallel_for_each(e, [=]";
             {
                 TreeWalker.MethodParameters_CAMPY_AstBuilder astBuilder = new TreeWalker.MethodParameters_CAMPY_AstBuilder(

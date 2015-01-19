@@ -13,34 +13,45 @@ namespace Test
     {
         static void Main(string[] args)
         {
-            int size = 100000;
+            Accelerator_View def = Accelerator.get_default_view();
+            Accelerator def_acc = def.get_accelerator();
+            System.Console.WriteLine("Default accelerator:");
+            System.Console.WriteLine(def_acc.description());
+            System.Console.WriteLine(def_acc.device_path());
+            System.Console.WriteLine();
+            List<Accelerator> la = Accelerator.get_all();
+            foreach (Accelerator a in la)
+            {
+                System.Console.WriteLine(a.description());
+                System.Console.WriteLine(a.device_path());
+                if (a.description().Contains("GTX"))
+                {
+                    //bool was_set = Accelerator.set_default(a.device_path());
+                }
+                System.Console.WriteLine();
+            }
+            int size = 10000000;
             int[] data = new int[size];
-            int[] data2 = new int[size];
             Extent e = new Extent(size);
-            Int16 shortsize = (Int16)size; // Unsupported type short cannot capture.
             Array_View<int> d = new Array_View<int>(size, ref data);
-            Array_View<int> d2 = new Array_View<int>(size, ref data2);
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
                 d[j] = size - j - 1; // Capture size and d.
             });
-            Parallel_For_Each.loop(e, (Index idx) =>
-            {
-                int j = idx[0];
-                d2[j] = 1; // Capture d2.
-            });
-            Parallel_For_Each.loop(e, (Index idx) =>
-            {
-                int j = idx[0];
-                d[j] = d[j] % 2;  // Capture d.
-            });
-            Parallel_For_Each.loop(e, (Index idx) =>
-            {
-                int j = idx[0];
-                d[j] = d[j] + d2[j]; // Capture d and d2.
-            });
             d.synchronize();
+
+            // Do something you want to time
+
+            sw.Stop();
+
+            long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
+
+            Console.WriteLine("Operation completed in: " + microseconds + " (us)");
+
             for (int i = 0; i < size; ++i)
             {
                 System.Console.WriteLine(data[i]);

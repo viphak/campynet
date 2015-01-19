@@ -265,7 +265,7 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.FileName = "cl.exe";
                 p.StartInfo.Arguments =
                     "/c"
-                    + " /I\"H:\\ParallelFor.GPU\\Campy.NET\\Campy.Types\""
+                    + " /I\"C:\\cygwin64\\home\\Ken\\Campy.NET\\Campy.Types\""
                     + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\INCLUDE\""
                     + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\ATLMFC\\INCLUDE\""
                     + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\shared\""

@@ -4,19 +4,23 @@
 // pragma'ed unmanaged mode.
 
 #pragma once
+#include <string>
+
 #pragma managed(push, off)
 
 namespace Campy {
 	namespace Types {
 
-		template<typename _Value_type, int _Rank = 1>
-		class Native_Array_View
+		class Native_Accelerator
 		{
 		public:
-			void * ar;
-			Native_Array_View();
-			Native_Array_View(int length, _Value_type * ptr);
-			void synchronize();
+			void * na; // concurrency::accelerator
+			Native_Accelerator();
+			bool is_emulated();
+			static Native_Accelerator** get_all();
+			static bool set_default(std::wstring path);
+			std::wstring description();
+			std::wstring device_path();
 		};
 	}
 }

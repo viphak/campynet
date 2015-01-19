@@ -1,6 +1,3 @@
-//#pragma managed(push,off)
-//#include <amp.h>
-//#pragma managed(pop)
 
 #include "Extent.h"
 #include "Index.h"
