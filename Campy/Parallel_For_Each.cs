@@ -83,7 +83,7 @@ namespace Campy
             campy_kernel_class_short_name = campy_kernel_class_short_name + "_managed";
 
             // Derive name of assembly containing corresponding Campy code for lambda.
-            String campy_assembly_file_name = kernel_full_name;
+            String campy_assembly_file_name = full_path + "\\" + kernel_full_name;
             //String ext = Path.GetExtension(campy_assembly_file_name);
             //campy_assembly_file_name = campy_assembly_file_name.Replace(ext, "");
             campy_assembly_file_name = campy_assembly_file_name + "_aux";
@@ -107,7 +107,7 @@ namespace Campy
             //assemblyName.CodeBase = assembly.Name;
             try
             {
-                dll = SR.Assembly.LoadFile(full_path + "\\" + assembly.Name);
+                dll = SR.Assembly.LoadFile(campy_assembly_file_name);
             }
             catch
             {
@@ -211,7 +211,7 @@ namespace Campy
 
             // Load/reload assembly.
             //dll = dom.Load(assemblyName);
-            //dll = SR.Assembly.LoadFile(assembly.Name);
+            dll = SR.Assembly.LoadFile(campy_assembly_file_name);
 
             // Get address of thunk class corresponding to lambda.
             thunk = dll.GetType(campy_kernel_class_short_name);
