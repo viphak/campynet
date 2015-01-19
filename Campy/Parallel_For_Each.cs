@@ -105,7 +105,15 @@ namespace Campy
             // Create app domain in order to test the dll.
             //SR.AssemblyName assemblyName = new SR.AssemblyName();
             //assemblyName.CodeBase = assembly.Name;
-            dll = SR.Assembly.LoadFile(full_path + "\\" + assembly.Name);
+            try
+            {
+                dll = SR.Assembly.LoadFile(full_path + "\\" + assembly.Name);
+            }
+            catch
+            {
+                rebuild = true;
+            }
+
 
             // Determine if this kernel has been executed before.
             if (!assembly.executed_lambdas.Contains(kernel_full_name))
