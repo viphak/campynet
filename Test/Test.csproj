@@ -69,7 +69,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Campy.Types\Campy.Types.vcxproj">
       <Project>{d7fcb0bb-c7d9-48cb-9e74-a73d56efe00e}</Project>
-      <Name>CppConcurrency</Name>
+      <Name>Campy.Types</Name>
     </ProjectReference>
     <ProjectReference Include="..\Campy\Campy.csproj">
       <Project>{e8d017e0-fa8e-4e72-9389-49ded7bead07}</Project>

@@ -11,6 +11,8 @@ namespace Test
 {
     class Program
     {
+        delegate int fun(int xxx);
+
         static void Main(string[] args)
         {
             Accelerator_View def = Accelerator.get_default_view();
@@ -30,17 +32,23 @@ namespace Test
                 }
                 System.Console.WriteLine();
             }
-            int size = 10000000;
+            int size = 10;
             int[] data = new int[size];
             Extent e = new Extent(size);
             Array_View<int> d = new Array_View<int>(size, ref data);
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
+            fun test = (int k) =>
+            {
+                return k % (size/2);
+            };
+
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = size - j - 1; // Capture size and d.
+                //d[j] = size - j - (test(j) ? 1 : 2); // Capture size and d.
+                d[j] = test(j);
             });
             d.synchronize();
 

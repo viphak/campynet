@@ -55,13 +55,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClassFields.cs" />
+    <Compile Include="CPlusPlusCLIOutputVisitor.cs" />
     <Compile Include="CSharpOutputVisitor.cs" />
-    <Compile Include="CAMPY_AstBuilder.cs" />
+    <Compile Include="BaseAstBuilder.cs" />
+    <Compile Include="MethodSignature.cs" />
     <Compile Include="NRefactoryExtensions.cs" />
-    <Compile Include="MyCSharpModifierToken.cs" />
-    <Compile Include="MethodParameters_CAMPY_AstBuilder.cs" />
-    <Compile Include="MethodBody_CAMPY_AstBuilder.cs" />
+    <Compile Include="CPlusPlusModifierToken.cs" />
+    <Compile Include="MethodParameters.cs" />
+    <Compile Include="MethodBody.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

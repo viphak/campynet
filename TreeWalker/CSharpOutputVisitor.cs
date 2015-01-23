@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
 using System.Globalization;
+using Campy.Utils;
 
 namespace TreeWalker
 {
@@ -175,7 +176,7 @@ namespace TreeWalker
         /// </summary>
         /// <param name="nextNode">The next node after the comma.</param>
         /// <param name="noSpaceAfterComma">When set prevents printing a space after comma.</param>
-        private void Comma(AstNode nextNode, bool noSpaceAfterComma = false)
+        public virtual void Comma(AstNode nextNode, bool noSpaceAfterComma = false)
         {
             WriteSpecialsUpToRole(Roles.Comma, nextNode);
             Space(policy.SpaceBeforeBracketComma);
@@ -189,7 +190,7 @@ namespace TreeWalker
         /// <summary>
         /// Writes an optional comma, e.g. at the end of an enum declaration or in an array initializer
         /// </summary>
-        private void OptionalComma()
+        public virtual void OptionalComma()
         {
             // Look if there's a comma after the current node, and insert it if it exists.
             AstNode pos = positionStack.Peek();
@@ -206,7 +207,7 @@ namespace TreeWalker
         /// <summary>
         /// Writes an optional semicolon, e.g. at the end of a type or namespace declaration.
         /// </summary>
-        private void OptionalSemicolon()
+        public virtual void OptionalSemicolon()
         {
             // Look if there's a semicolon after the current node, and insert it if it exists.
             AstNode pos = positionStack.Peek();
@@ -220,7 +221,7 @@ namespace TreeWalker
             }
         }
 
-        private void WriteCommaSeparatedList(IEnumerable<AstNode> list)
+        public virtual void WriteCommaSeparatedList(IEnumerable<AstNode> list)
         {
             bool isFirst = true;
             foreach (AstNode node in list)
@@ -303,12 +304,12 @@ namespace TreeWalker
         /// <summary>
         /// Writes a keyword, and all specials up to
         /// </summary>
-        private void WriteKeyword(TokenRole tokenRole)
+        public virtual void WriteKeyword(TokenRole tokenRole)
         {
             WriteKeyword(tokenRole.Token, tokenRole);
         }
 
-        private void WriteKeyword(string token, Role tokenRole = null)
+        public virtual void WriteKeyword(string token, Role tokenRole = null)
         {
             if (tokenRole != null)
             {
@@ -331,7 +332,7 @@ namespace TreeWalker
                     lastWritten = LastWritten.KeywordOrIdentifier;
                 }*/
 
-        private void WriteIdentifier(string identifier, Role<Identifier> identifierRole = null)
+        public virtual void WriteIdentifier(string identifier, Role<Identifier> identifierRole = null)
         {
             WriteSpecialsUpToRole(identifierRole ?? Roles.Identifier);
             if (IsKeyword(identifier, containerStack.Peek()))
@@ -352,12 +353,12 @@ namespace TreeWalker
             lastWritten = LastWritten.KeywordOrIdentifier;
         }
 
-        private void WriteToken(TokenRole tokenRole)
+        public virtual void WriteToken(TokenRole tokenRole)
         {
             WriteToken(tokenRole.Token, tokenRole);
         }
 
-        private void WriteToken(string token, Role tokenRole)
+        public virtual void WriteToken(string token, Role tokenRole)
         {
             WriteSpecialsUpToRole(tokenRole);
             // Avoid that two +, - or ? tokens are combined into a ++, -- or ?? token.
@@ -401,12 +402,12 @@ namespace TreeWalker
             }
         }
 
-        private void LPar()
+        public virtual void LPar()
         {
             WriteToken(Roles.LPar);
         }
 
-        private void RPar()
+        public virtual void RPar()
         {
             WriteToken(Roles.RPar);
         }
@@ -414,7 +415,7 @@ namespace TreeWalker
         /// <summary>
         /// Marks the end of a statement
         /// </summary>
-        private void Semicolon()
+        public virtual void Semicolon()
         {
             Role role = containerStack.Peek().Role;
             // get the role of the current node
@@ -428,7 +429,7 @@ namespace TreeWalker
         /// <summary>
         /// Writes a space depending on policy.
         /// </summary>
-        private void Space(bool addSpace = true)
+        public virtual void Space(bool addSpace = true)
         {
             if (addSpace)
             {
@@ -437,20 +438,20 @@ namespace TreeWalker
             }
         }
 
-        private void NewLine()
+        public virtual void NewLine()
         {
             formatter.NewLine();
             lastWritten = LastWritten.Whitespace;
         }
 
-        private void OpenBrace(BraceStyle style)
+        public virtual void OpenBrace(BraceStyle style)
         {
             WriteSpecialsUpToRole(Roles.LBrace);
             formatter.OpenBrace(style);
             lastWritten = LastWritten.Other;
         }
 
-        private void CloseBrace(BraceStyle style)
+        public virtual void CloseBrace(BraceStyle style)
         {
             WriteSpecialsUpToRole(Roles.RBrace);
             formatter.CloseBrace(style);
@@ -539,7 +540,7 @@ namespace TreeWalker
             }
         }
 
-        private void WriteModifiers(IEnumerable<CSharpModifierToken> modifierTokens)
+        public virtual void WriteModifiers(IEnumerable<CSharpModifierToken> modifierTokens)
         {
             foreach (CSharpModifierToken modifier in modifierTokens)
             {
@@ -605,7 +606,7 @@ namespace TreeWalker
             }
         }
 
-        private void WriteAttributes(IEnumerable<AttributeSection> attributes)
+        public virtual void WriteAttributes(IEnumerable<AttributeSection> attributes)
         {
             foreach (AttributeSection attr in attributes)
             {
@@ -613,7 +614,7 @@ namespace TreeWalker
             }
         }
 
-        private void WritePrivateImplementationType(AstType privateImplementationType)
+        public virtual void WritePrivateImplementationType(AstType privateImplementationType)
         {
             if (!privateImplementationType.IsNull)
             {
@@ -1664,7 +1665,7 @@ namespace TreeWalker
             EndNode(namespaceDeclaration);
         }
 
-        public void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
+        public virtual void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
         {
             StartNode(typeDeclaration);
             WriteAttributes(typeDeclaration.Attributes);
@@ -1776,7 +1777,7 @@ namespace TreeWalker
 
         #region Statements
 
-        public void VisitBlockStatement(BlockStatement blockStatement)
+        public virtual void VisitBlockStatement(BlockStatement blockStatement)
         {
             StartNode(blockStatement);
             BraceStyle style;
@@ -2757,26 +2758,14 @@ namespace TreeWalker
             EndNode(constraint);
         }
 
-        public void VisitCSharpTokenNode(CSharpTokenNode cSharpTokenNode)
+        public virtual void VisitCSharpTokenNode(CSharpTokenNode cSharpTokenNode)
         {
             CSharpModifierToken mod = cSharpTokenNode as CSharpModifierToken;
             if (mod != null)
             {
-                // In context of FieldDefinition, the modifier is outputted using "<type> :" (type followed by colon).
-                // Check context.
-                AstNode p = mod.Parent;
-                if (p is FieldDeclaration)
-                {
-                    StartNode(mod);
-                    WriteKeyword(MyCSharpModifierToken.GetModifierName(mod.Modifier));
-                    EndNode(mod);
-                }
-                else
-                {
-                    StartNode(mod);
-                    WriteKeyword(CSharpModifierToken.GetModifierName(mod.Modifier));
-                    EndNode(mod);
-                }
+                StartNode(mod);
+                WriteKeyword(CSharpModifierToken.GetModifierName(mod.Modifier));
+                EndNode(mod);
             }
             else
             {
@@ -2787,7 +2776,7 @@ namespace TreeWalker
         public void VisitIdentifier(Identifier identifier)
         {
             StartNode(identifier);
-            WriteIdentifier(identifier.Name);
+            WriteIdentifier(Utility.NormalizeMonoCecilName(identifier.Name));
             EndNode(identifier);
         }
 

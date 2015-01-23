@@ -66,12 +66,15 @@
     <Compile Include="Converter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StackQueue.cs" />
-    <Compile Include="Utility.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Campy.Types\Campy.Types.vcxproj">
       <Project>{d7fcb0bb-c7d9-48cb-9e74-a73d56efe00e}</Project>
       <Name>Campy.Types</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
     </ProjectReference>
     <ProjectReference Include="..\TreeWalker\TreeWalker.csproj">
       <Project>{ffbc17dc-9dc7-4378-8c3e-d63ddc25611c}</Project>

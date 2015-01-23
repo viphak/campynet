@@ -8,6 +8,7 @@ using Mono.Cecil;
 using Mono.Cecil.PE;
 using SR = System.Reflection;
 using Campy.Types;
+using Campy.Utils;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -56,7 +57,7 @@ namespace Campy
             CopyViewToStaging(view, ref obj);
 
             // Get address of thunk method.
-            SR.MethodInfo mi2 = thunk.GetMethod("Thunk");
+            SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
 
             // Call thunk method.
             mi2.Invoke(obj, new object[] { });
@@ -66,6 +67,10 @@ namespace Campy
         {
             // Get MethodInfo for lambda.
             SR.MethodInfo mi = kernel.Method;
+            object target = kernel.Target;
+            Type target_type = target.GetType();
+            String target_type_name = target_type.FullName;
+            target_type_name = Utility.NormalizeSystemReflectionName(target_type_name);
 
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
@@ -79,11 +84,11 @@ namespace Campy
             kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
 
             // Get short name of Campy kernel.
-            String campy_kernel_class_short_name = kernel_full_name;
-            campy_kernel_class_short_name = campy_kernel_class_short_name + "_managed";
+            String campy_kernel_class_short_name = target_type_name
+                + "_managed";
 
             // Derive name of assembly containing corresponding Campy code for lambda.
-            String campy_assembly_file_name = full_path + "\\" + kernel_full_name;
+            String campy_assembly_file_name = full_path + "\\" + target_type_name;
             //String ext = Path.GetExtension(campy_assembly_file_name);
             //campy_assembly_file_name = campy_assembly_file_name.Replace(ext, "");
             campy_assembly_file_name = campy_assembly_file_name + "_aux";
@@ -135,73 +140,21 @@ namespace Campy
                     thunk = dll.GetType(campy_kernel_class_short_name);
                     if (thunk == null)
                     {
-                        // Try to delete the app domain, but it usually the dll doesn't unload.
-                        //AppDomain.Unload(dom);
-                        //var hMod = IntPtr.Zero;
-                        //LoadLibraryA(assembly.Name);
-                        //if (GetModuleHandleExA(0, assembly.Name, ref hMod))
-                        //{
-                        //    while (FreeLibrary(hMod))
-                        //    { }
-                        //}
-                        //dom = AppDomain.CreateDomain("something");
-                        //dll = null;
                         rebuild = true;
-                        // Force Dll unload.
                     }
                 }
 
                 if (rebuild)
                 {
-                    // Rebuild....
-
-                    // Decompile entire module.
-                    ModuleDefinition md = ModuleDefinition.ReadModule(kernel_assembly_file_name);
-
-                    // Examine all types, and all methods of types in order to find the lambda in Mono.Cecil.
-                    List<Type> types = new List<Type>();
-                    StackQueue<TypeDefinition> type_definitions = new StackQueue<TypeDefinition>();
-                    StackQueue<TypeDefinition> type_definitions_closure = new StackQueue<TypeDefinition>();
-                    foreach (TypeDefinition td in md.Types)
-                    {
-                        type_definitions.Push(td);
-                    }
-                    while (type_definitions.Count > 0)
-                    {
-                        TypeDefinition ty = type_definitions.Pop();
-                        type_definitions_closure.Push(ty);
-                        foreach (TypeDefinition ntd in ty.NestedTypes)
-                            type_definitions.Push(ntd);
-                    }
-                    MethodDefinition lambda_method = null;
-                    foreach (TypeDefinition td in type_definitions_closure)
-                    {
-                        foreach (MethodDefinition md2 in td.Methods)
-                        {
-                            String md2_name = Utility.NormalizeMonoCecilName(md2.FullName);
-                            if (md2_name.Contains(kernel_full_name))
-                                lambda_method = md2;
-                        }
-                    }
-
-                    // lambda_method is the delegate. Find the enclosing type.
-                    TypeDefinition closure = lambda_method.DeclaringType;
-
-                    String check_managed_closure_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
-                    check_managed_closure_name = Utility.NormalizeMonoCecilName(check_managed_closure_name);
-                    check_managed_closure_name = check_managed_closure_name + "_managed";
-
-                    // Make sure it's the same as short name of lambda.
-                    if (!check_managed_closure_name.Equals(campy_kernel_class_short_name))
-                        throw new Exception("Name mismatch.");
-
                     Converter converter = new Converter(assembly);
 
                     // Convert lambda into GPU target code.
-                    converter.Convert(lambda_method);
+                    converter.Convert(kernel);
 
                     // Compile target code into object code.
                     builder.Compile(assembly);
+
+                    // Link object code.
                     builder.Link(assembly);
                 }
 
@@ -243,11 +196,15 @@ namespace Campy
                 {
                     SR.FieldInfo hostObjectField = field;
 
+                    object value = hostObjectField.GetValue(host_object);
+                    Type ft = value.GetType();
+                    if (value as System.MulticastDelegate != null)
+                        continue;
+
                     var deviceObjectField = sfi.Where(f => f.Name == field.Name).FirstOrDefault();
                     if (deviceObjectField == null)
                         throw new ArgumentException("Field not found.");
 
-                    object value = hostObjectField.GetValue(host_object);
                     deviceObjectField.SetValue(staging_object, value);
                 }
             }
