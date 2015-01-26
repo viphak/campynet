@@ -24,7 +24,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Campy.Utils;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
     public class CPlusPlusCLIOutputVisitor : CSharpOutputVisitor
     {

@@ -23,11 +23,11 @@ using ICSharpCode.NRefactory.TypeSystem;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
-    public class MethodParametersAstBuilder : BaseAstBuilder
+    public class MethodBodyAstBuilder : BaseAstBuilder
     {
-        public MethodParametersAstBuilder(DecompilerContext context)
+        public MethodBodyAstBuilder(DecompilerContext context)
             : base(context)
         { }
 
@@ -36,16 +36,16 @@ namespace TreeWalker
             syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
             var outputFormatter = new TextOutputFormatter(output) { FoldBraces = context.Settings.FoldBraces };
             var formattingPolicy = context.Settings.CSharpFormattingOptions;
-            syntaxTree.AcceptVisitor(new MethodParametersOutputVisitor(outputFormatter, formattingPolicy));
+            syntaxTree.AcceptVisitor(new MethodBodyOutputVisitor(outputFormatter, formattingPolicy));
         }
     }
 
     /// <summary>
     /// Outputs the AST.
     /// </summary>
-    public class MethodParametersOutputVisitor : CSharpOutputVisitor
+    public class MethodBodyOutputVisitor : CSharpOutputVisitor
     {
-        public MethodParametersOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
+        public MethodBodyOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
             : base(formatter, formattingPolicy)
         {
         }
@@ -61,12 +61,12 @@ namespace TreeWalker
             // methodDeclaration.NameToken.AcceptVisitor(this);
             // WriteTypeParameters(methodDeclaration.TypeParameters);
             // Space(policy.SpaceBeforeMethodDeclarationParentheses);
-            WriteCommaSeparatedListInParenthesis(methodDeclaration.Parameters, policy.SpaceWithinMethodDeclarationParentheses);
+            // WriteCommaSeparatedListInParenthesis(methodDeclaration.Parameters, policy.SpaceWithinMethodDeclarationParentheses);
             // foreach (Constraint constraint in methodDeclaration.Constraints)
             // {
             //     constraint.AcceptVisitor(this);
             // }
-            // WriteMethodBody(methodDeclaration.Body);
+            WriteMethodBody(methodDeclaration.Body);
             EndNode(methodDeclaration);
         }
     }

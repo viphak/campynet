@@ -7,7 +7,7 @@
     <ProjectGuid>{FFBC17DC-9DC7-4378-8C3E-D63DDC25611C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>TreeWalker</RootNamespace>
+    <RootNamespace>Campy.TreeWalker</RootNamespace>
     <AssemblyName>TreeWalker</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

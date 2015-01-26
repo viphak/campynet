@@ -12,7 +12,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Campy.Utils;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
     /// <summary>
     /// Outputs the AST.

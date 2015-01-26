@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Campy", "Campy\Campy.csproj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Campy.Types", "Campy.Types\Campy.Types.vcxproj", "{D7FCB0BB-C7D9-48CB-9E74-A73D56EFE00E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeWalker", "TreeWalker\TreeWalker.csproj", "{FFBC17DC-9DC7-4378-8C3E-D63DDC25611C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Campy.TreeWalker", "Campy.TreeWalker\Campy.TreeWalker.csproj", "{FFBC17DC-9DC7-4378-8C3E-D63DDC25611C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{D7FED967-391E-4AA2-ABC3-5B409094F109}"
 EndProject

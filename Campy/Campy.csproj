@@ -77,9 +77,9 @@
       <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
       <Name>Campy.Utils</Name>
     </ProjectReference>
-    <ProjectReference Include="..\TreeWalker\TreeWalker.csproj">
+    <ProjectReference Include="..\Campy.TreeWalker\Campy.TreeWalker.csproj">
       <Project>{ffbc17dc-9dc7-4378-8c3e-d63ddc25611c}</Project>
-      <Name>TreeWalker</Name>
+      <Name>Campy.TreeWalker</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

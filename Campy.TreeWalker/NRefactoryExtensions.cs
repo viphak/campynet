@@ -20,7 +20,7 @@ using System;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.PatternMatching;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
     static class NRefactoryExtensions
     {

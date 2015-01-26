@@ -23,11 +23,11 @@ using ICSharpCode.NRefactory.TypeSystem;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
-    public class ClassFieldsAstBuilder : CPlusPlusCLIAstBuilder
+    public class MethodParametersAstBuilder : BaseAstBuilder
     {
-        public ClassFieldsAstBuilder(DecompilerContext context)
+        public MethodParametersAstBuilder(DecompilerContext context)
             : base(context)
         { }
 
@@ -36,16 +36,16 @@ namespace TreeWalker
             syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
             var outputFormatter = new TextOutputFormatter(output) { FoldBraces = context.Settings.FoldBraces };
             var formattingPolicy = context.Settings.CSharpFormattingOptions;
-            syntaxTree.AcceptVisitor(new ClassFieldsOutputVisitor(outputFormatter, formattingPolicy));
+            syntaxTree.AcceptVisitor(new MethodParametersOutputVisitor(outputFormatter, formattingPolicy));
         }
     }
 
     /// <summary>
     /// Outputs the AST.
     /// </summary>
-    public class ClassFieldsOutputVisitor : CPlusPlusCLIOutputVisitor
+    public class MethodParametersOutputVisitor : CSharpOutputVisitor
     {
-        public ClassFieldsOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
+        public MethodParametersOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
             : base(formatter, formattingPolicy)
         {
         }
@@ -61,29 +61,13 @@ namespace TreeWalker
             // methodDeclaration.NameToken.AcceptVisitor(this);
             // WriteTypeParameters(methodDeclaration.TypeParameters);
             // Space(policy.SpaceBeforeMethodDeclarationParentheses);
-            // WriteCommaSeparatedListInParenthesis(methodDeclaration.Parameters, policy.SpaceWithinMethodDeclarationParentheses);
+            WriteCommaSeparatedListInParenthesis(methodDeclaration.Parameters, policy.SpaceWithinMethodDeclarationParentheses);
             // foreach (Constraint constraint in methodDeclaration.Constraints)
             // {
             //     constraint.AcceptVisitor(this);
             // }
-            WriteMethodBody(methodDeclaration.Body);
+            // WriteMethodBody(methodDeclaration.Body);
             EndNode(methodDeclaration);
-        }
-
-        public override void VisitCSharpTokenNode(CSharpTokenNode cSharpTokenNode)
-        {
-            CSharpModifierToken mod = cSharpTokenNode as CSharpModifierToken;
-            if (mod != null)
-            {
-                // In context of FieldDefinition, the modifier is outputted using "<type> :" (type followed by colon).
-                StartNode(mod);
-                WriteKeyword(CPlusPlusCLIFieldModifierToken.GetModifierName(mod.Modifier));
-                EndNode(mod);
-            }
-            else
-            {
-                throw new NotSupportedException("Should never visit individual tokens");
-            }
         }
     }
 }

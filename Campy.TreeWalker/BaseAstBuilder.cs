@@ -18,7 +18,7 @@ using ICSharpCode.NRefactory.Utils;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
     using Ast = ICSharpCode.NRefactory.CSharp;
     using VarianceModifier = ICSharpCode.NRefactory.TypeSystem.VarianceModifier;

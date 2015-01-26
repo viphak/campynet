@@ -11,7 +11,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace TreeWalker
+namespace Campy.TreeWalker
 {
 
     public class CPlusPlusModifierToken : CSharpTokenNode

@@ -380,7 +380,7 @@ namespace Campy
                             Delegate to_del = field_names[na];
                             MethodDefinition md = ConvertToMonoCecilType(to_del);
                             {
-                                TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
+                                Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
                                     new ICSharpCode.Decompiler.DecompilerContext(
                                         mod_def) { CurrentType = td });
                                 astBuilder.AddMethod(md);
@@ -392,7 +392,7 @@ namespace Campy
                             }
                             result += " restrict(amp) ";
                             {
-                                TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
+                                Campy.TreeWalker.MethodBodyAstBuilder astBuilder = new Campy.TreeWalker.MethodBodyAstBuilder(
                                     new ICSharpCode.Decompiler.DecompilerContext(
                                         mod_def) { CurrentType = td });
                                 astBuilder.AddMethod(md);
@@ -413,7 +413,7 @@ namespace Campy
             result += "parallel_for_each(e, [=]";
             MethodDefinition main_md = ConvertToMonoCecilType(delegates.First());
             {
-                TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
+                Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
                     new ICSharpCode.Decompiler.DecompilerContext(
                         mod_def) { CurrentType = td });
                 astBuilder.AddMethod(main_md);
@@ -426,7 +426,7 @@ namespace Campy
             }
             result += " restrict(amp)";
             {
-                TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
+                Campy.TreeWalker.MethodBodyAstBuilder astBuilder = new Campy.TreeWalker.MethodBodyAstBuilder(
                     new ICSharpCode.Decompiler.DecompilerContext(
                         mod_def) { CurrentType = td });
                 astBuilder.AddMethod(main_md);
