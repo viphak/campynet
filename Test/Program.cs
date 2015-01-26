@@ -12,8 +12,21 @@ namespace Test
     class Program
     {
         delegate int fun(int xxx);
+        static int size = 10;
 
-        static void Main(string[] args)
+        static void Part1()
+        {
+            int lsize = size;
+
+            fun frick = (int k) =>
+            {
+                return k % (lsize / 2);
+            };
+
+            Part2(frick);
+        }
+
+        static void Part2(fun test)
         {
             Accelerator_View def = Accelerator.get_default_view();
             Accelerator def_acc = def.get_accelerator();
@@ -32,38 +45,47 @@ namespace Test
                 }
                 System.Console.WriteLine();
             }
-            int size = 10;
+
             int[] data = new int[size];
             Extent e = new Extent(size);
             Array_View<int> d = new Array_View<int>(size, ref data);
             Stopwatch sw = new Stopwatch();
             sw.Start();
+            int local_size = size;
 
-            fun test = (int k) =>
+            fun test2 = (int k) =>
             {
-                return k % (size/2);
+                return k % (local_size / 2); // Cannot reference size directly!!!
             };
-
+            int xsize = size; // required because static size cannot be referenced.
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                //d[j] = size - j - (test(j) ? 1 : 2); // Capture size and d.
-                d[j] = test(j);
+                d[j] = xsize - j - test2(j);
             });
             d.synchronize();
-
-            // Do something you want to time
-
-            sw.Stop();
-
-            long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-
-            Console.WriteLine("Operation completed in: " + microseconds + " (us)");
-
             for (int i = 0; i < size; ++i)
             {
                 System.Console.WriteLine(data[i]);
             }
+            Parallel_For_Each.loop(d.extent, (Index idx) =>
+            {
+                int j = idx[0];
+                d[j] = test(j);
+            });
+            d.synchronize();
+            for (int i = 0; i < size; ++i)
+            {
+                System.Console.WriteLine(data[i]);
+            }
+            sw.Stop();
+            long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
+            Console.WriteLine("Operation completed in: " + microseconds + " (us)");
+        }
+
+        static void Main(string[] args)
+        {
+            Part1();
         }
     }
 }

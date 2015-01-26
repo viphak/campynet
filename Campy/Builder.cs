@@ -10,12 +10,126 @@ namespace Campy
 {
     class Builder
     {
+        String compiler_path = null;
+        String vc_include_path = null;
+        String vc_atlmfc_include_path = null;
+        String vc_lib_path = null;
+        String wk_include_path = null;
+        String wk_lib_path = null;
+        String ref_asm_path = null;
+
+        void SetupEnv()
+        {
+            // Set up cl.exe, link.exe, includes, etc., so that we can complete a build.
+
+            // Look for environmental variables.
+            // Try in order: VS140COMNTOOLS, VS120COMNTOOLS.
+            String root_14;
+            String root_12;
+            root_14 = null; // Environment.GetEnvironmentVariable("VS140COMNTOOLS");
+            root_12 = Environment.GetEnvironmentVariable("VS120COMNTOOLS");
+            if (root_14 != null && root_14 != "")
+            {
+                for (;;)
+                {
+                    String root = root_14;
+
+                    // Check path for existence of cl.exe.
+                    String path = root + "\\..\\..\\VC\\bin";
+                    path = Path.GetFullPath(path);
+                    bool found = File.Exists(path + "\\cl.exe");
+                    if (!found)
+                        break;
+                    compiler_path = path;
+                    found = File.Exists(path + "\\link.exe");
+                    if (!found)
+                        throw new Exception("cl.exe found but link.exe not found!!");
+                    // Check path for existence of includes.
+                    path = root + "\\..\\..\\VC\\INCLUDE";
+                    path = Path.GetFullPath(path);
+                    found = File.Exists(path + "\\amp.h");
+                    if (!found)
+                        throw new Exception("amp.h not found!!");
+                    vc_include_path = path;
+                    vc_atlmfc_include_path = Path.GetFullPath(path + "..\\atfmfc\\include");
+                    vc_lib_path = Path.GetFullPath(path + "..\\lib");
+                    break;
+                }
+            }
+            if (compiler_path == null && root_12 != null && root_12 != "")
+            {
+                for (;;)
+                {
+                    String root = root_12;
+
+                    // Check path for existence of cl.exe.
+                    String path = root + "\\..\\..\\VC\\bin";
+                    path = Path.GetFullPath(path);
+                    bool found = File.Exists(path + "\\cl.exe");
+                    if (!found)
+                        break;
+                    compiler_path = path;
+                    found = File.Exists(path + "\\link.exe");
+                    if (!found)
+                        throw new Exception("cl.exe found but link.exe not found!!");
+                    // Check path for existence of includes.
+                    path = root + "\\..\\..\\VC\\INCLUDE";
+                    path = Path.GetFullPath(path);
+                    found = File.Exists(path + "\\amp.h");
+                    if (!found)
+                        throw new Exception("amp.h not found!!");
+                    vc_include_path = path;
+                    vc_atlmfc_include_path = Path.GetFullPath(path + "..\\atfmfc\\include");
+                    vc_lib_path = Path.GetFullPath(path + "..\\lib");
+                    break;
+                }
+            }
+            if (compiler_path == null)
+                throw new Exception("Neither Visual Studio 2013 nor 2015 installed.");
+
+            // Look for Windows Kits, using the compiler path and current OS
+            // as a guide.
+            PlatformID pid = Environment.OSVersion.Platform;
+            String ver = Environment.OSVersion.Version.ToString();
+            String pre = compiler_path + "\\..\\..\\..\\Windows Kits";
+            pre = Path.GetFullPath(pre);
+            if (ver.IndexOf("6.2") == 0)
+            {
+                String root = pre;
+                String path = root + "\\8.1\\Include";
+                bool found = Directory.Exists(path);
+                if (!found)
+                {
+                    path = root + "\\8.0\\Include";
+                    found = Directory.Exists(path);
+                }
+                if (!found)
+                    throw new Exception("Windows Kit not found.");
+                wk_include_path = path;
+                wk_lib_path = Path.GetFullPath(path + "..\\lib\\winv6.3\\um\\x86");
+            }
+            if (ver.IndexOf("6.1") == 0)
+            {
+                String root = pre;
+                String path = root + "\\7.0\\Include";
+                bool found = Directory.Exists(path);
+                if (!found)
+                    throw new Exception("Windows Kit not found.");
+                wk_include_path = path;
+                wk_lib_path = Path.GetFullPath(path + "..\\lib\\winv6.1\\um\\x86");
+            }
+            ref_asm_path = "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5";
+            if (!Directory.Exists(ref_asm_path))
+                throw new Exception("Expecting for .NET 4.5 to be installed.");
+        }
+        
         public Builder()
         {
         }
 
         public void Build()
         {
+            SetupEnv();
             // Load "Parallel_For_Each.todo"
             String file_name = "Parallel_For_Each.todo";
             if (File.Exists(file_name))
@@ -30,15 +144,17 @@ namespace Campy
                     p.StartInfo.RedirectStandardOutput = true;
                     p.StartInfo.RedirectStandardError = true;
                     p.StartInfo.CreateNoWindow = true;
-                    p.StartInfo.FileName = "link.exe";
+                    p.StartInfo.FileName = compiler_path + "\\link.exe";
                     p.StartInfo.Arguments = line;
                     p.Start();
                     p.WaitForExit();
                     string output = p.StandardOutput.ReadToEnd();
+                    String more_output = p.StandardError.ReadToEnd();
                     if (p.ExitCode > 0)
                     {
                         failed = true;
-                        System.Console.WriteLine("Link faild: " + output);
+                        System.Console.WriteLine("Link failed: " + output);
+                        System.Console.WriteLine(more_output);
                     }
                 }
                 File.Delete("Parallel_For_Each.todo");
@@ -151,7 +267,7 @@ eat_blanks_after_open_brace	= TRUE
             p.StartInfo.Arguments = "-c cfg.cfg -f \"" + source_file_name + "\" -o \"" + source_file_name + "\"";
             p.Start();
             p.WaitForExit();
-            string output = p.StandardOutput.ReadToEnd();
+            String output = p.StandardOutput.ReadToEnd();
             String out_err = p.StandardError.ReadToEnd();
             if (p.ExitCode > 0)
             {
@@ -206,14 +322,14 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
                 p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.FileName = "cl.exe";
+                p.StartInfo.FileName = compiler_path + "\\cl.exe";
                 p.StartInfo.Arguments =
                     "/c"
-                    + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\INCLUDE\""
-                    + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\ATLMFC\\INCLUDE\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\shared\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\um\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\winrt\""
+                    + " /I\"" + vc_include_path + "\""
+                    + " /I\"" + vc_atlmfc_include_path + "\""
+                    + " /I\"" + wk_include_path + "\\shared\""
+                    + " /I\"" + wk_include_path + "\\um\""
+                    + " /I\"" + wk_include_path + "\\winrt\""
                     + " /GS"
                     + " /GR"
                     + " /analyze-"
@@ -229,10 +345,10 @@ eat_blanks_after_open_brace	= TRUE
                     + " /D \"_UNICODE\""
                     + " /D \"UNICODE\""
                     + " /errorReport:prompt"
-                    + " /FU\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5\\mscorlib.dll\""
-                    + " /FU\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5\\System.Data.dll\""
-                    + " /FU\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5\\System.dll\""
-                    + " /FU\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5\\System.Xml.dll\""
+                    + " /FU\"" + ref_asm_path + "\\mscorlib.dll\""
+                    + " /FU\"" + ref_asm_path + "\\System.Data.dll\""
+                    + " /FU\"" + ref_asm_path + "\\System.dll\""
+                    + " /FU\"" + ref_asm_path + "\\System.Xml.dll\""
                     + " /WX-"
                     + " /Zc:forScope"
                     + " /clr"
@@ -246,9 +362,11 @@ eat_blanks_after_open_brace	= TRUE
                 p.Start();
                 p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();
+                String more_output = p.StandardError.ReadToEnd();
                 if (p.ExitCode > 0)
                 {
                     System.Console.WriteLine("Compile failed: " + output);
+                    System.Console.WriteLine(more_output);
                     throw new Exception("Compile failed.");
                 }
             }
@@ -262,15 +380,15 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
                 p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.FileName = "cl.exe";
+                p.StartInfo.FileName = compiler_path + "\\cl.exe";
                 p.StartInfo.Arguments =
                     "/c"
                     + " /I\"C:\\cygwin64\\home\\Ken\\Campy.NET\\Campy.Types\""
-                    + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\INCLUDE\""
-                    + " /I\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\ATLMFC\\INCLUDE\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\shared\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\um\""
-                    + " /I\"C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\winrt\""
+                    + " /I\"" + vc_include_path + "\""
+                    + " /I\"" + vc_atlmfc_include_path + "\""
+                    + " /I\"" + wk_include_path + "\\shared\""
+                    + " /I\"" + wk_include_path + "\\um\""
+                    + " /I\"" + wk_include_path + "\\winrt\""
                     + " /GS"
                     + " /analyze-"
                     + " /W3"
@@ -299,9 +417,11 @@ eat_blanks_after_open_brace	= TRUE
                 p.Start();
                 p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();
+                String more_output = p.StandardError.ReadToEnd();
                 if (p.ExitCode > 0)
                 {
                     System.Console.WriteLine("Compile failed: " + output);
+                    System.Console.WriteLine(more_output);
                     throw new Exception("Compile failed.");
                 }
             }
@@ -325,7 +445,7 @@ eat_blanks_after_open_brace	= TRUE
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.FileName = "link.exe";
+            p.StartInfo.FileName = compiler_path + "\\link.exe";
             p.StartInfo.Arguments =
                 "/OUT:" + "\"" + assembly.Name + "\""
                 + " /MANIFEST"
@@ -366,11 +486,14 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.Arguments = p.StartInfo.Arguments + " " + obj_source_file_name;
             }
             p.Start();
-            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+            String output = p.StandardOutput.ReadToEnd();
+            String more_output = p.StandardError.ReadToEnd();
             if (p.ExitCode > 0)
             {
                 System.Console.WriteLine("Link failed: " + output);
-                if (output.Contains("cannot open"))
+                System.Console.WriteLine(more_output);
+                if (output.Contains("cannot open") || more_output.Contains("cannot open"))
                 {
                     System.Console.WriteLine("Restart program in order to get link to work.");
                     using (StreamWriter sw = File.AppendText("Parallel_For_Each.todo"))
@@ -380,7 +503,6 @@ eat_blanks_after_open_brace	= TRUE
                 }
                 throw new Exception("Link failed.");
             }
-            p.WaitForExit();
         }
     }
 }

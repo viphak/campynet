@@ -47,8 +47,10 @@ namespace Campy
             // Create thunk object.
             object obj = Activator.CreateInstance(thunk);
 
+            List<Delegate> delegates = Analysis.FindAllTargets(_kernel);
+
             // Set fields of thunk based on lambda.
-            CopyFieldsFromHostToStaging(_kernel.Target, ref obj);
+            CopyFieldsFromHostToStaging(delegates, ref obj);
 
             // Set extent.
             CopyExtentToStaging(extent, ref obj);
@@ -81,14 +83,14 @@ namespace Campy
 
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
             String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, mi.ReflectedType.FullName, mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
+            kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name) + "_managed";
 
             // Get short name of Campy kernel.
             String campy_kernel_class_short_name = target_type_name
                 + "_managed";
 
             // Derive name of assembly containing corresponding Campy code for lambda.
-            String campy_assembly_file_name = full_path + "\\" + target_type_name;
+            String campy_assembly_file_name = full_path + "\\" + kernel_full_name;
             //String ext = Path.GetExtension(campy_assembly_file_name);
             //campy_assembly_file_name = campy_assembly_file_name.Replace(ext, "");
             campy_assembly_file_name = campy_assembly_file_name + "_aux";
@@ -137,7 +139,7 @@ namespace Campy
                     //dll = dom.Load(assemblyName);
 
                     // Get address of thunk class corresponding to lambda.
-                    thunk = dll.GetType(campy_kernel_class_short_name);
+                    thunk = dll.GetType(kernel_full_name);
                     if (thunk == null)
                     {
                         rebuild = true;
@@ -167,45 +169,52 @@ namespace Campy
             dll = SR.Assembly.LoadFile(campy_assembly_file_name);
 
             // Get address of thunk class corresponding to lambda.
-            thunk = dll.GetType(campy_kernel_class_short_name);
+            thunk = dll.GetType(kernel_full_name);
 
             return thunk;
         }
 
-        private static void CopyFieldsFromHostToStaging(object host_object, ref object staging_object)
+        private static void CopyFieldsFromHostToStaging(List<Delegate> delegates, ref object staging_object)
         {
-            Type t = host_object.GetType();
-            SR.FieldInfo[] tfi = t.GetFields();
-
             Type s = staging_object.GetType();
             SR.FieldInfo[] sfi = s.GetFields();
-
-            foreach (var field in tfi)
+            // Collect all information from fields of each delegate and pass to managed object.
+            foreach (System.Delegate del in delegates)
             {
-                if (field.FieldType.IsArray)
+                if (del.Target != null)
                 {
-                    SR.FieldInfo hostObjectField = field;
-                    var deviceObjectField = sfi.Where(f => f.Name == hostObjectField.Name).FirstOrDefault();
-                    if (deviceObjectField == null)
-                        throw new ArgumentException("Field not found.");
+                    object del_target = del.Target;
+                    Type del_target_type = del.Target.GetType();
+                    foreach (SR.FieldInfo fi in del_target_type.GetFields())
+                    {
+                        // Here, we do not output fields which are delegates.
+                        // Each delegate target is output, and the method handled
+                        // as an auto in the C++ AMP code.
+                        object field_value = fi.GetValue(del.Target);
+                        if (field_value as System.Delegate != null)
+                            continue;
+                        String na = fi.Name;
+                        String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                        // Also, we really can only handle Campy or value types.
+                        // Check and complain.
+                        if (!(field_value.GetType().IsValueType
+                            || Utility.IsSimpleCampyType(field_value)))
+                            throw new Exception("Can only compile value types, or Campy Types. "
+                                + tys + " is not one of those.");
+                        // Copy.
+                            SR.FieldInfo hostObjectField = fi;
 
-                    // Get array and copy to the device.
-                    Array hostArray = (Array)hostObjectField.GetValue(host_object);
-                }
-                else
-                {
-                    SR.FieldInfo hostObjectField = field;
+                            object value = field_value;
+                            Type ft = value.GetType();
+                            if (value as System.MulticastDelegate != null)
+                                continue;
 
-                    object value = hostObjectField.GetValue(host_object);
-                    Type ft = value.GetType();
-                    if (value as System.MulticastDelegate != null)
-                        continue;
+                            var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
+                            if (deviceObjectField == null)
+                                throw new ArgumentException("Field not found.");
 
-                    var deviceObjectField = sfi.Where(f => f.Name == field.Name).FirstOrDefault();
-                    if (deviceObjectField == null)
-                        throw new ArgumentException("Field not found.");
-
-                    deviceObjectField.SetValue(staging_object, value);
+                            deviceObjectField.SetValue(staging_object, value);
+                    }
                 }
             }
         }

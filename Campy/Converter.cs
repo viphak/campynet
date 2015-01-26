@@ -19,11 +19,11 @@ namespace Campy
         String eol = "\r\n";
         Assembly _assembly;
         Dictionary<System.Object, bool> compiled_targets = new Dictionary<object, bool>();
-        List<String> multicastdelegates = new List<string>();
+        Dictionary<String, MulticastDelegate> multicastdelegates = new Dictionary<string, MulticastDelegate>();
 
-        public Mono.Cecil.TypeDefinition ConvertToMonoCecilType(System.MulticastDelegate multidelegate)
+        public Mono.Cecil.MethodDefinition ConvertToMonoCecilType(System.Delegate del)
         {
-            SR.MethodInfo mi = multidelegate.Method;
+            SR.MethodInfo mi = del.Method;
 
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
@@ -65,12 +65,14 @@ namespace Campy
                 }
             }
 
-            return lambda_method.DeclaringType;
+            return lambda_method;
         }
 
         void GenerateManagedCode(
             String kernel_full_name,
-            ModuleDefinition mod_def, TypeDefinition td,
+            List<System.Delegate> delegates,
+            ModuleDefinition mod_def,
+            TypeDefinition td,
             String managed_cpp_file_name,
             String managed_h_file_name,
             String unmanaged_h_file_name)
@@ -94,88 +96,108 @@ namespace Campy
             result += eol + eol;
             result += "public ref class " + kernel_full_name + "_managed" + eol;
             result += "{" + eol;
-            result += "// Names of field are the same as closure in C#." + eol;
-            foreach (FieldDefinition fi in td.Fields)
+
+            // Loop through every delegate and output each field to capture.
+            result += "// Inline delegate target field." + eol;
+            List<object> targets = new List<object>();
+            foreach (System.Delegate del in delegates)
             {
-                String na = fi.Name;
-                if (multicastdelegates.Contains(na))
+                if (targets.Contains(del.Target))
                     continue;
-                TreeWalker.ClassFieldsAstBuilder astBuilder = new TreeWalker.ClassFieldsAstBuilder(
-                    new ICSharpCode.Decompiler.DecompilerContext(
-                        mod_def) { CurrentType = td });
-                astBuilder.AddField(fi);
-                StringWriter output = new StringWriter();
-                astBuilder.GenerateCode(new PlainTextOutput(output));
-                String field_result = output.ToString();
-                result += field_result;
-                output.Dispose();
+                if (del.Target != null)
+                {
+                    targets.Add(del.Target);
+                    result += "// Delegate target " + Utility.GetFriendlyTypeName(del.Target.GetType()) + eol;
+                    object del_target = del.Target;
+                    Type del_target_type = del.Target.GetType();
+                    foreach (SR.FieldInfo fi in del_target_type.GetFields())
+                    {
+                        // Here, we do not output fields which are delegates.
+                        // Each delegate target is output, and the method handled
+                        // as an auto in the C++ AMP code.
+                        object field_value = fi.GetValue(del.Target);
+                        if (field_value as System.Delegate != null)
+                            continue;
+                        String na = fi.Name;
+                        String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                        // Also, we really can only handle Campy or value types.
+                        // Check and complain.
+                        if (!(field_value.GetType().IsValueType
+                            || Utility.IsSimpleCampyType(field_value)))
+                            throw new Exception("Can only compile value types, or Campy Types. "
+                                + tys + " is not one of those.");
+                        // In C++ CLI, classes are reference pointer type.
+                        if (Utility.IsSimpleCampyType(field_value))
+                            tys += '^';
+                        result += "public: " + tys + " " + na + ";" + eol;
+                    }
+                }
+                result += eol;
             }
             result += "public: Accelerator_View^ accelerator_view;" + eol;
             result += "public: Extent^ extent;" + eol;
             result += eol;
-            foreach (MethodDefinition method_definition in td.Methods)
+            String method_name = delegates.First().Method.Name;
+            method_name = Utility.NormalizeMonoCecilName(method_name);
+            result += "// primary delegate entry point" + eol;
+            result += "void " + method_name + "()" + eol;
+            result += "{" + eol;
+            result += "// Create unmanaged object." + eol;
+            result += kernel_full_name + "_unmanaged * unm = new "
+                    + kernel_full_name + "_unmanaged" + "();" + eol + eol;
+            result += "// Copy data from managed class object into unmanaged class object." + eol;
+            // Loop through every delegate and output each field to capture.
+            foreach (System.Delegate del in delegates)
             {
-                // Don't output contructor methods.
-                if (method_definition.Name.Equals(".ctor"))
-                    continue;
-                // Don't output anything but lambdas with void(Index) signature.
-                if ("System.Void" != method_definition.MethodReturnType.ReturnType.FullName)
-                    continue;
-                if (method_definition.Parameters.Count != 1)
-                    continue;
-                if (method_definition.Parameters.First().ParameterType.FullName != "Campy.Types.Index")
-                    continue;
-
-                String method_name = method_definition.Name;
-                method_name = Utility.NormalizeMonoCecilName(method_name);
-                result += "// delegate" + eol;
+                if (del.Target != null)
                 {
-                    String na = method_definition.Name;
-                    //TreeWalker.MethodSignatureAstBuilder astBuilder = new TreeWalker.MethodSignatureAstBuilder(
-                    //    new ICSharpCode.Decompiler.DecompilerContext(
-                    //        mod_def) { CurrentType = td });
-                    //astBuilder.AddMethod(method_definition);
-                    //StringWriter output = new StringWriter();
-                    //astBuilder.GenerateCode(new PlainTextOutput(output));
-                    //String field_result = output.ToString();
-                    //result += field_result;
-                    //output.Dispose();
-                    result += "void " + method_name + "()" + eol;
-                }
-                
-                result += "{" + eol;
-                result += "// Create unmanaged object." + eol;
-                result += kernel_full_name + "_unmanaged * unm = new "
-                     + kernel_full_name + "_unmanaged" + "();" + eol + eol;
-                result += "// Copy data from C# lambda into unmanaged object." + eol;
-                foreach (FieldDefinition fi in td.Fields)
-                {
-                    String na = fi.Name;
-                    if (multicastdelegates.Contains(na))
-                        continue;
-                    if (fi.FieldType.Name.Contains("Array_View"))
+                    result += "// Delegate target " + Utility.GetFriendlyTypeName(del.Target.GetType()) + eol;
+                    object del_target = del.Target;
+                    Type del_target_type = del.Target.GetType();
+                    foreach (SR.FieldInfo fi in del_target_type.GetFields())
                     {
-                        result += "unm->nav_" + fi.Name + " = (void *)" + fi.Name + "->nav();" + eol;
-                    }
-                    else
-                    {
-                        result += "unm->" + fi.Name + " = " + fi.Name + ";" + eol;
+                        // Here, we do not output fields which are delegates.
+                        // Each delegate target is output, and the method handled
+                        // as an auto in the C++ AMP code.
+                        object field_value = fi.GetValue(del.Target);
+                        if (field_value as System.Delegate != null)
+                            continue;
+                        String na = fi.Name;
+                        String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                        // Also, we really can only handle Campy or value types.
+                        // Check and complain.
+                        if (!(field_value.GetType().IsValueType
+                            || Utility.IsSimpleCampyType(field_value)))
+                            throw new Exception("Can only compile value types, or Campy Types. "
+                                + tys + " is not one of those.");
+                        // In C++ CLI, classes are reference pointer type.
+                        if (Utility.IsSimpleCampyType(field_value))
+                            tys += '^';
+                        if (fi.FieldType.Name.Contains("Array_View"))
+                        {
+                            result += "unm->nav_" + fi.Name + " = (void *)" + fi.Name + "->nav();" + eol;
+                        }
+                        else
+                        {
+                            result += "unm->" + fi.Name + " = " + fi.Name + ";" + eol;
+                        }
                     }
                 }
-                result += "unm->native_accelerator_view = accelerator_view->nav();" + eol;
-                result += "unm->native_extent = extent->ne();" + eol;
-                //if ("System.Void" != method_definition.MethodReturnType.ReturnType.FullName)
-                //    result += "return ";
-                result += "unm->" + method_name + "();" + eol;
-                result += "}" + eol;
             }
+            result += eol;
+            result += "unm->native_accelerator_view = accelerator_view->nav();" + eol;
+            result += "unm->native_extent = extent->ne();" + eol;
+            //if ("System.Void" != method_definition.MethodReturnType.ReturnType.FullName)
+            //    result += "return ";
+            result += "unm->" + method_name + "();" + eol;
+            result += "}" + eol;
             result += "};" + eol;
-
             _assembly.managed_cpp_files.Add(managed_cpp_file_name, result);
         }
 
         void GenerateUnmanagedCode(
             String kernel_full_name,
+            List<System.Delegate> delegates,
             ModuleDefinition mod_def, TypeDefinition td,
             String unmanaged_cpp_file_name, String unmanaged_h_file_name)
         {
@@ -185,47 +207,51 @@ namespace Campy
             result += "class "
                  + kernel_full_name + "_unmanaged" + eol;
             result += "{" + eol;
-            foreach (FieldDefinition fi in td.Fields)
+            // Loop through every targets of every delegate, and output each field to capture.
             {
-                String na = fi.Name;
-                if (multicastdelegates.Contains(na))
-                    continue;
-                if (fi.FieldType.Name.Contains("Array_View"))
+                List<object> targets = new List<object>();
+                result += "// Capture targets of all delegates." + eol;
+                foreach (System.Delegate del in delegates)
                 {
-                    result += "public: void * nav_" + fi.Name + ";" + eol;
-                }
-                else
-                {
-                    TreeWalker.ClassFieldsAstBuilder astBuilder = new TreeWalker.ClassFieldsAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = td });
-                    astBuilder.AddField(fi);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String field_result = output.ToString();
-                    result += field_result;
-                    output.Dispose();
+                    if (targets.Contains(del.Target))
+                        continue;
+                    if (del.Target != null)
+                    {
+                        object del_target = del.Target;
+                        targets.Add(del_target);
+                        Type del_target_type = del.Target.GetType();
+                        foreach (SR.FieldInfo fi in del_target_type.GetFields())
+                        {
+                            // Here, we do not output fields which are delegates.
+                            // Each delegate target is output, and the method handled
+                            // as an auto in the C++ AMP code.
+                            object field_value = fi.GetValue(del.Target);
+                            if (field_value as System.Delegate != null)
+                                continue;
+                            // Special case for Campy types: remove the
+                            // Campy prefix, and convert to pointers.
+                            if (fi.FieldType.Name.Contains("Array_View"))
+                            {
+                                result += "public: void * nav_" + fi.Name + ";" + eol;
+                            }
+                            else
+                            {
+                                String na = fi.Name;
+                                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                                result += tys + " " + na + ";" + eol;
+                            }
+                        }
+                    }
+                    result += eol;
                 }
             }
             result += "void * native_accelerator_view;" + eol;
             result += "void * native_extent;" + eol;
-            foreach (MethodDefinition method_definition in td.Methods)
-            {
-                // Don't output contructor methods.
-                if (method_definition.Name.Equals(".ctor"))
-                    continue;
-                // Don't output anything but lambdas with void(Index) signature.
-                if ("System.Void" != method_definition.MethodReturnType.ReturnType.FullName)
-                    continue;
-                if (method_definition.Parameters.Count != 1)
-                    continue;
-                ParameterDefinition xxxxxxx = method_definition.Parameters.First();
-                if (method_definition.Parameters.First().ParameterType.FullName != "Campy.Types.Index")
-                    continue;
-                String method_name = method_definition.Name;
-                method_name = Utility.NormalizeMonoCecilName(method_name);
-                result += "void " + method_name + "();" + eol;
-            }
+            // Output primary delegate method.
+            String method_name = delegates.First().Method.Name;
+            method_name = Utility.NormalizeMonoCecilName(method_name);
+            result += "// primary delegate entry point" + eol;
+            result += "void " + method_name + "();" + eol;
             result += "};" + eol;
             _assembly.unmanaged_h_files.Add(unmanaged_h_file_name, result);
 
@@ -238,139 +264,181 @@ namespace Campy
             result += "#include \"Native_Accelerator_View.h\"" + eol;
             result += "using namespace concurrency;" + eol + eol;
 
-            // Output delegates.
-            foreach (MethodDefinition method_definition in td.Methods)
+            // Output entry point of unmanaged delegate.
+            result += "void " + kernel_full_name + "_unmanaged::" + method_name + "()" + eol;
+            result += "{" + eol;
+            int suffix = 0;
             {
-                // Don't output contructor methods.
-                if (method_definition.Name.Equals(".ctor"))
-                    continue;
-                // Don't output anything but lambdas with void(Index) signature.
-                if ("System.Void" != method_definition.MethodReturnType.ReturnType.FullName)
-                    continue;
-                if (method_definition.Parameters.Count != 1)
-                    continue;
-                ParameterDefinition xxxxxxx = method_definition.Parameters.First();
-                if (method_definition.Parameters.First().ParameterType.FullName != "Campy.Types.Index")
-                    continue;
-                String method_name = method_definition.Name;
-                method_name = Utility.NormalizeMonoCecilName(method_name);
-                result += "// delegate" + eol;
-                result += "void " + kernel_full_name + "_unmanaged::" + method_name + "()" + eol;
-                result += "{" + eol;
-                int suffix = 0;
-                // Add locals initialization from fields of the unmanaged class.
-                foreach (FieldDefinition fi in td.Fields)
+                List<object> targets = new List<object>();
+                foreach (System.Delegate del in delegates)
                 {
-                    String na = fi.Name;
-                    if (multicastdelegates.Contains(na))
+                    if (targets.Contains(del.Target))
                         continue;
-                    if (fi.FieldType.Name.Contains("Array_View"))
+                    if (del.Target != null)
                     {
-                        result += "Campy::Types::Native_Array_View<int, 1> * data" + suffix + eol;
-                        result += "   = (Campy::Types::Native_Array_View<int, 1> *)this->nav_"
-                            + na + ";" + eol;
-                        result += "array_view<int, 1>& "
-                            + na + " = *(array_view<int, 1>*)data"
-                            + suffix + "->ar;" + eol;
-                        suffix++;
-                    }
-                    else
-                    {
-                        TreeWalker.ClassFieldsAstBuilder astBuilder = new TreeWalker.ClassFieldsAstBuilder(
-                            new ICSharpCode.Decompiler.DecompilerContext(
-                                mod_def) { CurrentType = td });
-                        astBuilder.AddField(fi);
-                        StringWriter output = new StringWriter();
-                        astBuilder.GenerateCode(new PlainTextOutput(output));
-                        String field_result = output.ToString();
-                        field_result = field_result.Replace("public: ", "");
-                        field_result = field_result.Replace(";", "");
-                        field_result = field_result.Replace("\r", "");
-                        field_result = field_result.Replace("\n", "");
-                        field_result += " = this->" + na + ";";
-                        result += field_result + eol;
-                        output.Dispose();
+                        object del_target = del.Target;
+                        targets.Add(del_target);
+                        Type del_target_type = del.Target.GetType();
+                        foreach (SR.FieldInfo fi in del_target_type.GetFields())
+                        {
+                            // Here, we do not output fields which are delegates.
+                            // Each delegate target is output, and the method handled
+                            // as an auto in the C++ AMP code.
+                            object field_value = fi.GetValue(del.Target);
+                            if (field_value as System.Delegate != null)
+                                continue;
+                            String na = fi.Name;
+                            if (fi.FieldType.Name.Contains("Array_View"))
+                            {
+                                result += "Campy::Types::Native_Array_View<int, 1> * data" + suffix + eol;
+                                result += "   = (Campy::Types::Native_Array_View<int, 1> *)this->nav_"
+                                    + na + ";" + eol;
+                                result += "array_view<int, 1>& "
+                                    + na + " = *(array_view<int, 1>*)data"
+                                    + suffix + "->ar;" + eol;
+                                suffix++;
+                            }
+                            else
+                            {
+                                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                                result += tys + " " + na;
+                                result += " = this->" + na + ";";
+                                result += eol;
+                            }
+                        }
                     }
                 }
-                result += "Campy::Types::Native_Extent<1> * data" + suffix
-                    + " = (Campy::Types::Native_Extent<1> *)this->native_extent;" + eol;
-                result += "extent<1>& e"
-                    + " = *(extent<1>*)data" + suffix + "->ne;" + eol;
-                suffix++;
-                result += "Campy::Types::Native_Accelerator_View * data" + suffix
-                    + " = (Campy::Types::Native_Accelerator_View *)this->native_accelerator_view;" + eol;
-                result += "accelerator_view& _accerator_view"
-                    + " = *(accelerator_view*)data" + suffix + "->nav;" + eol;
-                suffix++;
-
-                // Add in lambdas for each delegate.
-                int i = 1;
-                foreach (FieldDefinition fi in td.Fields)
-                {
-                    String na = fi.Name;
-                    if (!multicastdelegates.Contains(na))
-                        continue;
-                    result += "auto " + na + " = [=]";
-                    // Get corresponding delegate from field value.
-
-                    // for now, assume first method of class/first field.
-                    MethodDefinition md = td.Methods[i];
-                    i++;
-                    {
-                        TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
-                            new ICSharpCode.Decompiler.DecompilerContext(
-                                mod_def) { CurrentType = td });
-                        astBuilder.AddMethod(md);
-                        StringWriter output = new StringWriter();
-                        astBuilder.GenerateCode(new PlainTextOutput(output));
-                        String field_result = output.ToString();
-                        result += field_result;
-                        output.Dispose();
-                    }
-                    result += " restrict(amp) ";
-                    {
-                        TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
-                            new ICSharpCode.Decompiler.DecompilerContext(
-                                mod_def) { CurrentType = td });
-                        astBuilder.AddMethod(md);
-                        StringWriter output = new StringWriter();
-                        astBuilder.GenerateCode(new PlainTextOutput(output));
-                        String field_result = output.ToString();
-                        field_result = field_result.Replace("this.", "");
-                        result += field_result;
-                        output.Dispose();
-                    }
-                    result += ";" + eol;
-                }
-                result += "parallel_for_each(e, [=]";
-                {
-                    TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = td });
-                    astBuilder.AddMethod(method_definition);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String xxx = output.ToString();
-                    xxx = xxx.Replace("Index", "index<1>");
-                    result += xxx;
-                    output.Dispose();
-                }
-                result += " restrict(amp)";
-                {
-                    TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = td });
-                    astBuilder.AddMethod(method_definition);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String xxx = output.ToString();
-                    xxx = xxx.Replace("this.", "");
-                    result += xxx;
-                    output.Dispose();
-                }
-                result += ");" + eol;
-                result += "}" + eol;
             }
+            result += "Campy::Types::Native_Extent<1> * data" + suffix
+                + " = (Campy::Types::Native_Extent<1> *)this->native_extent;" + eol;
+            result += "extent<1>& e"
+                + " = *(extent<1>*)data" + suffix + "->ne;" + eol;
+            suffix++;
+            result += "Campy::Types::Native_Accelerator_View * data" + suffix
+                + " = (Campy::Types::Native_Accelerator_View *)this->native_accelerator_view;" + eol;
+            result += "accelerator_view& _accerator_view"
+                + " = *(accelerator_view*)data" + suffix + "->nav;" + eol;
+            suffix++;
+
+            // Associate a delegate with the name of the auto it is stored
+            // in.
+            Dictionary<String, Delegate> field_names = new Dictionary<string, Delegate>();
+            {
+                List<object> targets = new List<object>();
+                foreach (System.Delegate d in delegates)
+                {
+                    if (targets.Contains(d.Target))
+                        continue;
+                    if (d.Target != null)
+                    {
+                        object dt = d.Target;
+                        targets.Add(dt);
+                        Type dtt = d.Target.GetType();
+                        SR.FieldInfo[] fields = dtt.GetFields();
+                        foreach (SR.FieldInfo fi in dtt.GetFields())
+                        {
+                            // Here, we output fields which are delegates as auto variables.
+                            object field_value = fi.GetValue(d.Target);
+                            Delegate to_del = field_value as System.Delegate;
+                            if (to_del == null)
+                                continue;
+                            String na = fi.Name;
+                            if (field_names.ContainsKey(na))
+                                continue;
+                            field_names.Add(na, to_del);
+                        }
+                    }
+                }
+            }
+
+            // Add in lambdas for each delegate in reverse order.
+            StackQueue<System.Delegate> stack = new StackQueue<Delegate>();
+            foreach (System.Delegate del in delegates)
+                stack.Push(del);
+            {
+                List<object> targets = new List<object>();
+                while (stack.Count > 0)
+                {
+                    System.Delegate del = stack.Pop();
+                    if (targets.Contains(del.Target))
+                        continue;
+                    if (del.Target != null)
+                    {
+                        object del_target = del.Target;
+                        targets.Add(del_target);
+                        Type del_target_type = del.Target.GetType();
+                        foreach (SR.FieldInfo fi in del_target_type.GetFields())
+                        {
+                            // Here, we output fields which are delegates as auto variables.
+                            object field_value = fi.GetValue(del.Target);
+                            if (field_value as System.Delegate == null)
+                                continue;
+
+                            String na = fi.Name;
+                            result += "auto " + na + " = [=]" + eol;
+                            // Find method of delegate.
+                            Delegate to_del = field_names[na];
+                            MethodDefinition md = ConvertToMonoCecilType(to_del);
+                            {
+                                TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
+                                    new ICSharpCode.Decompiler.DecompilerContext(
+                                        mod_def) { CurrentType = td });
+                                astBuilder.AddMethod(md);
+                                StringWriter output = new StringWriter();
+                                astBuilder.GenerateCode(new PlainTextOutput(output));
+                                String field_result = output.ToString();
+                                result += field_result;
+                                output.Dispose();
+                            }
+                            result += " restrict(amp) ";
+                            {
+                                TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
+                                    new ICSharpCode.Decompiler.DecompilerContext(
+                                        mod_def) { CurrentType = td });
+                                astBuilder.AddMethod(md);
+                                StringWriter output = new StringWriter();
+                                astBuilder.GenerateCode(new PlainTextOutput(output));
+                                String field_result = output.ToString();
+                                field_result = field_result.Replace("this.", "");
+                                result += field_result;
+                                output.Dispose();
+                            }
+                            result += ";" + eol;
+                        }
+                    }
+                }
+                result += eol;
+            }
+            result += eol;
+            result += "parallel_for_each(e, [=]";
+            MethodDefinition main_md = ConvertToMonoCecilType(delegates.First());
+            {
+                TreeWalker.MethodParametersAstBuilder astBuilder = new TreeWalker.MethodParametersAstBuilder(
+                    new ICSharpCode.Decompiler.DecompilerContext(
+                        mod_def) { CurrentType = td });
+                astBuilder.AddMethod(main_md);
+                StringWriter output = new StringWriter();
+                astBuilder.GenerateCode(new PlainTextOutput(output));
+                String xxx = output.ToString();
+                xxx = xxx.Replace("Index", "index<1>");
+                result += xxx;
+                output.Dispose();
+            }
+            result += " restrict(amp)";
+            {
+                TreeWalker.MethodBodyAstBuilder astBuilder = new TreeWalker.MethodBodyAstBuilder(
+                    new ICSharpCode.Decompiler.DecompilerContext(
+                        mod_def) { CurrentType = td });
+                astBuilder.AddMethod(main_md);
+                StringWriter output = new StringWriter();
+                astBuilder.GenerateCode(new PlainTextOutput(output));
+                String xxx = output.ToString();
+                xxx = xxx.Replace("this.", "");
+                result += xxx;
+                output.Dispose();
+            }
+            result += ");" + eol;
+            result += "}" + eol;
             _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_file_name, result);
         }
         
@@ -380,61 +448,28 @@ namespace Campy
             _assembly = assembly;
         }
 
-        public void Convert(System.MulticastDelegate multidelegate)
+
+
+        public void Convert(System.Delegate del)
         {
-            // Get the class instance that this delegate invokes.
-            // See https://msdn.microsoft.com/en-us/library/system.multicastdelegate(v=vs.110).aspx
-            object target = multidelegate.Target;
+            List<Delegate> delegates = Analysis.FindAllTargets(del);
 
-            // Check if this target is already being converted. If so, stop.
-            bool found = false;
-            if (this.compiled_targets.TryGetValue(target, out found))
-                return;
-            this.compiled_targets.Add(target, true);
-
-            Type target_type = target.GetType();
-
-            // Assert that the target type actually contains the method.
-            SR.MethodInfo[] target_type_methodinfo = target_type.GetMethods();
-            foreach (SR.MethodInfo method in target_type_methodinfo)
-            {
-                if (method == multidelegate.Method)
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                throw new Exception("Internal assumption failure: the method is not contained in the delegate target!");
-
-            // Convert all fields which happen to also be multicast delegates.
-            SR.FieldInfo[] target_type_fieldinfo = target_type.GetFields();
-            foreach (var field in target_type_fieldinfo)
-            {
-                var value = field.GetValue(target);
-                Type ft = value.GetType();
-                if (value as System.MulticastDelegate != null)
-                {
-                    // All local fields which are multicastdelegate should be noted.
-                    // We don't keep a corresponding field in the converted object types.
-                    if (multicastdelegates.Contains(field.Name))
-                        continue;
-                    multicastdelegates.Add(field.Name);
-
-                    // Chase down the field.
-                    Convert(value as System.MulticastDelegate);
-                }
-            }
-
-            // multidelegate is a new target. Convert all methods associated
-            // with the target type.
+            // Create a class in C++ CLI which contains the top-level
+            // delegate method. This method will need to take the entire
+            // closure of delegates, inline the chain of method calls.
+            // All data in each target will be enclosed within a struct
+            // within the class in order to keep each nice and tidy.
+            // The name of the class will be the name of the top-level
+            // delegate.
 
             // Convert multidelegate type to Mono.Cecil type, required to convert to C++ AMP.
-            TypeDefinition multidelegate_mc = ConvertToMonoCecilType(multidelegate);
+            MethodDefinition xxxxx = ConvertToMonoCecilType(del);
+            TypeDefinition multidelegate_mc = xxxxx.DeclaringType;
             ModuleDefinition mod_def = multidelegate_mc.Module;
 
             // Derive name of output files based on the name of the full name.
-            String kernel_full_name = multidelegate_mc.FullName;
+            // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
+            String kernel_full_name = string.Format("{0} {1}.{2}({3})", del.Method.ReturnType.FullName, del.Method.ReflectedType.FullName, del.Method.Name, string.Join(",", del.Method.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
             kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
             String file_name_stem = kernel_full_name;
             String managed_cpp_file_name = file_name_stem + "_managed.cpp";
@@ -444,12 +479,14 @@ namespace Campy
 
             // Generate managed code files.
             GenerateManagedCode(
-                kernel_full_name, mod_def, multidelegate_mc,
+                kernel_full_name, delegates,
+                mod_def, multidelegate_mc,
                 managed_cpp_file_name, managed_h_file_name, unmanaged_h_file_name);
 
             // Generate unmanaced code files.
             GenerateUnmanagedCode(
-                kernel_full_name, mod_def, multidelegate_mc,
+                kernel_full_name, delegates,
+                mod_def, multidelegate_mc,
                 unmanaged_cpp_file_name, unmanaged_h_file_name);
         }
     }
