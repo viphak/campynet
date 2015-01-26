@@ -238,20 +238,20 @@ namespace Campy
                             {
                                 String na = fi.Name;
                                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                                result += tys + " " + na + ";" + eol;
+                                result += "public: " + tys + " " + na + ";" + eol;
                             }
                         }
                     }
                     result += eol;
                 }
             }
-            result += "void * native_accelerator_view;" + eol;
-            result += "void * native_extent;" + eol;
+            result += "public: void * native_accelerator_view;" + eol;
+            result += "public: void * native_extent;" + eol;
             // Output primary delegate method.
             String method_name = delegates.First().Method.Name;
             method_name = Utility.NormalizeMonoCecilName(method_name);
             result += "// primary delegate entry point" + eol;
-            result += "void " + method_name + "();" + eol;
+            result += "public: void " + method_name + "();" + eol;
             result += "};" + eol;
             _assembly.unmanaged_h_files.Add(unmanaged_h_file_name, result);
 

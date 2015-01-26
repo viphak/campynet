@@ -17,9 +17,24 @@ namespace Campy
         String wk_include_path = null;
         String wk_lib_path = null;
         String ref_asm_path = null;
+        String campy_include_path = null;
 
         void SetupEnv()
         {
+            // Need to know where Campy include files are located.
+            String campy_root = Environment.GetEnvironmentVariable("CAMPYNETROOT");
+            String inc = "..\\..\\..\\Campy.Types";
+            inc = Path.GetFullPath(inc);
+            if (Directory.Exists(inc))
+                campy_include_path = inc;
+            if (campy_include_path == null)
+            {
+                if (campy_root != null && Directory.Exists(campy_root))
+                    campy_include_path = campy_root + "\\Campy.Types";
+            }
+            if (campy_include_path == null)
+                throw new Exception("Cannot determine Campy.NET root. Set CAMPYNETROOT to path of Campy.NET directory.");
+
             // Set up cl.exe, link.exe, includes, etc., so that we can complete a build.
 
             // Look for environmental variables.
@@ -383,7 +398,7 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.FileName = compiler_path + "\\cl.exe";
                 p.StartInfo.Arguments =
                     "/c"
-                    + " /I\"C:\\cygwin64\\home\\Ken\\Campy.NET\\Campy.Types\""
+                    + " /I\"" + campy_include_path + "\""
                     + " /I\"" + vc_include_path + "\""
                     + " /I\"" + vc_atlmfc_include_path + "\""
                     + " /I\"" + wk_include_path + "\\shared\""
