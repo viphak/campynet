@@ -132,6 +132,15 @@ namespace Campy
                             else
                                 target_to_delegate_fieldname.Add(true_target, new List<Tuple<Delegate, String>>() { new Tuple<Delegate, String>(d, na) });
                         }
+                        else
+                        {
+                            // stick method on current target.
+                            List<Tuple<Delegate, String>> dele;
+                            if (target_to_delegate_fieldname.TryGetValue(target, out dele))
+                                dele.Add(new Tuple<Delegate, String>(d, na));
+                            else
+                                target_to_delegate_fieldname.Add(target, new List<Tuple<Delegate, String>>() { new Tuple<Delegate, String>(d, na) });
+                        }
                     }
                 }
             }

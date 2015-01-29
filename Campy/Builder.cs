@@ -108,7 +108,7 @@ namespace Campy
             String ver = Environment.OSVersion.Version.ToString();
             String pre = compiler_path + "\\..\\..\\..\\Windows Kits";
             pre = Path.GetFullPath(pre);
-            if (ver.IndexOf("6.2") == 0)
+            if (ver.IndexOf("6.2") == 0 || ver.IndexOf("6.3") == 0)
             {
                 String root = pre;
                 String path = root + "\\8.1\\Include";

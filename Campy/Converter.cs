@@ -540,13 +540,16 @@ namespace Campy
                         Delegate d = v as Delegate;
                         if (d == null) continue;
                         String true_method_name = FindMethodName(d.Method, structure);
-                        String prefix = FindMethodPrefix(d.Method, structure);
-                        prefix = prefix.Replace("s", "a");
-                        String find = "this." + true_method_name;
-                        // Find method name in nested structure.
-                        String repl = prefix + "." + true_method_name;
-                        // Replace!
-                        xxx = xxx.Replace(find, repl);
+                        if (true_method_name != null)
+                        {
+                            String prefix = FindMethodPrefix(d.Method, structure);
+                            prefix = prefix.Replace("s", "a");
+                            String find = "this." + true_method_name;
+                            // Find method name in nested structure.
+                            String repl = prefix + "." + true_method_name;
+                            // Replace!
+                            xxx = xxx.Replace(find, repl);
+                        }
                     }
                     // All remaining "this." assume at top level.
                     xxx = xxx.Replace("this.", "a1.");
