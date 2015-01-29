@@ -12,7 +12,7 @@ namespace Campy {
 		{
 			_Rank = 1;
 			_M_base = gcnew array<int>(_Rank);
-			_ne = (void*) new Native_Extent<1>();
+			_native = (void*) new Native_Extent<1>();
 		}
 
 		Extent::Extent(int _I0)
@@ -20,7 +20,7 @@ namespace Campy {
 			_Rank = 1;
 			_M_base = gcnew array<int>(_Rank);
 			_M_base[0] = _I0;
-			_ne = (void*) new Native_Extent<1>(_I0);
+			_native = (void*) new Native_Extent<1>(_I0);
 		}
 
 		Extent::Extent(int _I0, int _I1)
@@ -29,7 +29,7 @@ namespace Campy {
 			_M_base = gcnew array<int>(_Rank);
 			_M_base[0] = _I0;
 			_M_base[1] = _I1;
-			_ne = (void*) new Native_Extent<2>();
+			_native = (void*) new Native_Extent<2>();
 		}
 
 		Extent::Extent(int _I0, int _I1, int _I2)
@@ -39,7 +39,7 @@ namespace Campy {
 			_M_base[0] = _I0;
 			_M_base[1] = _I1;
 			_M_base[2] = _I2;
-			_ne = (void*) new Native_Extent<3>();
+			_native = (void*) new Native_Extent<3>();
 		}
 
 		Extent::Extent(array<int>^ _Array)
@@ -48,9 +48,9 @@ namespace Campy {
 			_M_base = gcnew array<int>(_Rank);
 			for (int i = 0; i < _Rank; ++i)
 				_M_base[i] = _Array[i];
-			if (_Rank == 1)	_ne = (void*) new Native_Extent<1>();
-			if (_Rank == 2)	_ne = (void*) new Native_Extent<2>();
-			if (_Rank == 3)	_ne = (void*) new Native_Extent<3>();
+			if (_Rank == 1)	_native = (void*) new Native_Extent<1>();
+			if (_Rank == 2)	_native = (void*) new Native_Extent<2>();
+			if (_Rank == 3)	_native = (void*) new Native_Extent<3>();
 		}
 
 		int Extent::size()
@@ -104,9 +104,9 @@ namespace Campy {
 			return _Lhs;
 		}
 
-		void* Extent::ne()
+		void* Extent::native()
 		{
-			return this->_ne;
+			return this->_native;
 		}
 
 	}

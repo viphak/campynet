@@ -13,7 +13,7 @@ namespace Campy {
 		class Native_Array_View
 		{
 		public:
-			void * ar;
+			void * native;
 			Native_Array_View();
 			Native_Array_View(int length, _Value_type * ptr);
 			void synchronize();

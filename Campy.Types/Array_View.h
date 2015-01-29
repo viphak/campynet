@@ -18,7 +18,7 @@ namespace Campy {
 				array<_Value_type> ^ _data;
 				int _length;
 				Extent ^ _extent;
-				void * _nav;
+				void * _native;
 
 			public:
 				Array_View(int length, array<_Value_type> ^% data);
@@ -40,7 +40,7 @@ namespace Campy {
 
 			public:
 				// Native array view, provided for kernels.
-				void * nav();
+				void * native();
 			};
 	}
 }

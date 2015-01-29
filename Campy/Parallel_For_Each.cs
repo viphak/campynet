@@ -11,6 +11,7 @@ using Campy.Types;
 using Campy.Utils;
 using System.IO;
 using System.Runtime.InteropServices;
+using NewGraphs;
 
 namespace Campy
 {
@@ -47,10 +48,10 @@ namespace Campy
             // Create thunk object.
             object obj = Activator.CreateInstance(thunk);
 
-            List<Delegate> delegates = Analysis.FindAllTargets(_kernel);
+            Structure structure = Analysis.FindAllTargets(_kernel);
 
             // Set fields of thunk based on lambda.
-            CopyFieldsFromHostToStaging(delegates, ref obj);
+            CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
 
             // Set extent.
             CopyExtentToStaging(extent, ref obj);
@@ -82,7 +83,7 @@ namespace Campy
             full_path = Path.GetDirectoryName(full_path);
 
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, mi.ReflectedType.FullName, mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
             kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name) + "_managed";
 
             // Get short name of Campy kernel.
@@ -174,49 +175,56 @@ namespace Campy
             return thunk;
         }
 
-        private static void CopyFieldsFromHostToStaging(List<Delegate> delegates, ref object staging_object)
+        private static void AssignmentManagedStruct(Structure structure, ref object staging_object)
         {
             Type s = staging_object.GetType();
             SR.FieldInfo[] sfi = s.GetFields();
-            // Collect all information from fields of each delegate and pass to managed object.
-            foreach (System.Delegate del in delegates)
+            foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                if (del.Target != null)
-                {
-                    object del_target = del.Target;
-                    Type del_target_type = del.Target.GetType();
-                    foreach (SR.FieldInfo fi in del_target_type.GetFields())
-                    {
-                        // Here, we do not output fields which are delegates.
-                        // Each delegate target is output, and the method handled
-                        // as an auto in the C++ AMP code.
-                        object field_value = fi.GetValue(del.Target);
-                        if (field_value as System.Delegate != null)
-                            continue;
-                        String na = fi.Name;
-                        String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                        // Also, we really can only handle Campy or value types.
-                        // Check and complain.
-                        if (!(field_value.GetType().IsValueType
-                            || Utility.IsSimpleCampyType(field_value)))
-                            throw new Exception("Can only compile value types, or Campy Types. "
-                                + tys + " is not one of those.");
-                        // Copy.
-                            SR.FieldInfo hostObjectField = fi;
+                object field_value = fi.GetValue(structure.target_value);
+                String na = fi.Name;
+                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                // Copy.
+                SR.FieldInfo hostObjectField = fi;
+                object value = field_value;
+                Type ft = value.GetType();
+                if (value as System.MulticastDelegate != null)
+                    continue;
 
-                            object value = field_value;
-                            Type ft = value.GetType();
-                            if (value as System.MulticastDelegate != null)
-                                continue;
+                var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
+                if (deviceObjectField == null)
+                    throw new ArgumentException("Field not found.");
 
-                            var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
-                            if (deviceObjectField == null)
-                                throw new ArgumentException("Field not found.");
-
-                            deviceObjectField.SetValue(staging_object, value);
-                    }
-                }
+                deviceObjectField.SetValue(staging_object, value);
             }
+            // Add in other structures.
+            foreach (Structure child in structure.nested_structures)
+            {
+                SR.FieldInfo sn = sfi.Where(f => child.Name == f.Name).FirstOrDefault();
+                if (sn == null)
+                    throw new ArgumentException("Field not found.");
+                object vsn = sn.GetValue(staging_object);
+                if (vsn == null)
+                    throw new ArgumentException("Value not found.");
+                AssignmentManagedStruct(child, ref vsn);
+            }
+        }
+
+        private static void CopyFieldsFromHostToStaging(
+            System.Delegate del,
+            Structure structure,
+            ref object staging_object)
+        {
+            Type s = staging_object.GetType();
+            SR.FieldInfo[] sfi = s.GetFields();
+            SR.FieldInfo s1 = sfi.Where(f => "s1" == f.Name).FirstOrDefault();
+            if (s1 == null)
+                throw new ArgumentException("Field not found.");
+            object vs1 = s1.GetValue(staging_object);
+            if (vs1 == null)
+                throw new ArgumentException("Value not found.");
+
+            AssignmentManagedStruct(structure, ref vs1);
         }
 
         private static void CopyViewToStaging(Accelerator_View view, ref object staging_object)

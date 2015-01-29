@@ -13,19 +13,19 @@ namespace Campy {
 		template<typename _Value_type, int _Rank = 1>
 		Native_Array_View<_Value_type, _Rank>::Native_Array_View(int length, _Value_type * data)
 		{
-			ar = (void*) new array_view<_Value_type, _Rank>(length, data);
+			native = (void*) new array_view<_Value_type, _Rank>(length, data);
 		}
 
 		template<typename _Value_type, int _Rank = 1>
 		Native_Array_View<_Value_type, _Rank>::Native_Array_View()
 		{
-			ar = (void*)0;
+			native = (void*)0;
 		}
 
 		template<typename _Value_type, int _Rank = 1>
 		void Native_Array_View<_Value_type, _Rank>::synchronize()
 		{
-			((array_view<_Value_type, _Rank>*)ar)->synchronize();
+			((array_view<_Value_type, _Rank>*)native)->synchronize();
 		}
 
 

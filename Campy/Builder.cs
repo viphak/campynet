@@ -374,6 +374,10 @@ eat_blanks_after_open_brace	= TRUE
                     + " /Fp\"" + pch_file_name + "\""
                     + " /nologo"
                     + " " + cpp_source_file_name;
+                using (StreamWriter sw = File.AppendText("save.save"))
+                {
+                    sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
+                }
                 p.Start();
                 p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();
@@ -429,6 +433,10 @@ eat_blanks_after_open_brace	= TRUE
                     + " /EHsc"
                     + " /nologo"
                     + " " + cpp_source_file_name;
+                using (StreamWriter sw = File.AppendText("save.save"))
+                {
+                    sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
+                }
                 p.Start();
                 p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();

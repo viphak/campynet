@@ -22,7 +22,7 @@ namespace Campy {
 				{
 					pin_ptr<_Value_type> ptr = &data[0];
 					int * p = (int *)ptr;
-					this->_nav = (void*) new Native_Array_View<int, 1>(length, p);
+					this->_native = (void*) new Native_Array_View<int, 1>(length, p);
 				}
 			}
 
@@ -56,7 +56,7 @@ namespace Campy {
 				Type ^ t = _Value_type::typeid;
 				if (t->FullName->Equals("System.Int32"))
 				{
-					Native_Array_View<int, 1> * nav = (Native_Array_View<int, 1>*)this->_nav;
+					Native_Array_View<int, 1> * nav = (Native_Array_View<int, 1>*)this->_native;
 					nav->synchronize();
 				}
 			}
@@ -68,9 +68,9 @@ namespace Campy {
 			}
 
 		generic<typename _Value_type>
-			void* Array_View<_Value_type>::nav()
+			void* Array_View<_Value_type>::native()
 			{
-				return this->_nav;
+				return this->_native;
 			}
 
 	}

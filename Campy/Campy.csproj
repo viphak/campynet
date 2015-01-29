@@ -33,6 +33,9 @@
     <Reference Include="DiffLib">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\DiffLib.dll</HintPath>
     </Reference>
+    <Reference Include="GraphAlgorithms">
+      <HintPath>E:\Personal\Work\Graph\GraphClassStructures\GraphAlgorithms\bin\Debug\GraphAlgorithms.dll</HintPath>
+    </Reference>
     <Reference Include="ICSharpCode.Decompiler">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.Decompiler.dll</HintPath>
     </Reference>
@@ -47,6 +50,9 @@
     </Reference>
     <Reference Include="Mono.Cecil">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\Mono.Cecil.dll</HintPath>
+    </Reference>
+    <Reference Include="NewGraphs">
+      <HintPath>E:\Personal\Work\Graph\GraphClassStructures\NewGraphs\bin\Debug\NewGraphs.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\nunit.framework.dll</HintPath>

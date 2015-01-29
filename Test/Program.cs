@@ -61,7 +61,7 @@ namespace Test
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = xsize - j - test2(j);
+                d[j] = test(j);
             });
             d.synchronize();
             for (int i = 0; i < size; ++i)
@@ -71,7 +71,7 @@ namespace Test
             Parallel_For_Each.loop(d.extent, (Index idx) =>
             {
                 int j = idx[0];
-                d[j] = test(j);
+                d[j] = xsize - j - test2(j);
             });
             d.synchronize();
             for (int i = 0; i < size; ++i)

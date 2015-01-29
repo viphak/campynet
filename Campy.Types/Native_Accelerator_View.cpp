@@ -15,25 +15,25 @@ namespace Campy {
 		{
 			accelerator* d = new accelerator();
 			accelerator_view * av = new accelerator_view(d->get_default_view());
-			this->nav = av;
+			this->native = av;
 		}
 
 		void Native_Accelerator_View::flush()
 		{
-			((accelerator_view*)(this->nav))->flush();
+			((accelerator_view*)(this->native))->flush();
 		}
 
 		Native_Accelerator* Native_Accelerator_View::get_accelerator()
 		{
-			accelerator* a = new accelerator(((accelerator_view*)(this->nav))->get_accelerator());
+			accelerator* a = new accelerator(((accelerator_view*)(this->native))->get_accelerator());
 			Native_Accelerator * na = new Native_Accelerator();
-			na->na = (void*)a;
+			na->native = (void*)a;
 			return na;
 		}
 
 		void Native_Accelerator_View::wait()
 		{
-			((accelerator_view*)(this->nav))->wait();
+			((accelerator_view*)(this->native))->wait();
 		}
 	}
 }

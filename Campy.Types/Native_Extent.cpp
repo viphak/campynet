@@ -17,14 +17,14 @@ namespace Campy {
 			if (_Rank == 1)
 			{
 				e = new extent<1>(size);
-				ne = (void*)e;
+				native = (void*)e;
 			}
 		}
 
 		template<int _Rank = 1>
 		Native_Extent<_Rank>::Native_Extent()
 		{
-			ne = (void*) new extent<_Rank>();
+			native = (void*) new extent<_Rank>();
 		}
 
 		// Instantiate templates.

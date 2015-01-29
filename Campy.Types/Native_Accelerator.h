@@ -14,7 +14,7 @@ namespace Campy {
 		class Native_Accelerator
 		{
 		public:
-			void * na; // concurrency::accelerator
+			void * native; // concurrency::accelerator
 			Native_Accelerator();
 			bool is_emulated();
 			static Native_Accelerator** get_all();

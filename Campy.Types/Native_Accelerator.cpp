@@ -13,7 +13,7 @@ namespace Campy {
 		Native_Accelerator::Native_Accelerator()
 		{
 			accelerator * a = new accelerator();
-			this->na = (void*)a;
+			this->native = (void*)a;
 		}
 
 		bool Native_Accelerator::set_default(std::wstring path)
@@ -23,17 +23,17 @@ namespace Campy {
 
 		bool Native_Accelerator::is_emulated()
 		{
-			return ((accelerator*)(this->na))->is_emulated;
+			return ((accelerator*)(this->native))->is_emulated;
 		}
 
 		std::wstring Native_Accelerator::description()
 		{
-			return ((accelerator*)(this->na))->description;
+			return ((accelerator*)(this->native))->description;
 		}
 
 		std::wstring Native_Accelerator::device_path()
 		{
-			return ((accelerator*)(this->na))->device_path;
+			return ((accelerator*)(this->native))->device_path;
 		}
 
 		Native_Accelerator** Native_Accelerator::get_all()
@@ -46,7 +46,7 @@ namespace Campy {
 			{
 				accelerator a = ar[i];
 				Native_Accelerator * the_na = new Native_Accelerator();
-				the_na->na = (void*) new accelerator(a);
+				the_na->native = (void*) new accelerator(a);
 				*p++ = the_na;
 			}
 			*p = 0;

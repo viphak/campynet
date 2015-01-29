@@ -13,7 +13,7 @@ namespace Campy {
 		public ref class Accelerator_View
 		{
 		private:
-			void * _nav;
+			void * _native;
 
 		public:
 			Accelerator_View();
@@ -23,7 +23,7 @@ namespace Campy {
 
 		public:
 			// Native accelerator, provided for kernels.
-			void * nav();
+			void * native();
 		};
 	}
 }

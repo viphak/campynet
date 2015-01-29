@@ -20,7 +20,7 @@ namespace Campy {
 			for (int i = 0; *list; ++i)
 			{
 				Accelerator^ a = gcnew Accelerator();
-				a->_na = (void*)*list;
+				a->_native = (void*)*list;
 				list++;
 				result->Add(a);
 			}
@@ -35,7 +35,7 @@ namespace Campy {
 
 		bool Accelerator::is_emulated::get()
 		{
-			return ((Native_Accelerator*)_na)->is_emulated();
+			return ((Native_Accelerator*)_native)->is_emulated();
 		}
 
 		bool Accelerator::set_default(String^ path)
@@ -46,19 +46,19 @@ namespace Campy {
 
 		String^ Accelerator::description()
 		{
-			String^ result = gcnew String(((Native_Accelerator*)this->_na)->description().c_str());
+			String^ result = gcnew String(((Native_Accelerator*)this->_native)->description().c_str());
 			return result;
 		}
 
 		String^ Accelerator::device_path()
 		{
-			String^ result = gcnew String(((Native_Accelerator*)this->_na)->device_path().c_str());
+			String^ result = gcnew String(((Native_Accelerator*)this->_native)->device_path().c_str());
 			return result;
 		}
 
-		void* Accelerator::na()
+		void* Accelerator::native()
 		{
-			return (void*)this->_na;
+			return (void*)this->_native;
 		}
 
 	}

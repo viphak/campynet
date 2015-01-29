@@ -4,22 +4,110 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using System.Text.RegularExpressions;
 
 namespace Campy.Utils
 {
     public class Utility
     {
 
-        public static bool IsSimpleCampyType(object t)
+        public static bool IsSimpleCampyType(Type t)
         {
-            Campy.Types.Array_View<int> t1 = t as Campy.Types.Array_View<int>;
-            Campy.Types.Accelerator t2 = t as Campy.Types.Accelerator;
-            Campy.Types.Accelerator_View t3 = t as Campy.Types.Accelerator_View;
-            Campy.Types.Extent t4 = t as Campy.Types.Extent;
-            Campy.Types.Index t5 = t as Campy.Types.Index;
-            if (t1 == null && t2 == null && t3 == null && t4 == null && t5 == null)
-                return false;
-            return true;
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Array_View<int>))
+                    return true;
+                if (t == typeof(Campy.Types.Accelerator))
+                    return true;
+                if (t == typeof(Campy.Types.Accelerator_View))
+                    return true;
+                if (t == typeof(Campy.Types.Index))
+                    return true;
+                if (t == typeof(Campy.Types.Extent))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyArrayViewType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Array_View<int>))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyAcceleratorType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Accelerator))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyAcceleratorViewType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Accelerator_View))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyIndexType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Index))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyExtentType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Extent))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsBaseType(Type type, Type basetype)
+        {
+            for (; ; )
+            {
+                if (type == null)
+                    break;
+                if (type == basetype)
+                    return true;
+                type = type.BaseType;
+            }
+            return false;
         }
 
         /// <summary>
@@ -88,8 +176,14 @@ namespace Campy.Utils
 
             StringBuilder builder = new StringBuilder();
             String name = Simplify(type.Name);
+
+            // If generic, then a backtick occurs in the name. In that case, remove the trailing information.
+            String pre;
             int index = name.IndexOf("`");
-            String pre = String.Format("{0}.{1}", type.Namespace, Simplify(name.Substring(0, index)));
+            if (index >= 0)
+                pre = String.Format("{0}.{1}", type.Namespace, Simplify(name.Substring(0, index)));
+            else
+                pre = String.Format("{0}.{1}", type.Namespace, Simplify(name));
             pre = Simplify(pre);
             builder.Append(pre);
             builder.Append('<');
@@ -107,6 +201,13 @@ namespace Campy.Utils
             // Convert "+" signs into "." since it's just a nested class.
             String result = builder.ToString();
             result = result.Replace('+', '.');
+            return result;
+        }
+
+        public static String RemoveGenericParameters(Type type)
+        {
+            String result = type.FullName;
+            result = Regex.Replace(result, "\\[\\[.*\\]\\]", "");
             return result;
         }
 
@@ -128,6 +229,7 @@ namespace Campy.Utils
             result = result.Replace("(", "_");
             result = result.Replace(")", "_");
             result = result.Replace(".", "_");
+            result = result.Replace("`", "_");
             return result;
         }
 
@@ -143,6 +245,7 @@ namespace Campy.Utils
             result = result.Replace("(", "_");
             result = result.Replace(")", "_");
             result = result.Replace(".", "_");
+            result = result.Replace("`", "_");
             return result;
         }
 

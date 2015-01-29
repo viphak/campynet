@@ -14,7 +14,7 @@ namespace Campy {
 		class Native_Extent
 		{
 		public:
-			void * ne;
+			void * native;
 			Native_Extent();
 			Native_Extent(int size);
 		};

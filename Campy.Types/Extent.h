@@ -13,7 +13,7 @@ namespace Campy {
 		internal:
 			int _Rank;
 			array<int>^ _M_base;
-			void * _ne;
+			void * _native;
 
 		public:
 			Extent();
@@ -28,7 +28,7 @@ namespace Campy {
 			static Extent^ operator ++(Extent^ _Lhs);
 			static Extent^ operator -(Extent^ _Lhs, Index^ _Rhs);
 			static Extent^ operator --(Extent^ _Lhs);
-			void * ne();
+			void * native();
 
 			// C# does not support post-increment, post-decrement, +=, -=, etc. operator overloading.
 		};

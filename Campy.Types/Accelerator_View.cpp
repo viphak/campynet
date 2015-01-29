@@ -11,7 +11,7 @@ namespace Campy {
 	namespace Types {
 		Accelerator_View::Accelerator_View()
 		{
-			this->_nav = (void*) new Native_Accelerator_View();
+			this->_native = (void*) new Native_Accelerator_View();
 		}
 
 		void Accelerator_View::flush()
@@ -20,21 +20,21 @@ namespace Campy {
 
 		Accelerator^ Accelerator_View::get_accelerator()
 		{
-			Native_Accelerator * na = ((Native_Accelerator_View*)(this->_nav))->get_accelerator();
+			Native_Accelerator * na = ((Native_Accelerator_View*)(this->_native))->get_accelerator();
 			Accelerator^ result = gcnew Accelerator();
-			result->_na = na;
+			result->_native = na;
 			return result;
 		}
 
 		void Accelerator_View::wait()
 		{
-			Native_Accelerator_View * nav = (Native_Accelerator_View*)(this->_nav);
+			Native_Accelerator_View * nav = (Native_Accelerator_View*)(this->_native);
 			nav->wait();
 		}
 
-		void* Accelerator_View::nav()
+		void* Accelerator_View::native()
 		{
-			return (void*)this->_nav;
+			return (void*)this->_native;
 		}
 
 	}
