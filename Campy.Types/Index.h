@@ -12,6 +12,7 @@ namespace Campy {
 		internal:
 			int _Rank;
 			array<int>^ _M_base;
+			static Index^ default_value = gcnew Index();
 
 		public:
 			Index()
@@ -70,6 +71,10 @@ namespace Campy {
 				}
 			}
 
+			static property Index^ Default_Value
+			{
+				Index^ get();
+			}
 		};
 	}
 }

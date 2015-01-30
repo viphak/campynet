@@ -551,6 +551,21 @@ namespace Campy
                             xxx = xxx.Replace(find, repl);
                         }
                     }
+
+                    // Sometimes data is contained in a class. That
+                    // information needs to be passed to the delegate.
+                    // Substitute references for class structures.
+                    foreach (Structure child in structure.AllChildren)
+                    {
+                        String prefix = structure.FullName;
+                        foreach (String rewrite in child.rewrite_names)
+                        {
+                            String find = "this." + rewrite + ".";
+                            String repl = child.FullName.Replace("s", "a") +".";
+                            xxx = xxx.Replace(find, repl);
+                        }
+                    }
+
                     // All remaining "this." assume at top level.
                     xxx = xxx.Replace("this.", "a1.");
                     result += xxx;

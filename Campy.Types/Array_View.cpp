@@ -73,5 +73,10 @@ namespace Campy {
 				return this->_native;
 			}
 
+		generic<typename _Value_type>
+			Array_View<_Value_type>^ Array_View<_Value_type>::Default_Value::get()
+			{
+				return Array_View<_Value_type>::default_value;
+			}
 	}
 }

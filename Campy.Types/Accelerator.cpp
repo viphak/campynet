@@ -61,5 +61,11 @@ namespace Campy {
 			return (void*)this->_native;
 		}
 
+		Accelerator^ Accelerator::Default_Value::get()
+		{
+			return Accelerator::default_value;
+		}
+
+//		Accelerator^ Accelerator::default_value = gcnew Accelerator();
 	}
 }

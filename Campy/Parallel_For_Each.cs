@@ -28,7 +28,7 @@ namespace Campy
 
         static Builder builder = new Builder();
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
-
+        
         public delegate void _Kernel_type(Index idx);
 
         static public void loop(Extent extent, _Kernel_type _kernel)
@@ -187,15 +187,41 @@ namespace Campy
                 // Copy.
                 SR.FieldInfo hostObjectField = fi;
                 object value = field_value;
-                Type ft = value.GetType();
-                if (value as System.MulticastDelegate != null)
-                    continue;
-
                 var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
                 if (deviceObjectField == null)
                     throw new ArgumentException("Field not found.");
-
-                deviceObjectField.SetValue(staging_object, value);
+                if (field_value != null)
+                {
+                    deviceObjectField.SetValue(staging_object, value);
+                }
+                else
+                {
+                    // In order to prevent a lot of segv's ...
+                    // Create a default value based on field type?
+                    if (Utility.IsCampyArrayViewType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Array_View<int>.Default_Value);
+                    }
+                    else if (Utility.IsCampyAcceleratorType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Accelerator.Default_Value);
+                    }
+                    else if (Utility.IsCampyAcceleratorViewType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Accelerator_View.Default_Value);
+                    }
+                    else if (Utility.IsCampyIndexType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Index.Default_Value);
+                    }
+                    else if (Utility.IsCampyExtentType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Extent.Default_Value);
+                    }
+                    else
+                    {
+                    }
+                }
             }
             // Add in other structures.
             foreach (Structure child in structure.nested_structures)

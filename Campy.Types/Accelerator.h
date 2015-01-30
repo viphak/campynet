@@ -14,6 +14,7 @@ namespace Campy {
 		{
 		internal:
 			void * _native;
+			static Accelerator^ default_value;
 
 		public:
 			Accelerator();
@@ -26,6 +27,10 @@ namespace Campy {
 			}
 			String^ description();
 			String^ device_path();
+			static property Accelerator^ Default_Value
+			{
+				Accelerator^ get();
+			}
 
 		public:
 			// Native accelerator, provided for kernels.

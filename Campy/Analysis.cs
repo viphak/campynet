@@ -23,6 +23,7 @@ namespace Campy
         public String Name { get; set; }
         public String FullName { get; set; }
         public int level { get; set; }
+        public List<String> rewrite_names = new List<string>();
 
         public Structure(Structure parent, object target)
         {
@@ -30,8 +31,45 @@ namespace Campy
             this.target_value = target;
         }
 
+        class StructureEnumerator : IEnumerable<Structure>
+        {
+            Structure top_level_structure;
+
+            public StructureEnumerator(Structure vs)
+            {
+                top_level_structure = vs;
+            }
+
+            public IEnumerator<Structure> GetEnumerator()
+            {
+                StackQueue<Structure> stack = new StackQueue<Structure>();
+                stack.Push(top_level_structure);
+                while (stack.Count > 0)
+                {
+                    Structure current = stack.Pop();
+                    yield return current;
+                    foreach (Structure child in current._nested_structures)
+                        stack.Push(child);
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public IEnumerable<Structure> AllChildren
+        {
+            get
+            {
+                return new StructureEnumerator(this);
+            }
+        }
+
         public Structure(GraphAdjList<object> list_of_targets)
         {
+            List<Tuple<object, String>> target_field_name_map = new List<Tuple<object, string>>();
             object del = list_of_targets.Vertices.First();
             int last_depth = 1;
             String last_prefix = "";
@@ -111,12 +149,18 @@ namespace Campy
                 Type target_type = target.GetType();
                 foreach (FieldInfo fi in target_type.GetFields())
                 {
-                    // Here, we do not output fields which are list_of_targets.
-                    // Each delegate target is output, and the method handled
-                    // as an auto in the C++ AMP code.
+                    // Add field if it's a simple value type or campy type.
+                    // If it's a class, we'll be converting it into a struct.
                     object field_value = fi.GetValue(target);
-                    if (field_value as System.Delegate == null)
+                    if (field_value as System.Delegate == null
+                        && (fi.FieldType.IsValueType ||
+                            Utility.IsSimpleCampyType(fi.FieldType)))
                         current_structure.AddField(fi);
+                    else if (field_value != null && field_value as System.Delegate == null)
+                    {
+                        // It's a class. Note rewrite here.
+                        target_field_name_map.Add(new Tuple<object, String>(field_value, fi.Name));
+                    }
 
                     Type field_type = fi.FieldType;
                     if (field_value != null && Utility.IsBaseType(field_type, typeof(Delegate)))
@@ -154,6 +198,20 @@ namespace Campy
                     Delegate dd = tuple.Item1;
                     String na = tuple.Item2;
                     current_structure.AddMethod(dd.Method, na);
+                }
+            }
+
+            foreach (object node in list_of_targets.Vertices)
+            {
+                Structure current_structure = null;
+                map_target_to_structure.TryGetValue(node, out current_structure);
+                if (current_structure != null)
+                {
+                    foreach (Tuple<object, string> pair in target_field_name_map)
+                    {
+                        if (pair.Item1 == node)
+                            current_structure.rewrite_names.Add(pair.Item2);
+                    }
                 }
             }
         }

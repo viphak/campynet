@@ -37,5 +37,9 @@ namespace Campy {
 			return (void*)this->_native;
 		}
 
+		Accelerator_View^ Accelerator_View::Default_Value::get()
+		{
+			return Accelerator_View::default_value;
+		}
 	}
 }

@@ -14,12 +14,17 @@ namespace Campy {
 		{
 		private:
 			void * _native;
+			static Accelerator_View^ default_value = gcnew Accelerator_View();
 
 		public:
 			Accelerator_View();
 			void flush();
 			Accelerator^ get_accelerator();
 			void wait();
+			static property Accelerator_View^ Default_Value
+			{
+				Accelerator_View^ get();
+			}
 
 		public:
 			// Native accelerator, provided for kernels.

@@ -14,6 +14,7 @@ namespace Campy {
 			int _Rank;
 			array<int>^ _M_base;
 			void * _native;
+			static Extent^ default_value = gcnew Extent();
 
 		public:
 			Extent();
@@ -29,6 +30,10 @@ namespace Campy {
 			static Extent^ operator -(Extent^ _Lhs, Index^ _Rhs);
 			static Extent^ operator --(Extent^ _Lhs);
 			void * native();
+			static property Extent^ Default_Value
+			{
+				Extent^ get();
+			}
 
 			// C# does not support post-increment, post-decrement, +=, -=, etc. operator overloading.
 		};

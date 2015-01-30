@@ -109,5 +109,9 @@ namespace Campy {
 			return this->_native;
 		}
 
+		Extent^ Extent::Default_Value::get()
+		{
+			return Extent::default_value;
+		}
 	}
 }
