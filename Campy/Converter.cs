@@ -474,6 +474,7 @@ namespace Campy
                 result += "#include \"Native_Array_View.h\"" + eol;
                 result += "#include \"Native_Extent.h\"" + eol;
                 result += "#include \"Native_Accelerator_View.h\"" + eol;
+                result += "#include \"Native_Atomics.h\"" + eol;
                 result += "using namespace concurrency;" + eol + eol;
 
                 // Output entry point of unmanaged delegate.
@@ -565,6 +566,9 @@ namespace Campy
                             xxx = xxx.Replace(find, repl);
                         }
                     }
+
+                    xxx = xxx.Replace("AMP.", "AMP::");
+                    xxx = xxx.Replace("(ref", "(");
 
                     // All remaining "this." assume at top level.
                     xxx = xxx.Replace("this.", "a1.");

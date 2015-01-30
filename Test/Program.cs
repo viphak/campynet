@@ -58,7 +58,7 @@ namespace Test
                 return k % (local_size / 2); // Cannot reference size directly!!!
             };
             int xsize = size; // required because static size cannot be referenced.
-            Parallel_For_Each.loop(d.extent, (Index idx) =>
+            AMP.Parallel_For_Each(d.extent, (Index idx) =>
             {
                 int j = idx[0];
                 d[j] = test(j);
@@ -68,7 +68,7 @@ namespace Test
             {
                 System.Console.WriteLine(data[i]);
             }
-            Parallel_For_Each.loop(d.extent, (Index idx) =>
+            AMP.Parallel_For_Each(d.extent, (Index idx) =>
             {
                 int j = idx[0];
                 d[j] = xsize - j - test2(j);
@@ -85,7 +85,31 @@ namespace Test
 
         static void Main(string[] args)
         {
-            Part1();
+            //Part1();
+            int size = 10;
+            int[] data = new int[size];
+            for (int i = 0; i < size; ++i) data[i] = 2 * i;
+            Extent e = new Extent(size);
+            Array_View<int> d = new Array_View<int>(size, ref data);
+            d.synchronize();
+            for (int i = 0; i < size; ++i)
+            {
+                System.Console.WriteLine(data[i]);
+            }
+            for (int i = 0; i < size; ++i)
+            {
+                System.Console.WriteLine(d[i]);
+            }
+            AMP.Parallel_For_Each(d.extent, (Index idx) =>
+            {
+                int j = idx[0];
+                d[j] = size - j;
+            });
+            d.synchronize();
+            for (int i = 0; i < size; ++i)
+            {
+                System.Console.WriteLine(data[i]);
+            }
         }
     }
 }

@@ -3,8 +3,11 @@
 #pragma once
 #include "Extent.h"
 #include "Index.h"
+#include "Native_Array_View.h"
 
 using namespace System;
+using namespace System::Runtime::InteropServices;
+
 
 namespace Campy {
 	namespace Types {
@@ -19,6 +22,7 @@ namespace Campy {
 				int _length;
 				Extent ^ _extent;
 				void * _native;
+				GCHandle gchandle;
 				static array<_Value_type>^ default_data = gcnew array<_Value_type>(1);
 				static Array_View^ default_value = gcnew Array_View(1, default_data);
 

@@ -17,6 +17,8 @@ namespace Campy {
 			Native_Array_View();
 			Native_Array_View(int length, _Value_type * ptr);
 			void synchronize();
+			_Value_type operator [](int i) const;
+			_Value_type & store(int i);
 		};
 	}
 }

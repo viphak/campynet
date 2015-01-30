@@ -15,7 +15,7 @@ using NewGraphs;
 
 namespace Campy
 {
-    public class Parallel_For_Each
+    public class AMP
     {
         [DllImport("kernel32.dll")]
         static extern bool FreeLibrary(IntPtr hModule);
@@ -31,13 +31,35 @@ namespace Campy
         
         public delegate void _Kernel_type(Index idx);
 
-        static public void loop(Extent extent, _Kernel_type _kernel)
+        /// <summary>
+        /// Atomic add of _Dest. Note: C# does not allow ref passing of properties,
+        /// dynamic members, and most importantly, indices, such as in Array_View's.
+        /// So, in order to handle this, many forms of the atomic function are provided.
+        /// </summary>
+        /// <param name="_Dest"></param>
+        /// <param name="_Value"></param>
+        /// <returns></returns>
+        static public int Atomic_Fetch_Add(ref int _Dest, int _Value)
         {
-            Accelerator_View view = new Accelerator_View();
-            loop(view, extent, _kernel);
+            int orig = _Dest;
+            _Dest++;
+            return orig;
         }
 
-        static public void loop(Accelerator_View view, Extent extent, _Kernel_type _kernel)
+        static public int Atomic_Fetch_Add(ref Array_View<int>_Dest, int index, int _Value)
+        {
+            int orig = _Dest[index];
+            _Dest[index] = _Dest[index] + _Value;
+            return orig;
+        }
+        
+        static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
+        {
+            Accelerator_View view = new Accelerator_View();
+            Parallel_For_Each(view, extent, _kernel);
+        }
+
+        static public void Parallel_For_Each(Accelerator_View view, Extent extent, _Kernel_type _kernel)
         {
             // Compile and link any "to do" work before any DLL loading.
             builder.Build();

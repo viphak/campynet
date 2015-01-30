@@ -28,6 +28,17 @@ namespace Campy {
 			((array_view<_Value_type, _Rank>*)native)->synchronize();
 		}
 
+		template<typename _Value_type, int _Rank = 1>
+		_Value_type Native_Array_View<_Value_type, _Rank>::operator [](int i) const
+		{
+			return (_Value_type)((*(array_view<_Value_type, _Rank>*)native)[i]);
+		}
+
+		template<typename _Value_type, int _Rank = 1>
+		_Value_type & Native_Array_View<_Value_type, _Rank>::store(int i)
+		{
+			return (_Value_type&)((array_view<_Value_type, _Rank>*)native)[i];
+		}
 
 		// Instantiate templates.
 		template Native_Array_View<int, 1>;

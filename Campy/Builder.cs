@@ -145,12 +145,12 @@ namespace Campy
         public void Build()
         {
             SetupEnv();
-            // Load "Parallel_For_Each.todo"
-            String file_name = "Parallel_For_Each.todo";
+            // Load "AMP.todo"
+            String file_name = "AMP.todo";
             if (File.Exists(file_name))
             {
                 bool failed = false;
-                string[] lines = System.IO.File.ReadAllLines("Parallel_For_Each.todo");
+                string[] lines = System.IO.File.ReadAllLines("AMP.todo");
                 foreach (string line in lines)
                 {
                     // Compile and link all work.
@@ -172,7 +172,7 @@ namespace Campy
                         System.Console.WriteLine(more_output);
                     }
                 }
-                File.Delete("Parallel_For_Each.todo");
+                File.Delete("AMP.todo");
                 if (failed)
                     throw new Exception();
             }
@@ -508,6 +508,10 @@ eat_blanks_after_open_brace	= TRUE
                 obj_source_file_name = obj_source_file_name + ".obj";
                 p.StartInfo.Arguments = p.StartInfo.Arguments + " " + obj_source_file_name;
             }
+            using (StreamWriter sw = File.AppendText("save.save"))
+            {
+                sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
+            }
             p.Start();
             p.WaitForExit();
             String output = p.StandardOutput.ReadToEnd();
@@ -519,7 +523,7 @@ eat_blanks_after_open_brace	= TRUE
                 if (output.Contains("cannot open") || more_output.Contains("cannot open"))
                 {
                     System.Console.WriteLine("Restart program in order to get link to work.");
-                    using (StreamWriter sw = File.AppendText("Parallel_For_Each.todo"))
+                    using (StreamWriter sw = File.AppendText("AMP.todo"))
                     {
                         sw.WriteLine(p.StartInfo.Arguments);
                     }

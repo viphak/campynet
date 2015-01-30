@@ -20,8 +20,9 @@ namespace Campy {
 				Type ^ t = _Value_type::typeid;
 				if (t->FullName->Equals("System.Int32"))
 				{
-					pin_ptr<_Value_type> ptr = &data[0];
-					int * p = (int *)ptr;
+					gchandle = GCHandle::Alloc(data, GCHandleType::Pinned);
+					System::IntPtr ptr = gchandle.AddrOfPinnedObject();
+					int * p = (int *)ptr.ToPointer();
 					this->_native = (void*) new Native_Array_View<int, 1>(length, p);
 				}
 			}
@@ -41,7 +42,13 @@ namespace Campy {
 		generic<typename _Value_type>
 			_Value_type Array_View<_Value_type>::default::get(int i)
 			{
-				return _data[i];
+				Type ^ t = _Value_type::typeid;
+				//if (t->FullName->Equals("System.Int32"))
+				//{
+					Native_Array_View<int, 1> * nav = (Native_Array_View<int, 1>*)this->_native;
+					return (_Value_type)(*nav)[i];
+				//}
+				//return _data[i];
 			}
 
 		generic<typename _Value_type>

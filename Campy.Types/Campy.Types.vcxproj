@@ -85,9 +85,11 @@
     <ClInclude Include="Native_Accelerator.h" />
     <ClInclude Include="Native_Accelerator_View.h" />
     <ClInclude Include="Native_Array_View.h" />
+    <ClInclude Include="Native_Atomics.h" />
     <ClInclude Include="Native_Extent.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stdafx.h" />
+    <ClInclude Include="Wrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Accelerator.cpp">
