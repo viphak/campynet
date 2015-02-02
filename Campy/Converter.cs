@@ -11,8 +11,10 @@ using System.IO;
 using System.Diagnostics;
 using SR = System.Reflection;
 using Campy.Utils;
+using Campy.Types;
 using NewGraphs;
 using GraphAlgorithms;
+using System.Text.RegularExpressions;
 
 namespace Campy
 {
@@ -95,7 +97,13 @@ namespace Campy
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                if (Utility.IsSimpleCampyType(fi.FieldType))
+                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
+                    // While we may be able to capture Campy Tile_Static objects,
+                    // it isn't useful because static tiles must be declared
+                    // local in the body of the kernel.
+                }
+                else if (Utility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += tys + "^ " + na + ";" + eol;
                 }
@@ -133,7 +141,13 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (Utility.IsSimpleCampyType(fi.FieldType))
+                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
+                    // While we may be able to capture Campy Tile_Static objects,
+                    // it isn't useful because static tiles must be declared
+                    // local in the body of the kernel.
+                }
+                else if (Utility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += "(void*)" + prefix + na + "->native()," + eol;
                 }
@@ -165,6 +179,7 @@ namespace Campy
             System.Delegate del,
             Structure structure,
             String kernel_full_name,
+            Extent extent,
             ModuleDefinition mod_def,
             TypeDefinition td,
             String managed_cpp_file_name,
@@ -204,7 +219,10 @@ namespace Campy
             result += "GraphAdjList<Object^>^ graph;" + eol;
             result += "System::Delegate^ del;" + eol;
             result += "Accelerator_View^ accelerator_view;" + eol;
-            result += "Extent^ extent;" + eol;
+            if (null != extent as Tiled_Extent)
+                result += "Tiled_Extent^ extent;" + eol;
+            else
+                result += "Extent^ extent;" + eol;
             result += eol;
 
             result += EmitManagedStruct(structure);
@@ -245,7 +263,10 @@ namespace Campy
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                if (Utility.IsSimpleCampyType(fi.FieldType))
+                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
+                }
+                else if (Utility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += "void * n_" + na + ";" + eol;
                 }
@@ -305,6 +326,9 @@ namespace Campy
                 {
                     result += "extent<1> "
                         + na + ";" + eol;
+                }
+                else if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
                 }
                 else
                 {
@@ -377,7 +401,7 @@ namespace Campy
                 if (Utility.IsCampyArrayViewType(fi.FieldType))
                 {
                     result += "*(array_view<int, 1>*)"
-                        + "(((Campy::Types::Native_Array_View<int, 1> *) " + prefix + "n_" + na + ")->native)"
+                        + "(((Campy::Types::Native_Array_View<int> *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
                 else if (Utility.IsCampyAcceleratorType(fi.FieldType))
@@ -401,8 +425,11 @@ namespace Campy
                 else if (Utility.IsCampyExtentType(fi.FieldType))
                 {
                     result += "*(extent<1>*)"
-                        + "(((Campy::Types::Native_Extent<1> *) " + prefix + "n_" + na + ")->native)"
+                        + "(((Campy::Types::Native_Extent *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
+                }
+                else if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
                 }
                 else
                 {
@@ -430,11 +457,44 @@ namespace Campy
             return result;
         }
 
+        String DeclareTileStatics(String code, Structure structure)
+        {
+            String result = code;
+            foreach (SR.FieldInfo fi in structure.simple_fields)
+            {
+                object field_value = fi.GetValue(structure.target_value);
+                String na = fi.Name;
+                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String prefix = structure.FullName + ".";
+                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                {
+                    // If no value for field, then I can't get the size.
+                    // So, I cannot do substitutions.
+                    Tile_Static<int> foo = field_value as Tile_Static<int>;
+                    if (foo == null) continue;
+                    String static_string = "tile_static int " +
+                        fi.Name + "[" + foo.Length + "];" + eol;
+                    result = result.Replace("{", "{" + static_string);
+
+                    // In code, replace "this." + fi.Name with just fi.Name.
+                    Regex regex = new Regex("this." + fi.Name + "([^a-zA-Z_]+)");
+                    result = regex.Replace(result, fi.Name + "$1");
+                }
+            }
+
+            // Add in other structures.
+            foreach (Structure child in structure.nested_structures)
+            {
+            }
+
+            return result;
+        }
 
         void GenerateUnmanagedCode(
             System.Delegate del,
             Structure structure,
             String kernel_full_name,
+            Extent extent,
             ModuleDefinition mod_def, TypeDefinition td,
             String unmanaged_cpp_file_name, String unmanaged_h_file_name)
         {
@@ -473,6 +533,7 @@ namespace Campy
                 result += "#include \"" + unmanaged_h_file_name.Replace("\\", "\\\\") + "\"" + eol;
                 result += "#include \"Native_Array_View.h\"" + eol;
                 result += "#include \"Native_Extent.h\"" + eol;
+                result += "#include \"Native_Tiled_Extent.h\"" + eol;
                 result += "#include \"Native_Accelerator_View.h\"" + eol;
                 result += "#include \"Native_Atomics.h\"" + eol;
                 result += "using namespace concurrency;" + eol + eol;
@@ -489,11 +550,19 @@ namespace Campy
 
                 result += ";" + eol;
 
-                result += "extent<1>& _extent"
-                    + " = *(extent<1>*)"
-                    + "(((Campy::Types::Native_Extent<1> *) native_extent)->native)"
-                    + ";" + eol;
-
+                if (extent as Tiled_Extent == null)
+                    result += "extent<1>& _extent"
+                        + " = *(extent<1>*)"
+                        + "(((Campy::Types::Native_Extent *) native_extent)->native)"
+                        + ";" + eol;
+                else
+                {
+                    Tiled_Extent te = extent as Tiled_Extent;
+                    result += "tiled_extent<" + te.tile_dims[0] + "> & _extent"
+                        + " = *(tiled_extent<" + te.tile_dims[0] + ">*)"
+                        + "(((Campy::Types::Native_Extent *) native_extent)->native)"
+                        + ";" + eol;
+                }
                 result += "accelerator_view& _accelerator_view"
                     + " = *(accelerator_view*)"
                     + "(((Campy::Types::Native_Accelerator_View *) native_accelerator_view)->native)"
@@ -511,7 +580,13 @@ namespace Campy
                     StringWriter output = new StringWriter();
                     astBuilder.GenerateCode(new PlainTextOutput(output));
                     String xxx = output.ToString();
-                    xxx = xxx.Replace("Index", "index<1>");
+                    if (extent as Tiled_Extent != null)
+                    {
+                        Tiled_Extent te = extent as Tiled_Extent;
+                        xxx = xxx.Replace("Tiled_Index", "tiled_index<" + +te.tile_dims[0] + ">");
+                    }
+                    else
+                        xxx = xxx.Replace("Index", "index<1>");
                     result += xxx;
                     output.Dispose();
                 }
@@ -570,8 +645,18 @@ namespace Campy
                     xxx = xxx.Replace("AMP.", "AMP::");
                     xxx = xxx.Replace("(ref", "(");
 
+                    // Severe magic (hacking) here. There are no static variables within a method,
+                    // so here we opt for tile_statics to be declared in C# outside the parallel_for_each
+                    // then captured. Here, we add in all tile_statics into the body of the declaration.
+                    // Go through all structures and emit tile_static declarations, to be inserted
+                    // into the code block!!
+                    xxx = DeclareTileStatics(xxx, structure);
+
                     // All remaining "this." assume at top level.
                     xxx = xxx.Replace("this.", "a1.");
+
+
+
                     result += xxx;
                     output.Dispose();
                 }
@@ -621,9 +706,7 @@ namespace Campy
             _assembly = assembly;
         }
 
-
-
-        public void Convert(System.Delegate del)
+        public void Convert(System.Delegate del, Campy.Types.Extent extent)
         {
             Structure structure = Analysis.FindAllTargets(del);
 
@@ -654,6 +737,7 @@ namespace Campy
             GenerateManagedCode(
                 del, structure,
                 kernel_full_name,
+                extent,
                 mod_def, multidelegate_mc,
                 managed_cpp_file_name, managed_h_file_name, unmanaged_h_file_name);
 
@@ -661,6 +745,7 @@ namespace Campy
             GenerateUnmanagedCode(
                 del, structure,
                 kernel_full_name,
+                extent,
                 mod_def, multidelegate_mc,
                 unmanaged_cpp_file_name, unmanaged_h_file_name);
         }

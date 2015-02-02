@@ -2,6 +2,7 @@
 #include "Extent.h"
 #include "Index.h"
 #include "Native_Extent.h"
+#include "Tiled_Extent.h"
 
 using namespace System;
 
@@ -12,7 +13,17 @@ namespace Campy {
 		{
 			_Rank = 1;
 			_M_base = gcnew array<int>(_Rank);
-			_native = (void*) new Native_Extent<1>();
+			_native = (void*) new Native_Extent(1);
+		}
+
+		Extent::Extent(Extent^ copy)
+		{
+			_Rank = copy->_Rank;
+			_M_base = gcnew array<int>(_Rank);
+			for (int i = 0; i < _Rank; ++i)
+				_M_base[i] = copy->_M_base[i];
+			pin_ptr<int> ptr = &_M_base[0];
+			_native = (void*) new Native_Extent(_Rank, (int*)ptr);
 		}
 
 		Extent::Extent(int _I0)
@@ -20,7 +31,7 @@ namespace Campy {
 			_Rank = 1;
 			_M_base = gcnew array<int>(_Rank);
 			_M_base[0] = _I0;
-			_native = (void*) new Native_Extent<1>(_I0);
+			_native = (void*) new Native_Extent(_I0);
 		}
 
 		Extent::Extent(int _I0, int _I1)
@@ -29,7 +40,7 @@ namespace Campy {
 			_M_base = gcnew array<int>(_Rank);
 			_M_base[0] = _I0;
 			_M_base[1] = _I1;
-			_native = (void*) new Native_Extent<2>();
+			_native = (void*) new Native_Extent(_I0, _I1);
 		}
 
 		Extent::Extent(int _I0, int _I1, int _I2)
@@ -39,7 +50,7 @@ namespace Campy {
 			_M_base[0] = _I0;
 			_M_base[1] = _I1;
 			_M_base[2] = _I2;
-			_native = (void*) new Native_Extent<3>();
+			_native = (void*) new Native_Extent(_I0, _I1, _I2);
 		}
 
 		Extent::Extent(array<int>^ _Array)
@@ -48,9 +59,9 @@ namespace Campy {
 			_M_base = gcnew array<int>(_Rank);
 			for (int i = 0; i < _Rank; ++i)
 				_M_base[i] = _Array[i];
-			if (_Rank == 1)	_native = (void*) new Native_Extent<1>();
-			if (_Rank == 2)	_native = (void*) new Native_Extent<2>();
-			if (_Rank == 3)	_native = (void*) new Native_Extent<3>();
+			if (_Rank == 1)	_native = (void*) new Native_Extent(_M_base[0]);
+			if (_Rank == 2)	_native = (void*) new Native_Extent(_M_base[0], _M_base[1]);
+			if (_Rank == 3)	_native = (void*) new Native_Extent(_M_base[0], _M_base[1], _M_base[2]);
 		}
 
 		int Extent::size()
@@ -59,6 +70,24 @@ namespace Campy {
 			for (int i = 0; i < _Rank; ++i)
 				result *= _M_base[i];
 			return result;
+		}
+
+		Tiled_Extent^ Extent::tile(int _I0)
+		{
+			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, this);
+			return te;
+		}
+
+		Tiled_Extent^ Extent::tile(int _I0, int _I1)
+		{
+			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, _I1, this);
+			return te;
+		}
+
+		Tiled_Extent^ Extent::tile(int _I0, int _I1, int _I2)
+		{
+			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, _I1, _I2, this);
+			return te;
 		}
 
 		int Extent::operator[](int i)

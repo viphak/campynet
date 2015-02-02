@@ -28,8 +28,16 @@ namespace Campy
 
         static Builder builder = new Builder();
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
-        
+
         public delegate void _Kernel_type(Index idx);
+        public delegate void _Kernel_tiled_type(Tiled_Index idx);
+
+
+        public static Tile_Static<T> AllocateTileStatic<T>(int size)
+        {
+            Tile_Static<T> tile = new Tile_Static<T>(size);
+            return tile;
+        }
 
         /// <summary>
         /// Atomic add of _Dest. Note: C# does not allow ref passing of properties,
@@ -52,7 +60,7 @@ namespace Campy
             _Dest[index] = _Dest[index] + _Value;
             return orig;
         }
-        
+
         static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
         {
             Accelerator_View view = new Accelerator_View();
@@ -65,7 +73,7 @@ namespace Campy
             builder.Build();
 
             // Get corresponding Campy code for C# kernel.
-            Type thunk = GetThunk(_kernel);
+            Type thunk = GetThunk(_kernel, extent);
 
             // Create thunk object.
             object obj = Activator.CreateInstance(thunk);
@@ -88,7 +96,77 @@ namespace Campy
             mi2.Invoke(obj, new object[] { });
         }
 
-        private static Type GetThunk(_Kernel_type kernel)
+        static public void Parallel_For_Each(Tiled_Extent extent, _Kernel_tiled_type _kernel)
+        {
+            Accelerator_View view = new Accelerator_View();
+            Parallel_For_Each(view, extent, _kernel);
+        }
+
+        static public void Parallel_For_Each(Accelerator_View view, Tiled_Extent extent, _Kernel_tiled_type _kernel)
+        {
+            // Compile and link any "to do" work before any DLL loading.
+            builder.Build();
+
+            // Get corresponding Campy code for C# kernel.
+            Type thunk = GetThunk(_kernel, extent);
+
+            // Create thunk object.
+            object obj = Activator.CreateInstance(thunk);
+
+            Structure structure = Analysis.FindAllTargets(_kernel);
+
+            // Set fields of thunk based on lambda.
+            CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
+
+            // Set extent.
+            CopyExtentToStaging(extent, ref obj);
+
+            // Set extent.
+            CopyViewToStaging(view, ref obj);
+
+            // Get address of thunk method.
+            SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
+
+            // Call thunk method.
+            mi2.Invoke(obj, new object[] { });
+        }
+
+        //static public void Parallel_For_Each(Tiled_Extent tiled_Extent, _Kernel_type _kernel)
+        //{
+        //    Accelerator_View view = new Accelerator_View();
+        //    Parallel_For_Each(view, tiled_Extent, _kernel);
+        //}
+
+        //static public void Parallel_For_Each(Accelerator_View view, Tiled_Extent tiled_extent, _Kernel_type _kernel)
+        //{
+        //    // Compile and link any "to do" work before any DLL loading.
+        //    builder.Build();
+
+        //    // Get corresponding Campy code for C# kernel.
+        //    Type thunk = GetThunk(_kernel, tiled_extent);
+
+        //    // Create thunk object.
+        //    object obj = Activator.CreateInstance(thunk);
+
+        //    Structure structure = Analysis.FindAllTargets(_kernel);
+
+        //    // Set fields of thunk based on lambda.
+        //    CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
+
+        //    // Set extent.
+        //    CopyExtentToStaging(tiled_extent, ref obj);
+
+        //    // Set extent.
+        //    CopyViewToStaging(view, ref obj);
+
+        //    // Get address of thunk method.
+        //    SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
+
+        //    // Call thunk method.
+        //    mi2.Invoke(obj, new object[] { });
+        //}
+
+        private static Type GetThunk(Delegate kernel, Campy.Types.Extent extent)
         {
             // Get MethodInfo for lambda.
             SR.MethodInfo mi = kernel.Method;
@@ -174,7 +252,7 @@ namespace Campy
                     Converter converter = new Converter(assembly);
 
                     // Convert lambda into GPU target code.
-                    converter.Convert(kernel);
+                    converter.Convert(kernel, extent);
 
                     // Compile target code into object code.
                     builder.Compile(assembly);
@@ -209,6 +287,9 @@ namespace Campy
                 // Copy.
                 SR.FieldInfo hostObjectField = fi;
                 object value = field_value;
+                // Never copy tile_statics...
+                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                    continue;
                 var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
                 if (deviceObjectField == null)
                     throw new ArgumentException("Field not found.");
@@ -296,6 +377,26 @@ namespace Campy
         }
 
         private static void CopyExtentToStaging(Extent extent, ref object staging_object)
+        {
+            Type s = staging_object.GetType();
+            SR.FieldInfo[] sfi = s.GetFields();
+
+            bool found = false;
+            foreach (SR.FieldInfo field in sfi)
+            {
+                if (field.Name.Equals("extent"))
+                {
+                    if (found)
+                        throw new Exception("CopyExtentToStaging encountered an internal error--found duplicate extent field in managed object.");
+                    found = true;
+                    field.SetValue(staging_object, extent);
+                }
+            }
+            if (!found)
+                throw new Exception("CopyExtentToStaging encountered an internal error--did not find extent field in managed object.");
+        }
+
+        private static void CopyExtentToStaging(Tiled_Extent extent, ref object staging_object)
         {
             Type s = staging_object.GetType();
             SR.FieldInfo[] sfi = s.GetFields();

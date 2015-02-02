@@ -8,6 +8,8 @@ using namespace System;
 namespace Campy {
 	namespace Types {
 
+		ref class Tiled_Extent;
+
 		public ref class Extent
 		{
 		internal:
@@ -18,10 +20,14 @@ namespace Campy {
 
 		public:
 			Extent();
+			Extent(Extent^ e);
 			Extent(int _I0);
 			Extent(int _I0, int _I1);
 			Extent(int _I0, int _I1, int _I2);
 			Extent(array<int>^ _Array);
+			Tiled_Extent^ tile(int _I0);
+			Tiled_Extent^ tile(int _I0, int _I1);
+			Tiled_Extent^ tile(int _I0, int _I1, int _I2);
 			int size();
 			int operator[](int i);
 			int operator[](Index^ i);

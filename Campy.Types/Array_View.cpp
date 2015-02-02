@@ -23,7 +23,7 @@ namespace Campy {
 					gchandle = GCHandle::Alloc(data, GCHandleType::Pinned);
 					System::IntPtr ptr = gchandle.AddrOfPinnedObject();
 					int * p = (int *)ptr.ToPointer();
-					this->_native = (void*) new Native_Array_View<int, 1>(length, p);
+					this->_native = (void*) new Native_Array_View<int>(length, p);
 				}
 			}
 
@@ -45,7 +45,7 @@ namespace Campy {
 				Type ^ t = _Value_type::typeid;
 				//if (t->FullName->Equals("System.Int32"))
 				//{
-					Native_Array_View<int, 1> * nav = (Native_Array_View<int, 1>*)this->_native;
+					Native_Array_View<int> * nav = (Native_Array_View<int>*)this->_native;
 					return (_Value_type)(*nav)[i];
 				//}
 				//return _data[i];
@@ -63,7 +63,7 @@ namespace Campy {
 				Type ^ t = _Value_type::typeid;
 				if (t->FullName->Equals("System.Int32"))
 				{
-					Native_Array_View<int, 1> * nav = (Native_Array_View<int, 1>*)this->_native;
+					Native_Array_View<int> * nav = (Native_Array_View<int>*)this->_native;
 					nav->synchronize();
 				}
 			}

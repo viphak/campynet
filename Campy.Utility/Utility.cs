@@ -27,6 +27,14 @@ namespace Campy.Utils
                     return true;
                 if (t == typeof(Campy.Types.Extent))
                     return true;
+                if (t == typeof(Campy.Types.Tile_Barrier))
+                    return true;
+                if (t == typeof(Campy.Types.Tile_Static<int>))
+                    return true;
+                if (t == typeof(Campy.Types.Tiled_Extent))
+                    return true;
+                if (t == typeof(Campy.Types.Tiled_Index))
+                    return true;
                 t = t.BaseType;
             }
             return false;
@@ -91,6 +99,19 @@ namespace Campy.Utils
                 if (t == null)
                     break;
                 if (t == typeof(Campy.Types.Extent))
+                    return true;
+                t = t.BaseType;
+            }
+            return false;
+        }
+
+        public static bool IsCampyTileStaticType(Type t)
+        {
+            for (; ; )
+            {
+                if (t == null)
+                    break;
+                if (t == typeof(Campy.Types.Tile_Static<int>))
                     return true;
                 t = t.BaseType;
             }

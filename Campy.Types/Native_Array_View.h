@@ -9,7 +9,7 @@
 namespace Campy {
 	namespace Types {
 
-		template<typename _Value_type, int _Rank = 1>
+		template<typename _Value_type>
 		class Native_Array_View
 		{
 		public:

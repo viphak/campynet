@@ -21,17 +21,17 @@ namespace Campy {
 			return accelerator::set_default(path);
 		}
 
-		bool Native_Accelerator::is_emulated()
+		bool Native_Accelerator::get_is_emulated()
 		{
 			return ((accelerator*)(this->native))->is_emulated;
 		}
 
-		std::wstring Native_Accelerator::description()
+		std::wstring Native_Accelerator::get_description()
 		{
 			return ((accelerator*)(this->native))->description;
 		}
 
-		std::wstring Native_Accelerator::device_path()
+		std::wstring Native_Accelerator::get_device_path()
 		{
 			return ((accelerator*)(this->native))->device_path;
 		}

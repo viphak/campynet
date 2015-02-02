@@ -302,6 +302,7 @@ namespace Campy
                 }
             }
 
+            if (false)
             foreach (object node in graph.Vertices)
             {
                 System.Console.WriteLine("Node "
@@ -375,55 +376,21 @@ namespace Campy
                 }
             }
 
-            System.Console.WriteLine("Full graph of lambda closure.");
-            foreach (object node in graph.Vertices)
+            if (false)
             {
-                System.Console.WriteLine("Node "
-                    + node.GetHashCode()
-                    + " "
-                    + node.ToString());
-                foreach (object succ in graph.Successors(node))
-                    System.Console.WriteLine("-> "
-                        + succ.GetHashCode() + " " + succ.ToString());
+                System.Console.WriteLine("Full graph of lambda closure.");
+                foreach (object node in graph.Vertices)
+                {
+                    System.Console.WriteLine("Node "
+                        + node.GetHashCode()
+                        + " "
+                        + node.ToString());
+                    foreach (object succ in graph.Successors(node))
+                        System.Console.WriteLine("-> "
+                            + succ.GetHashCode() + " " + succ.ToString());
+                }
+                System.Console.WriteLine();
             }
-            System.Console.WriteLine();
-            /*
-                        // Create a dictionary which records if it is a delegate,
-                        // or it is a node that can lead to a delegate node in the graph.
-                        List<object> chained_to_delegate = new List<object>();
-                        bool done = false;
-                        List<object> reconsider = new List<object>();
-                        foreach (object node in graph.Vertices)
-                        {
-                            reconsider.Add(node);
-                        }
-                        while (!done)
-                        {
-                            List<object> new_reconsider = new List<object>();
-
-                            foreach (object node in reconsider)
-                            {
-                                System.Delegate del = node as System.Delegate;
-                                if (del != null)
-                                {
-                                    if (!chained_to_delegate.Contains(node))
-                                        chained_to_delegate.Add(node);
-                                    foreach (object pred in graph.Predecessors(node))
-                                    {
-                                        if (!chained_to_delegate.Contains(pred))
-                                        {
-                                            chained_to_delegate.Add(pred);
-                                            new_reconsider.Add(pred);
-                                        }
-                                    }
-                                }
-                            }
-
-                            reconsider = new_reconsider;
-                            done = reconsider.Count > 0;
-                        }
-                        */
-
             // Perform final depth first traversal of objects and create new graph with those objects in chain of delegates.
             List<object> delegates = new List<object>();
             List<object> subset = new List<object>();
@@ -450,19 +417,21 @@ namespace Campy
                 }
             }
 
-            System.Console.WriteLine("Full graph of lambda closure.");
-            foreach (object node in closure_graph.Vertices)
+            if (false)
             {
-                System.Console.WriteLine("Node "
-                    + node.GetHashCode()
-                    + " "
-                    + node.ToString());
-                foreach (object succ in closure_graph.Successors(node))
-                    System.Console.WriteLine("-> "
-                        + succ.GetHashCode() + " " + succ.ToString());
+                System.Console.WriteLine("Full graph of lambda closure.");
+                foreach (object node in closure_graph.Vertices)
+                {
+                    System.Console.WriteLine("Node "
+                        + node.GetHashCode()
+                        + " "
+                        + node.ToString());
+                    foreach (object succ in closure_graph.Successors(node))
+                        System.Console.WriteLine("-> "
+                            + succ.GetHashCode() + " " + succ.ToString());
+                }
+                System.Console.WriteLine();
             }
-            System.Console.WriteLine();
-
             Structure res = new Structure(closure_graph);
 
             return res;

@@ -10,13 +10,23 @@
 namespace Campy {
 	namespace Types {
 
-		template<int _Rank = 1>
+		class Native_Tiled_Extent;
+
 		class Native_Extent
 		{
 		public:
 			void * native;
+			int _rank;
+			int _dims[3];
 			Native_Extent();
-			Native_Extent(int size);
+			Native_Extent(int dim0);
+			Native_Extent(int dim0, int dim2);
+			Native_Extent(int dim0, int dim2, int dim3);
+			Native_Extent(int rank, int* dims);
+			Native_Tiled_Extent * tile();
+			Native_Tiled_Extent * tile(int dim0);
+			Native_Tiled_Extent * tile(int dim0, int dim2);
+			Native_Tiled_Extent * tile(int dim0, int dim2, int dim3);
 		};
 	}
 }
