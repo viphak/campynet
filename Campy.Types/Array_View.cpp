@@ -18,8 +18,10 @@ namespace Campy {
 		};
 
 		generic<typename _Value_type>
-			Array_View<_Value_type>::Array_View(int length, array<_Value_type> ^% data)
+			Array_View<_Value_type>::Array_View(array<_Value_type> ^% data)
 			{
+				int length = data->Length;
+
 				// Record basics about the array view.
 				this->_data = data;
 				this->_length = length;

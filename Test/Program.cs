@@ -22,7 +22,7 @@ namespace Test
             int[] data = new int[size];
             for (int i = 0; i < size; ++i) data[i] = 2 * i;
             Extent e = new Extent(size);
-            Array_View<int> d = new Array_View<int>(size, ref data);
+            Array_View<int> d = new Array_View<int>(ref data);
             AMP.Parallel_For_Each(d.extent, (Index idx) =>
             {
                 int j = idx[0];

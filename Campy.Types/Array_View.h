@@ -1,6 +1,7 @@
 // Array_View.h
 
 #pragma once
+#include "Array_View_Base.h"
 #include "Basic_Types.h"
 #include "Extent.h"
 #include "Index.h"
@@ -14,7 +15,7 @@ namespace Campy {
 	namespace Types {
 
 		generic<typename _Value_type>
-			public ref class Array_View : Base_Array_View
+			public ref class Array_View : Array_View_Base
 			{
 
 			private:
@@ -30,10 +31,10 @@ namespace Campy {
 				void * _native;
 				GCHandle gchandle;
 				static array<_Value_type>^ default_data = gcnew array<_Value_type>(1);
-				static Array_View^ default_value = gcnew Array_View(1, default_data);
+				static Array_View^ default_value = gcnew Array_View(default_data);
 
 			public:
-				Array_View(int length, array<_Value_type> ^% data);
+				Array_View(array<_Value_type> ^% data);
 
 				property Extent^ extent
 				{

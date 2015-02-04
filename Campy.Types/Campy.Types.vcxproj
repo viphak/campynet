@@ -80,6 +80,7 @@
     <ClInclude Include="Accelerator.h" />
     <ClInclude Include="Accelerator_View.h" />
     <ClInclude Include="Array_View.h" />
+    <ClInclude Include="Array_View_Base.h" />
     <ClInclude Include="Basic_Types.h" />
     <ClInclude Include="CSCPP.h" />
     <ClInclude Include="Extent.h" />

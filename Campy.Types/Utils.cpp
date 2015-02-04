@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "Accelerator.h"
 #include "Accelerator_View.h"
+#include "Array_View_Base.h"
 #include "Basic_Types.h"
 #include "Extent.h"
 #include "Index.h"
@@ -51,7 +52,7 @@ namespace Campy {
 			{
 				if (t == nullptr)
 					break;
-				if (t == Base_Array_View::typeid)
+				if (t == Array_View_Base::typeid)
 					return true;
 				t = t->BaseType;
 			}

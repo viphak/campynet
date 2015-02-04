@@ -338,7 +338,7 @@ namespace Campy
                 }
             }
 
-            if (true)
+            if (false)
             foreach (object node in graph.Vertices)
             {
                 System.Console.WriteLine("Node "
@@ -416,7 +416,7 @@ namespace Campy
                 }
             }
 
-            if (true)
+            if (false)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in graph.Vertices)
@@ -457,7 +457,7 @@ namespace Campy
                 }
             }
 
-            if (true)
+            if (false)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in closure_graph.Vertices)

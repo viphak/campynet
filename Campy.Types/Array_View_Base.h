@@ -3,10 +3,10 @@
 namespace Campy {
 	namespace Types {
 
-		public ref class Base_Tile_Static
+		public ref class Array_View_Base
 		{
 		public:
-			Base_Tile_Static(){};
+			Array_View_Base(){};
 		};
 	}
 }
