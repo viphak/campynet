@@ -2,13 +2,17 @@
 
 namespace Campy {
 	namespace Types {
-		enum access_type
+
+		public ref class Base_Array_View
 		{
-			access_type_none,
-			access_type_read,
-			access_type_write,
-			access_type_read_write = access_type_read | access_type_write,
-			access_type_auto,
+		public:
+			Base_Array_View(){};
+		};
+
+		public ref class Base_Tile_Static
+		{
+		public:
+			Base_Tile_Static(){};
 		};
 	}
 }

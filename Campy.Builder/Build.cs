@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 
-namespace Campy
+namespace Campy.Builder
 {
-    class Builder
+    public class Build
     {
         String compiler_path = null;
         String vc_include_path = null;
@@ -45,7 +45,7 @@ namespace Campy
             root_12 = Environment.GetEnvironmentVariable("VS120COMNTOOLS");
             if (root_14 != null && root_14 != "")
             {
-                for (;;)
+                for (; ; )
                 {
                     String root = root_14;
 
@@ -73,7 +73,7 @@ namespace Campy
             }
             if (compiler_path == null && root_12 != null && root_12 != "")
             {
-                for (;;)
+                for (; ; )
                 {
                     String root = root_12;
 
@@ -137,12 +137,12 @@ namespace Campy
             if (!Directory.Exists(ref_asm_path))
                 throw new Exception("Expecting for .NET 4.5 to be installed.");
         }
-        
-        public Builder()
+
+        public Build()
         {
         }
 
-        public void Build()
+        public void Make()
         {
             SetupEnv();
             // Load "AMP.todo"

@@ -11,126 +11,6 @@ namespace Campy.Utils
     public class Utility
     {
 
-        public static bool IsSimpleCampyType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Array_View<int>))
-                    return true;
-                if (t == typeof(Campy.Types.Accelerator))
-                    return true;
-                if (t == typeof(Campy.Types.Accelerator_View))
-                    return true;
-                if (t == typeof(Campy.Types.Index))
-                    return true;
-                if (t == typeof(Campy.Types.Extent))
-                    return true;
-                if (t == typeof(Campy.Types.Tile_Barrier))
-                    return true;
-                if (t == typeof(Campy.Types.Tile_Static<int>))
-                    return true;
-                if (t == typeof(Campy.Types.Tiled_Extent))
-                    return true;
-                if (t == typeof(Campy.Types.Tiled_Index))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyArrayViewType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Array_View<int>))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyAcceleratorType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Accelerator))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyAcceleratorViewType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Accelerator_View))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyIndexType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Index))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyExtentType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Extent))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsCampyTileStaticType(Type t)
-        {
-            for (; ; )
-            {
-                if (t == null)
-                    break;
-                if (t == typeof(Campy.Types.Tile_Static<int>))
-                    return true;
-                t = t.BaseType;
-            }
-            return false;
-        }
-
-        public static bool IsBaseType(Type type, Type basetype)
-        {
-            for (; ; )
-            {
-                if (type == null)
-                    break;
-                if (type == basetype)
-                    return true;
-                type = type.BaseType;
-            }
-            return false;
-        }
-
         /// <summary>
         /// C# .NET really does not provide any API to get a "user friendly" name of a type,
         /// especially generics. The function Simplify and GetFriendlyTypeName fill in that gap.
@@ -367,5 +247,6 @@ namespace Campy.Utils
             }
             return "";
         }
+
     }
 }

@@ -1,6 +1,7 @@
 // Array_View.h
 
 #pragma once
+#include "Basic_Types.h"
 #include "Extent.h"
 #include "Index.h"
 #include "Native_Array_View.h"
@@ -13,10 +14,15 @@ namespace Campy {
 	namespace Types {
 
 		generic<typename _Value_type>
-			public ref class Array_View
+			public ref class Array_View : Base_Array_View
 			{
 
 			private:
+				String^ _element_cppcli_type_string;
+				String^ _element_cppnat_type_string;
+				Type^ _blittable_element_type; // type in C++ world.
+				int _blittable_element_size; // bytes.
+				Type^ _element_type; // type in C# world.
 				int _Rank = 1;
 				array<_Value_type> ^ _data;
 				int _length;

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Campy
+namespace Campy.Builder
 {
-    class Assembly
+    public class Assembly
     {
         public String Name
         {

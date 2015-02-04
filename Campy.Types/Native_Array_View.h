@@ -6,19 +6,25 @@
 #pragma once
 #pragma managed(push, off)
 
+#include "Native_Array_View_Base.h"
+
 namespace Campy {
 	namespace Types {
 
-		template<typename _Value_type>
-		class Native_Array_View
+		// Note native array view isn't templated. This is because
+		// we would then have to create a type corresponding to a C# element
+		// type, and then compile that here. Instead, the "native" pointer
+		// will be allocated and assigned via Array_View over in managed C++
+		// world.
+		template<typename T>
+		class Native_Array_View : public Native_Array_View_Base
 		{
 		public:
-			void * native;
 			Native_Array_View();
-			Native_Array_View(int length, _Value_type * ptr);
-			void synchronize();
-			_Value_type operator [](int i) const;
-			_Value_type & store(int i);
+			Native_Array_View(int num_elements, int byte_size_of_element, void * ptr, char * representation);
+			virtual void synchronize();
+			virtual void * get(int i);
+			virtual void set(int i, void * value);
 		};
 	}
 }

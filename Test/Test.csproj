@@ -67,9 +67,17 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Campy.Types.Utils\Campy.Types.Utils.csproj">
+      <Project>{42ec7285-a13f-4267-a14a-09bb0b195d8f}</Project>
+      <Name>Campy.Types.Utils</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Campy.Types\Campy.Types.vcxproj">
       <Project>{d7fcb0bb-c7d9-48cb-9e74-a73d56efe00e}</Project>
       <Name>Campy.Types</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
     </ProjectReference>
     <ProjectReference Include="..\Campy\Campy.csproj">
       <Project>{e8d017e0-fa8e-4e72-9389-49ded7bead07}</Project>

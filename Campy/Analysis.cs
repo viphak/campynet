@@ -7,6 +7,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Reflection;
 using Campy.Utils;
+using Campy.Types;
 using NewGraphs;
 
 namespace Campy
@@ -154,7 +155,7 @@ namespace Campy
                     object field_value = fi.GetValue(target);
                     if (field_value as System.Delegate == null
                         && (fi.FieldType.IsValueType ||
-                            Utility.IsSimpleCampyType(fi.FieldType)))
+                            TypesUtility.IsSimpleCampyType(fi.FieldType)))
                         current_structure.AddField(fi);
                     else if (field_value != null && field_value as System.Delegate == null)
                     {
@@ -163,7 +164,7 @@ namespace Campy
                     }
 
                     Type field_type = fi.FieldType;
-                    if (field_value != null && Utility.IsBaseType(field_type, typeof(Delegate)))
+                    if (field_value != null && TypesUtility.IsBaseType(field_type, typeof(Delegate)))
                     {
                         Delegate d = field_value as Delegate;
                         String na = fi.Name;
@@ -281,12 +282,36 @@ namespace Campy
                         stack.Push(target);
                     }
                 }
+                else if (TypesUtility.IsCampyArrayViewType(node.GetType()))
+                {
+                    // recurse into type of array object.
+                    Type t = node.GetType();
+                    Type[] args = t.GenericTypeArguments;
+                    if (args[0].IsValueType)
+                        continue;
+                    // get first element of array. Let this define
+                    // array view element.
+                    // Find _data field of Array_View.
+                    BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
+                         BindingFlags.Static | BindingFlags.Instance |
+                         BindingFlags.DeclaredOnly;
+                    FieldInfo[] sfi = t.GetFields(flags);
+                    FieldInfo sn = sfi.Where(f => "_data" == f.Name).FirstOrDefault();
+                    if (sn == null)
+                        throw new ArgumentException("Field not found.");
+                    object obj_array = sn.GetValue(node);
+                    if (obj_array == null)
+                        throw new ArgumentException("Value not found.");
+                    Array array = obj_array as Array;
+                    object element = array.GetValue(0);
+                    stack.Push(element);
+                }
                 else
                 {
                     // Case 3: object is a class, and potentially could point to delegate.
                     // Examine all fields, looking for list_of_targets.
                     Type target_type = node.GetType();
-                    
+
                     FieldInfo[] target_type_fieldinfo = target_type.GetFields();
                     foreach (var field in target_type_fieldinfo)
                     {
@@ -294,15 +319,26 @@ namespace Campy
                         if (value != null)
                         {
                             // Chase down the field.
-                            if ((!field.FieldType.IsValueType) &&
-                                ! Utility.IsSimpleCampyType(field.FieldType))
+                            if (field.FieldType.IsValueType)
+                                continue;
+                            if (TypesUtility.IsCampyArrayViewType(field.FieldType))
+                            {
+                                // chase type.
                                 stack.Push(value);
+                                continue;
+                            }
+                            if (!TypesUtility.IsSimpleCampyType(field.FieldType))
+                            {
+                                // chase type.
+                                stack.Push(value);
+                                continue;
+                            }
                         }
                     }
                 }
             }
 
-            if (false)
+            if (true)
             foreach (object node in graph.Vertices)
             {
                 System.Console.WriteLine("Node "
@@ -353,7 +389,11 @@ namespace Campy
                         graph.AddEdge(node, target);
                     }
                 }
-
+                else if (TypesUtility.IsCampyArrayViewType(node.GetType()))
+                {
+                    graph.AddEdge(node, target);
+                }
+                else
                 {
                     // Case 3: object is a class, and potentially could point to delegate.
                     // Examine all fields, looking for list_of_targets.
@@ -376,7 +416,7 @@ namespace Campy
                 }
             }
 
-            if (false)
+            if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in graph.Vertices)
@@ -417,7 +457,7 @@ namespace Campy
                 }
             }
 
-            if (false)
+            if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in closure_graph.Vertices)

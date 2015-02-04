@@ -5,7 +5,6 @@
 
 #pragma once
 #include <string>
-#include "Basic_Types.h"
 #pragma managed(push, off)
 
 namespace Campy {
@@ -20,6 +19,17 @@ namespace Campy {
 				queuing_mode_immediate,
 				queuing_mode_automatic
 			};
+
+			enum access_type
+			{
+				access_type_none,
+				access_type_read,
+				access_type_write,
+				access_type_read_write = access_type_read | access_type_write,
+				access_type_auto,
+			};
+
+
 
 			void * native; // concurrency::accelerator
 			Native_Accelerator();

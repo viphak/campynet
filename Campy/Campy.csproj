@@ -67,14 +67,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analysis.cs" />
-    <Compile Include="Builder.cs" />
-    <Compile Include="Assembly.cs" />
     <Compile Include="AMP.cs" />
     <Compile Include="Converter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StackQueue.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Campy.Builder\Campy.Builder.csproj">
+      <Project>{eecc0085-71a6-4759-a5ee-3438c2152f22}</Project>
+      <Name>Campy.Builder</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Campy.Types\Campy.Types.vcxproj">
       <Project>{d7fcb0bb-c7d9-48cb-9e74-a73d56efe00e}</Project>
       <Name>Campy.Types</Name>

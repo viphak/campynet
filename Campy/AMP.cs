@@ -7,11 +7,12 @@ using System.Threading.Tasks;
 using Mono.Cecil;
 using Mono.Cecil.PE;
 using SR = System.Reflection;
-using Campy.Types;
-using Campy.Utils;
 using System.IO;
 using System.Runtime.InteropServices;
 using NewGraphs;
+using Campy.Types;
+using Campy.Utils;
+using Campy.Builder;
 
 namespace Campy
 {
@@ -26,7 +27,7 @@ namespace Campy
         [DllImport("kernel32.dll")]
         static extern bool GetModuleHandleExA(int dwFlags, string ModuleName, ref IntPtr phModule);
 
-        static Builder builder = new Builder();
+        static Build builder = new Build();
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
 
         public delegate void _Kernel_type(Index idx);
@@ -70,7 +71,7 @@ namespace Campy
         static public void Parallel_For_Each(Accelerator_View view, Extent extent, _Kernel_type _kernel)
         {
             // Compile and link any "to do" work before any DLL loading.
-            builder.Build();
+            builder.Make();
 
             // Get corresponding Campy code for C# kernel.
             Type thunk = GetThunk(_kernel, extent);
@@ -105,7 +106,7 @@ namespace Campy
         static public void Parallel_For_Each(Accelerator_View view, Tiled_Extent extent, _Kernel_tiled_type _kernel)
         {
             // Compile and link any "to do" work before any DLL loading.
-            builder.Build();
+            builder.Make();
 
             // Get corresponding Campy code for C# kernel.
             Type thunk = GetThunk(_kernel, extent);
@@ -288,7 +289,7 @@ namespace Campy
                 SR.FieldInfo hostObjectField = fi;
                 object value = field_value;
                 // Never copy tile_statics...
-                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                     continue;
                 var deviceObjectField = sfi.Where(f => f.Name == fi.Name).FirstOrDefault();
                 if (deviceObjectField == null)
@@ -301,23 +302,23 @@ namespace Campy
                 {
                     // In order to prevent a lot of segv's ...
                     // Create a default value based on field type?
-                    if (Utility.IsCampyArrayViewType(fi.FieldType))
+                    if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Array_View<int>.Default_Value);
                     }
-                    else if (Utility.IsCampyAcceleratorType(fi.FieldType))
+                    else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Accelerator.Default_Value);
                     }
-                    else if (Utility.IsCampyAcceleratorViewType(fi.FieldType))
+                    else if (TypesUtility.IsCampyAcceleratorViewType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Accelerator_View.Default_Value);
                     }
-                    else if (Utility.IsCampyIndexType(fi.FieldType))
+                    else if (TypesUtility.IsCampyIndexType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Index.Default_Value);
                     }
-                    else if (Utility.IsCampyExtentType(fi.FieldType))
+                    else if (TypesUtility.IsCampyExtentType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Extent.Default_Value);
                     }

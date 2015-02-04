@@ -10,38 +10,42 @@ using std::vector;     // Ditto. Comes from <vector> brought in by amp.h
 namespace Campy {
 	namespace Types {
 
-		template<typename _Value_type>
-		Native_Array_View<_Value_type>::Native_Array_View(int length, _Value_type * data)
+		template<typename T>
+		Native_Array_View<T>::Native_Array_View(int length, int element_length, void * data, char * representation)
 		{
-			native = (void*) new array_view<_Value_type, 1>(length, data);
+			native = (void*) new array_view<T, 1>(length, (T*)data);
 		}
 
-		template<typename _Value_type>
-		Native_Array_View<_Value_type>::Native_Array_View()
+		template<typename T>
+		Native_Array_View<T>::Native_Array_View()
 		{
 			native = (void*)0;
 		}
 
-		template<typename _Value_type>
-		void Native_Array_View<_Value_type>::synchronize()
+		template<typename T>
+		void Native_Array_View<T>::synchronize()
 		{
-			((array_view<_Value_type, 1>*)native)->synchronize();
+			// load unmanaged type and call synchronize.
+			((array_view<T, 1>*)native)->synchronize();
 		}
 
-		template<typename _Value_type>
-		_Value_type Native_Array_View<_Value_type>::operator [](int i) const
+		template<typename T>
+		void * Native_Array_View<T>::get(int i)
 		{
-			return (_Value_type)((*(array_view<_Value_type, 1>*)native)[i]);
+			return (void *)((*(array_view<T, 1>*)native)[i]);
 		}
 
-		template<typename _Value_type>
-		_Value_type & Native_Array_View<_Value_type>::store(int i)
+		template<typename T>
+		void Native_Array_View<T>::set(int i, void * value)
 		{
-			return (_Value_type&)((array_view<_Value_type, 1>*)native)[i];
+			(*(array_view<T, 1>*)native)[i] = *(T*) value;
 		}
+
 
 		// Instantiate templates.
 		template Native_Array_View<int>;
-
+		template Native_Array_View<unsigned int>;
+		template Native_Array_View<long>;
+		template Native_Array_View<unsigned long>;
 	}
 }

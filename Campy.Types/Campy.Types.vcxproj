@@ -81,11 +81,13 @@
     <ClInclude Include="Accelerator_View.h" />
     <ClInclude Include="Array_View.h" />
     <ClInclude Include="Basic_Types.h" />
+    <ClInclude Include="CSCPP.h" />
     <ClInclude Include="Extent.h" />
     <ClInclude Include="Index.h" />
     <ClInclude Include="Native_Accelerator.h" />
     <ClInclude Include="Native_Accelerator_View.h" />
     <ClInclude Include="Native_Array_View.h" />
+    <ClInclude Include="Native_Array_View_Base.h" />
     <ClInclude Include="Native_Atomics.h" />
     <ClInclude Include="Native_Extent.h" />
     <ClInclude Include="Native_Tiled_Extent.h" />
@@ -96,6 +98,7 @@
     <ClInclude Include="Tiled_Index.h" />
     <ClInclude Include="Tile_Barrier.h" />
     <ClInclude Include="Tile_Static.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="Wrapper.h" />
   </ItemGroup>
   <ItemGroup>
@@ -114,6 +117,9 @@
     <ClCompile Include="Campy.Types.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="CSCPP.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Extent.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -129,6 +135,10 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
     </ClCompile>
     <ClCompile Include="Native_Array_View.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
+    </ClCompile>
+    <ClCompile Include="Native_Array_View_Base.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
     </ClCompile>
@@ -156,6 +166,9 @@
     <ClCompile Include="Tile_Static.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -165,6 +178,14 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="app.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Campy.Builder\Campy.Builder.csproj">
+      <Project>{eecc0085-71a6-4759-a5ee-3438c2152f22}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.Types.Utils\Campy.Types.Utils.csproj">
+      <Project>{42ec7285-a13f-4267-a14a-09bb0b195d8f}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

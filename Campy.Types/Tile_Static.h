@@ -1,6 +1,7 @@
 // Array_View.h
 
 #pragma once
+#include "Basic_Types.h"
 #include "Extent.h"
 #include "Index.h"
 #include "Native_Array_View.h"
@@ -13,7 +14,7 @@ namespace Campy {
 	namespace Types {
 
 		generic<typename _Value_type>
-			public ref class Tile_Static
+			public ref class Tile_Static : Base_Tile_Static
 			{
 
 			private:

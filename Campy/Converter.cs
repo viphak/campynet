@@ -10,11 +10,12 @@ using ICSharpCode.Decompiler.Ast;
 using System.IO;
 using System.Diagnostics;
 using SR = System.Reflection;
-using Campy.Utils;
-using Campy.Types;
 using NewGraphs;
 using GraphAlgorithms;
 using System.Text.RegularExpressions;
+using Campy.Utils;
+using Campy.Types;
+using Campy.Builder;
 
 namespace Campy
 {
@@ -97,13 +98,13 @@ namespace Campy
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     // While we may be able to capture Campy Tile_Static objects,
                     // it isn't useful because static tiles must be declared
                     // local in the body of the kernel.
                 }
-                else if (Utility.IsSimpleCampyType(fi.FieldType))
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += tys + "^ " + na + ";" + eol;
                 }
@@ -141,13 +142,13 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     // While we may be able to capture Campy Tile_Static objects,
                     // it isn't useful because static tiles must be declared
                     // local in the body of the kernel.
                 }
-                else if (Utility.IsSimpleCampyType(fi.FieldType))
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += "(void*)" + prefix + na + "->native()," + eol;
                 }
@@ -263,10 +264,10 @@ namespace Campy
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                 }
-                else if (Utility.IsSimpleCampyType(fi.FieldType))
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
                 {
                     result += "void * n_" + na + ";" + eol;
                 }
@@ -302,32 +303,32 @@ namespace Campy
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
-                if (Utility.IsCampyArrayViewType(fi.FieldType))
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                 {
                     result += "array_view<int, 1> "
                         + na + ";" + eol;
                 }
-                else if (Utility.IsCampyAcceleratorType(fi.FieldType))
+                else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
                 {
                     result += "accelerator "
                         + na + ";" + eol;
                 }
-                else if (Utility.IsCampyAcceleratorViewType(fi.FieldType))
+                else if (TypesUtility.IsCampyAcceleratorViewType(fi.FieldType))
                 {
                     result += "accelerator_view "
                         + na + ";" + eol;
                 }
-                else if (Utility.IsCampyIndexType(fi.FieldType))
+                else if (TypesUtility.IsCampyIndexType(fi.FieldType))
                 {
                     result += "index<1> "
                         + na + ";" + eol;
                 }
-                else if (Utility.IsCampyExtentType(fi.FieldType))
+                else if (TypesUtility.IsCampyExtentType(fi.FieldType))
                 {
                     result += "extent<1> "
                         + na + ";" + eol;
                 }
-                else if (Utility.IsCampyTileStaticType(fi.FieldType))
+                else if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                 }
                 else
@@ -398,37 +399,37 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (Utility.IsCampyArrayViewType(fi.FieldType))
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                 {
                     result += "*(array_view<int, 1>*)"
                         + "(((Campy::Types::Native_Array_View<int> *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
-                else if (Utility.IsCampyAcceleratorType(fi.FieldType))
+                else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
                 {
                     result += "*(accelerator*)"
                         + "(((Campy::Types::Native_Accelerator *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
-                else if (Utility.IsCampyAcceleratorViewType(fi.FieldType))
+                else if (TypesUtility.IsCampyAcceleratorViewType(fi.FieldType))
                 {
                     result += "*(accelerator_view*)"
                         + "(((Campy::Types::Native_Accelerator_View *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
-                else if (Utility.IsCampyIndexType(fi.FieldType))
+                else if (TypesUtility.IsCampyIndexType(fi.FieldType))
                 {
                     result += "*(index<1>*)"
                         + "(((Campy::Types::Native_Index<1> *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
-                else if (Utility.IsCampyExtentType(fi.FieldType))
+                else if (TypesUtility.IsCampyExtentType(fi.FieldType))
                 {
                     result += "*(extent<1>*)"
                         + "(((Campy::Types::Native_Extent *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
-                else if (Utility.IsCampyTileStaticType(fi.FieldType))
+                else if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                 }
                 else
@@ -466,7 +467,7 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (Utility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     // If no value for field, then I can't get the size.
                     // So, I cannot do substitutions.
