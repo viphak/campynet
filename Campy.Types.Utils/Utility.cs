@@ -119,6 +119,30 @@ namespace Campy.Types.Utils
             }
         }
 
+        public static void CopyFromBlittableType(object from, ref object to)
+        {
+            Type f = from.GetType();
+            FieldInfo[] ffi = f.GetFields();
+            Type t = to.GetType();
+            FieldInfo[] tfi = t.GetFields();
+            foreach (FieldInfo fi in ffi)
+            {
+                object field_value = fi.GetValue(from);
+                String na = fi.Name;
+
+                // Copy.
+                var tfield = tfi.Where(k => k.Name == fi.Name).FirstOrDefault();
+                if (tfield == null)
+                    throw new ArgumentException("Field not found.");
+                tfield.SetValue(to, field_value);
+            }
+        }
+
+        public static void CopyFromPtrToBlittable(IntPtr ptr, object blittable_object)
+        {
+            Marshal.PtrToStructure(ptr, blittable_object);
+        }
+
         public static IntPtr CreateNativeArray(Array from, Type blittable_element_type)
         {
             // Convert
@@ -137,7 +161,8 @@ namespace Campy.Types.Utils
             }
             return a;
         }
-        static bool IsStruct(Type t)
+
+        public static bool IsStruct(Type t)
         {
             return t.IsValueType && !t.IsPrimitive && !t.IsEnum;
         }

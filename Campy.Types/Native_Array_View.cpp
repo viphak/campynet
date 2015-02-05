@@ -32,7 +32,7 @@ namespace Campy {
 		template<typename T>
 		void * Native_Array_View<T>::get(int i)
 		{
-			return (void *)((*(array_view<T, 1>*)native)[i]);
+			return (void *)&((*(array_view<T, 1>*)native)[i]);
 		}
 
 		template<typename T>

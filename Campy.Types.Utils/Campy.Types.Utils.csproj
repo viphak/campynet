@@ -39,8 +39,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CSCPP.cs" />
+    <Compile Include="NativeArrayViewGenerator.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Campy.Builder\Campy.Builder.csproj">
+      <Project>{eecc0085-71a6-4759-a5ee-3438c2152f22}</Project>
+      <Name>Campy.Builder</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

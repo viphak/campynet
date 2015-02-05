@@ -12,11 +12,6 @@ using namespace System;
 namespace Campy {
 	namespace Types {
 
-		ref struct foo {
-			float x;
-			float y;
-		};
-
 		generic<typename _Value_type>
 			Array_View<_Value_type>::Array_View(array<_Value_type> ^% data)
 			{
@@ -57,13 +52,23 @@ namespace Campy {
 					// layout handled here.
 					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type);
 					this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-					p = (void*)Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
 
 					// In order to create an array_view in C++ AMP, we have to have the representation
 					// for the data type of the array. We have that, but it is a string that has to be
 					// placed in a data type in an assembly, which we can actually call at this point.
 					// To do that, we're going to have to call a builder for anything but the simpliest
 					// array_view.
+
+					//void* p = (void*)Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
+					Campy::Types::Utils::NativeArrayViewGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayViewGenerator();
+
+					this->_native = gen->Generate(
+						this->_blittable_element_type,
+						length,
+						this->_blittable_element_size,
+						Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type),
+						ptrToNativeString
+						).ToPointer();
 				}
 				else
 				{
@@ -110,6 +115,12 @@ namespace Campy {
 				void * ptr = nav->get(i);
 				if (!this->_element_type->IsValueType)
 				{
+					// Copy from native.
+					void * p = nav->get(i);
+					//Object^ bo = System::Activator::CreateInstance(this->_blittable_element_type);
+					Object^ bo = Marshal::PtrToStructure(IntPtr(p), this->_blittable_element_type);
+					Campy::Types::Utils::Utility::CopyFromBlittableType(bo, (Object^)_data[i]);
+					return _data[i];
 				}
 				else
 				{
@@ -135,9 +146,9 @@ namespace Campy {
 					}
 					else
 						throw gcnew Exception("Unhandled type.");
+					_data[i] = v;
+					return v;
 				}
-				_data[i] = v;
-				return v;
 			}
 
 		generic<typename _Value_type>

@@ -140,11 +140,12 @@ namespace Campy.Builder
 
         public Build()
         {
+            SetupEnv();
+            Make();
         }
 
         public void Make()
         {
-            SetupEnv();
             // Load "AMP.todo"
             String file_name = "AMP.todo";
             if (File.Exists(file_name))
@@ -340,6 +341,7 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.FileName = compiler_path + "\\cl.exe";
                 p.StartInfo.Arguments =
                     "/c"
+                    + " /I\"" + campy_include_path + "\""
                     + " /I\"" + vc_include_path + "\""
                     + " /I\"" + vc_atlmfc_include_path + "\""
                     + " /I\"" + wk_include_path + "\\shared\""
@@ -379,9 +381,10 @@ eat_blanks_after_open_brace	= TRUE
                     sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
                 }
                 p.Start();
-                p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();
                 String more_output = p.StandardError.ReadToEnd();
+                if (!p.HasExited)
+                    p.WaitForExit();
                 if (p.ExitCode > 0)
                 {
                     System.Console.WriteLine("Compile failed: " + output);
@@ -438,9 +441,10 @@ eat_blanks_after_open_brace	= TRUE
                     sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
                 }
                 p.Start();
-                p.WaitForExit();
                 string output = p.StandardOutput.ReadToEnd();
                 String more_output = p.StandardError.ReadToEnd();
+                if (!p.HasExited)
+                    p.WaitForExit();
                 if (p.ExitCode > 0)
                 {
                     System.Console.WriteLine("Compile failed: " + output);
@@ -513,9 +517,9 @@ eat_blanks_after_open_brace	= TRUE
                 sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
             }
             p.Start();
-            p.WaitForExit();
             String output = p.StandardOutput.ReadToEnd();
             String more_output = p.StandardError.ReadToEnd();
+            p.WaitForExit();
             if (p.ExitCode > 0)
             {
                 System.Console.WriteLine("Link failed: " + output);
