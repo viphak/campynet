@@ -43,13 +43,31 @@ namespace Campy.Types.Utils
             }
         }
 
-        public static Type CreateBlittableType(Type hostType)
+        public static Type CreateBlittableType(Type hostType, bool declare_parent_chain)
         {
-            // Find if blittable type for hostType was already performed.
-            TypeFilter tf = new TypeFilter((Type t, object o) =>
+            String name;
+            TypeFilter tf;
+
+            // Declare parent chain since TypeBuilder works top down not bottom up.
+            if (declare_parent_chain)
             {
-                return t.Name == hostType.Name;
-            });
+                name = hostType.FullName;
+                name = name.Replace('+', '.');
+                tf = new TypeFilter((Type t, object o) =>
+                {
+                    return t.FullName == name;
+                });
+            }
+            else
+            {
+                name = hostType.Name;
+                tf = new TypeFilter((Type t, object o) =>
+                {
+                    return t.Name == name;
+                });
+            }
+
+            // Find if blittable type for hostType was already performed.
             Type[] types = Data.Find(hostType).mb.FindTypes(tf, null);
 
             // If blittable type was not created, create one with all fields corresponding
@@ -59,7 +77,7 @@ namespace Campy.Types.Utils
                 if (hostType.IsArray)
                 {
                     // Recurse
-                    Type elementType = CreateBlittableType(hostType.GetElementType());
+                    Type elementType = CreateBlittableType(hostType.GetElementType(), true);
                     object array_obj = Array.CreateInstance(elementType, 0);
                     Type array_type = array_obj.GetType();
                     TypeBuilder tb = null;
@@ -73,7 +91,7 @@ namespace Campy.Types.Utils
                 {
                     TypeBuilder tb = null;
                     tb = Data.Find(hostType).mb.DefineType(
-                        hostType.Name,
+                        name,
                         TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.SequentialLayout
                             | TypeAttributes.Serializable, typeof(ValueType));
                     var fields = hostType.GetFields();
@@ -148,8 +166,16 @@ namespace Campy.Types.Utils
             // Convert
             int size_element = Marshal.SizeOf(blittable_element_type);
 
-            IntPtr mem = Marshal.AllocHGlobal(size_element * from.Length);
-            IntPtr a = mem;
+            IntPtr a = Marshal.AllocHGlobal(size_element * from.Length);
+            return CopyToNativeArray(from, blittable_element_type, a);
+        }
+
+        public static IntPtr CopyToNativeArray(Array from, Type blittable_element_type, IntPtr a)
+        {
+            // Convert
+            int size_element = Marshal.SizeOf(blittable_element_type);
+
+            IntPtr mem = a;
 
             for (int i = 0; i < from.Length; ++i)
             {
@@ -157,6 +183,22 @@ namespace Campy.Types.Utils
                 object obj = Activator.CreateInstance(blittable_element_type);
                 Campy.Types.Utils.Utility.CopyToBlittableType(from.GetValue(i), ref obj);
                 Marshal.StructureToPtr(obj, mem, false);
+                mem = new IntPtr((long)mem + size_element);
+            }
+            return a;
+        }
+
+        public static IntPtr CopyFromNativeArray(IntPtr a, Array to, Type blittable_element_type)
+        {
+            int size_element = Marshal.SizeOf(blittable_element_type);
+            IntPtr mem = a;
+            for (int i = 0; i < to.Length; ++i)
+            {
+                // copy.
+                object obj = Marshal.PtrToStructure(mem, blittable_element_type);
+                object to_obj = to.GetValue(i);
+                Campy.Types.Utils.Utility.CopyFromBlittableType(obj, ref to_obj);
+                to.SetValue(to_obj, i);
                 mem = new IntPtr((long)mem + size_element);
             }
             return a;

@@ -8,21 +8,160 @@ using System.Reflection;
 
 namespace Campy.Types.Utils
 {
-    class CSCPP
+    public class CSCPP
     {
-		public static String ConvertToCPP(Type type, int level)
-		{
-			// Use reflection to create atring equivalent to type in C++ unmanaged world.
-			if (type.FullName.Equals("System.Int32"))
-			{
-				return "int";
-			}
+        public static String ConvertToCPPCLIWithNameSpace(Type type, int level)
+        {
+            String result = "";
+
+            // Use reflection to create atring equivalent to type in C++ unmanaged world.
+            if (type.FullName.Equals("System.Int32"))
+            {
+                return "int";
+            }
             else if (type.FullName.Equals("System.UInt32"))
-			{
-				return "unsigned int";
-			}
+            {
+                return "unsigned int";
+            }
             else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
-			{
+            {
+                // Emit namespace declarations.
+                if (level == 0)
+                {
+                    Type declaring_type = type.DeclaringType;
+                    result += @"
+
+#pragma once
+
+";
+
+                    String[] prefix = type.Namespace.Split(new char[] { '.' });
+                    foreach (String p in prefix)
+                    {
+                        result += "namespace " + p + "{\n";
+                    }
+                }
+
+                String ind = "";
+                for (int i = 0; i < level; ++i)
+                    ind += "    ";
+                result += ind + "public ref class " + type.Name + "\n";
+                result += ind + "{\n";
+                BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
+                    BindingFlags.Static | BindingFlags.Instance |
+                    BindingFlags.DeclaredOnly;
+                FieldInfo[] fields = type.GetFields(flags);
+                for (int i = 0; i < fields.Length; ++i)
+                {
+                    FieldInfo fi = fields[i];
+                    Type tf = fi.FieldType;
+                    result += ConvertToCPPCLI(tf, level + 1) + " " + fi.Name + ";\n";
+                }
+                result += ind + "};\n";
+
+                if (level == 0)
+                {
+                    String[] prefix = type.Namespace.Split(new char[] { '.' });
+                    foreach (String p in prefix)
+                    {
+                        result += "}\n";
+                    }
+
+                    result += @"
+
+";
+
+                }
+
+                return result;
+            }
+            else return null;
+        }
+
+        public static String ConvertToCPPWithNameSpace(Type type, int level)
+        {
+            String result = "";
+
+            // Use reflection to create atring equivalent to type in C++ unmanaged world.
+            if (type.FullName.Equals("System.Int32"))
+            {
+                return "int";
+            }
+            else if (type.FullName.Equals("System.UInt32"))
+            {
+                return "unsigned int";
+            }
+            else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
+            {
+                // Emit namespace declarations.
+                if (level == 0)
+                {
+                    Type declaring_type = type.DeclaringType;
+                    result += @"
+
+#pragma once
+
+#pragma managed(push, off)
+
+";
+
+                    String[] prefix = type.Namespace.Split(new char[] { '.' });
+                    foreach (String p in prefix)
+                    {
+                        result += "namespace " + p + "{\n";
+                    }
+                }
+
+                String ind = "";
+                for (int i = 0; i < level; ++i)
+                    ind += "    ";
+                result += ind + "struct " + type.Name + "\n";
+                result += ind + "{\n";
+                BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
+                    BindingFlags.Static | BindingFlags.Instance |
+                    BindingFlags.DeclaredOnly;
+                FieldInfo[] fields = type.GetFields(flags);
+                for (int i = 0; i < fields.Length; ++i)
+                {
+                    FieldInfo fi = fields[i];
+                    Type tf = fi.FieldType;
+                    result += ConvertToCPPCLI(tf, level + 1) + " " + fi.Name + ";\n";
+                }
+                result += ind + "};\n";
+
+                if (level == 0)
+                {
+                    String[] prefix = type.Namespace.Split(new char[] { '.' });
+                    foreach (String p in prefix)
+                    {
+                        result += "}\n";
+                    }
+
+                    result += @"
+
+#pragma managed(pop)
+";
+
+                }
+
+                return result;
+            }
+            else return null;
+        }
+
+        public static String ConvertToCPP(Type type, int level)
+        {
+            // Use reflection to create atring equivalent to type in C++ unmanaged world.
+            if (type.FullName.Equals("System.Int32"))
+            {
+                return "int";
+            }
+            else if (type.FullName.Equals("System.UInt32"))
+            {
+                return "unsigned int";
+            }
+            else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
+            {
                 // Complex type.
                 String result = "";
                 String ind = "";
@@ -43,8 +182,8 @@ namespace Campy.Types.Utils
                 result += ind + "};\n";
                 return result;
             }
-			else return null;
-		}
+            else return null;
+        }
 
 		public static String ConvertToCPPCLI(Type type, int level)
 		{

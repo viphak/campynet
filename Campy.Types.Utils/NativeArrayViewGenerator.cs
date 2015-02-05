@@ -15,10 +15,6 @@ namespace Campy.Types.Utils
         Assembly _assembly;
         Dictionary<System.Object, bool> compiled_targets = new Dictionary<object, bool>();
         Dictionary<String, MulticastDelegate> multicastdelegates = new Dictionary<string, MulticastDelegate>();
-        String managed_cpp_file_name;
-        String managed_h_file_name;
-        String unmanaged_cpp_file_name;
-        String unmanaged_h_file_name;
         static Build builder = new Build();
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
 
@@ -154,22 +150,59 @@ namespace Campy.Types.Utils
             return thunk;
         }
 
-
-        void GenerateManagedCode(Type type)
+        void GenerateCode(Type type)
         {
+
+            // Define the following code:
+            // 1) A structure, defined in type, in C++ native.
+            // 2) A type "Native_Array_View<type>", as a C++ native class.
+
+            // Derive name of output files based on the name of the full name.
+            // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
+            //String kernel_full_name = string.Format("{0} {1}.{2}({3})", del.Method.ReturnType.FullName, Utility.RemoveGenericParameters(del.Method.ReflectedType), del.Method.Name, string.Join(",", del.Method.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            //kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
+            String native_array_view_type_file_name_stem = "Native_Array_View<" + type.FullName + ">";
+            native_array_view_type_file_name_stem = Campy.Utils.Utility.NormalizeSystemReflectionName(native_array_view_type_file_name_stem);
+
+            String managed_cpp_native_array_view_type_file_name = native_array_view_type_file_name_stem + "_managed.cpp";
+            String managed_h_native_array_view_type_file_name = native_array_view_type_file_name_stem + "_managed.cpp";
+            String unmanaged_cpp_native_array_view_type_file_name = native_array_view_type_file_name_stem + "_unmanaged.cpp";
+            String unmanaged_h_native_array_view_type_file_name = native_array_view_type_file_name_stem + "_unmanaged.h";
+
             String result = "";
-            String target_type_name = type.Name;
-            String target_type = CSCPP.ConvertToCPP(type, 0);
 
-            result += @"
+            // Define structure in managed world.
+            // This gets defined in managed DLL.
+            // In actual fact, we really don't need this type, since
+            // we only need to access the native array view from the kernel.
+            // But, if we do need it, well here it is.
+            //_assembly.managed_cpp_files.Add(
+            //    Campy.Utils.Utility.NormalizeSystemReflectionName(type.FullName) + "_managed.cpp",
+            //    CSCPP.ConvertToCPPCLIWithNameSpace(type, 0)
+            //    );
 
-#include """ + target_type_name + @".h""
+            // Define structure in managed world.
+            // This gets defined in managed DLL.
+            // In actual fact, we really DO need this type, since
+            // we have to define the type for C++ AMP.
+            _assembly.unmanaged_h_files.Add(
+                Campy.Utils.Utility.NormalizeSystemReflectionName(type.FullName) + "_unmanaged.h",
+                CSCPP.ConvertToCPPWithNameSpace(type, 0)
+                );
+
+            // Now, define a class to instantiate a Native_Array_View, to link
+            // the C# world with the C++ AMP world.
+            result = @"
+
+#include """ + Campy.Utils.Utility.NormalizeSystemReflectionName(type.FullName) + @"_unmanaged.h""
 #using ""Campy.Types.dll""
 #include ""Native_Array_View.h""
 
 using namespace System;
 using namespace Campy::Types;
+";
 
+            result += @"
 
 namespace Campy {
 	namespace Types {
@@ -180,7 +213,7 @@ namespace Campy {
             Create() {}
             static IntPtr Doit(int num_elements, int byte_size_of_element, IntPtr ptr, IntPtr representation)
             {
-                void * result = (void*)new Native_Array_View<" + target_type_name + @">(
+                void * result = (void*)new Native_Array_View<" + type.FullName.Replace(".", "::") + @">(
                     num_elements,
                     byte_size_of_element,
                     (void*)ptr.ToPointer(),
@@ -191,21 +224,13 @@ namespace Campy {
     }
 }
 ";
-
-            _assembly.managed_cpp_files.Add(managed_cpp_file_name, result);
-        }
-
-
-        void GenerateUnmanagedCode(Type type)
-        {
-
-            String target_type_name = type.Name;
-            String target_type = CSCPP.ConvertToCPP(type, 0);
-            String result = @"
+            _assembly.managed_cpp_files.Add(managed_cpp_native_array_view_type_file_name, result);
+            
+            result = @"
 #include <amp.h>
 #include <iostream>
 #include ""Native_Array_View.h""
-#include """ + target_type_name + @".h""
+#include """ + Campy.Utils.Utility.NormalizeSystemReflectionName(type.FullName) + @"_unmanaged.h""
 
 using namespace concurrency;    // Save some typing :)
 using std::vector;     // Ditto. Comes from <vector> brought in by amp.h
@@ -244,13 +269,13 @@ namespace Campy {
 	        (*(array_view<T, 1>*)native)[i] = *(T*) value;
         }
 
-        template Native_Array_View<" + target_type_name + @">;
+        template Native_Array_View<" + type.FullName.Replace(".", "::") + @">;
     }
 }
 ";
 
-            // Should get source from Campy itself.
-            _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_file_name, result);
+            // (I should get source from Campy itself, but this will work, too.)
+            _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_native_array_view_type_file_name, result);
 
             result = @"
 #pragma managed(push,off)
@@ -293,31 +318,12 @@ namespace Campy {
             
             _assembly.unmanaged_cpp_files.Add("Native_Array_View_Base.cpp", result);
 
-            // Define structure.
-            result = target_type;
-            _assembly.unmanaged_h_files.Add(target_type_name + ".h", result);
-
         }
 
         public void Convert(Type type)
         {
-            // Derive name of output files based on the name of the full name.
-            // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            //String kernel_full_name = string.Format("{0} {1}.{2}({3})", del.Method.ReturnType.FullName, Utility.RemoveGenericParameters(del.Method.ReflectedType), del.Method.Name, string.Join(",", del.Method.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            //kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
-            String target_type_name = type.Name;
-            String file_name_stem = "Native_Array_View<" + target_type_name + ">";
-            file_name_stem = Campy.Utils.Utility.NormalizeSystemReflectionName(file_name_stem);
-            managed_cpp_file_name = file_name_stem + "_managed.cpp";
-            managed_h_file_name = file_name_stem + "_managed.cpp";
-            unmanaged_cpp_file_name = file_name_stem + "_unmanaged.cpp";
-            unmanaged_h_file_name = file_name_stem + "_unmanaged.h";
-
-            //// Generate managed code files.
-            GenerateManagedCode(type);
-
-            //// Generate unmanaged code files.
-            GenerateUnmanagedCode(type);
+            // Generate code files.
+            GenerateCode(type);
         }
     }
 }

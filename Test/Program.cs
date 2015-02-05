@@ -36,22 +36,38 @@ namespace Test
             Array_View<Point> points = new Array_View<Point>(ref data);
             System.Console.WriteLine(points[1].x);
 
-
-            //int size = 10;
-            //int[] data = new int[size];
-            //for (int i = 0; i < size; ++i) data[i] = 2 * i;
-            //Extent e = new Extent(size);
-            //Array_View<int> d = new Array_View<int>(ref data);
-            //AMP.Parallel_For_Each(d.extent, (Index idx) =>
-            //{
-            //    int j = idx[0];
-            //    d[j] = size - j;
-            //});
-            //d.synchronize();
-            //for (int i = 0; i < size; ++i)
-            //{
-            //    System.Console.WriteLine(data[i]);
-            //}
+            Extent e = new Extent(size);
+            AMP.Parallel_For_Each(e, (Index idx) =>
+            {
+                int i = idx[0];
+                points[i].x = (float)(1.0 * (i / half_size) / half_size);
+                points[i].y = (float)(1.0 * (i % half_size) / half_size);
+            });
+            points.synchronize();
+            int[] insc = new int[size];
+            Array_View<int> ins = new Array_View<int>(ref insc);
+            //ins.discard_data();
+            AMP.Parallel_For_Each(e, (Index idx) =>
+            {
+                int i = idx[0];
+                float radius = 1.0f;
+                float tx = points[i].x;
+                float ty = points[i].y;
+                float t = 1;//sqrt(tx*tx + ty*ty);
+                ins[i] = (t <= radius) ? 1 : 0;
+            });
+            Extent e_half = new Extent(half_size);
+            int[] count = new int[1];
+            count[0] = 0;
+            Array_View<int> res = new Array_View<int>(ref count);
+            AMP.Parallel_For_Each(e_half, (Index idx) =>
+            {
+                int i = idx[0];
+                for (int j = 1; j < half_size; ++j)
+                    ins[i * half_size] += ins[i * half_size + j];
+                AMP.Atomic_Fetch_Add(ref res, 0, ins[i * half_size]);
+            });
+            float pi = (4.0f * res[0]) / size;
         }
     }
 }

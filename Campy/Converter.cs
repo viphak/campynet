@@ -15,6 +15,7 @@ using GraphAlgorithms;
 using System.Text.RegularExpressions;
 using Campy.Utils;
 using Campy.Types;
+using Campy.Types.Utils;
 using Campy.Builder;
 
 namespace Campy
@@ -50,11 +51,11 @@ namespace Campy
             String x1 = mi.Name;
             String x2 = mi.ReflectedType.Name;
             String x3 = mi.ReflectedType.FullName;
-            String x4 = Utility.GetFriendlyTypeName(mi.ReflectedType);
+            String x4 = Campy.Utils.Utility.GetFriendlyTypeName(mi.ReflectedType);
 
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
+            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            kernel_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(kernel_full_name);
 
             // Decompile entire module.
             ModuleDefinition md = ModuleDefinition.ReadModule(kernel_assembly_file_name);
@@ -79,7 +80,7 @@ namespace Campy
             {
                 foreach (MethodDefinition md2 in td.Methods)
                 {
-                    String md2_name = Utility.NormalizeMonoCecilName(md2.FullName);
+                    String md2_name = Campy.Utils.Utility.NormalizeMonoCecilName(md2.FullName);
                     if (md2_name.Contains(kernel_full_name))
                         lambda_method = md2;
                 }
@@ -97,12 +98,17 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
+                tys = tys.Replace(".", "::");
                 if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     // While we may be able to capture Campy Tile_Static objects,
                     // it isn't useful because static tiles must be declared
                     // local in the body of the kernel.
+                }
+                else if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
+                {
+                    result += "Array_View_Base^ " + na + ";" + eol;
                 }
                 else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
                 {
@@ -112,8 +118,8 @@ namespace Campy
                 {
                     // If it isn't a delegate, or Campy type, then
                     // it's a class.
-                    na = Utility.NormalizeSystemReflectionName(na);
-                    tys = Utility.NormalizeSystemReflectionName(tys);
+                    na = Campy.Utils.Utility.NormalizeSystemReflectionName(na);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += tys + " " + na + ";" + eol;
                 }
             }
@@ -140,7 +146,7 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
                 if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
@@ -156,8 +162,8 @@ namespace Campy
                 {
                     // If it isn't a delegate, or Campy type, then
                     // it's a class.
-                    na = Utility.NormalizeSystemReflectionName(na);
-                    tys = Utility.NormalizeSystemReflectionName(tys);
+                    na = Campy.Utils.Utility.NormalizeSystemReflectionName(na);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += prefix + na + "," + eol;
                 }
             }
@@ -176,6 +182,123 @@ namespace Campy
             return result;
         }
 
+        String EmitUsingDLLs(Structure structure)
+        {
+            String result = "";
+            foreach (SR.FieldInfo fi in structure.simple_fields)
+            {
+                object field_value = fi.GetValue(structure.target_value);
+                String na = fi.Name;
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
+                String prefix = structure.FullName + ".";
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType) || TypesUtility.IsCampyTileStaticType(fi.FieldType))
+                {
+                    Type b = fi.FieldType;
+                    foreach (Type p in b.GenericTypeArguments)
+                    {
+                        if (p.IsClass || Campy.Types.Utils.Utility.IsStruct(p))
+                        {
+                            // Output using for class/struct.
+                            String target_type_name = "Native_Array_View<"
+                                + Campy.Utils.Utility.NormalizeSystemReflectionName(p.Name)
+                                + ">";
+                            String kernel_assembly_file_name = Campy.Utils.Utility.NormalizeSystemReflectionName(target_type_name);
+                            String full_path = Path.GetFullPath(kernel_assembly_file_name);
+                            full_path = Path.GetDirectoryName(full_path);
+                            String type_full_name = target_type_name;
+                            type_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(type_full_name);
+                            String campy_assembly_file_name = full_path + "\\" + type_full_name;
+                            campy_assembly_file_name = campy_assembly_file_name + ".dll";
+                            result += @"#using """ + campy_assembly_file_name.Replace("\\", "\\\\") + @"""
+";
+                        }
+                    }
+                }
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
+                {
+                }
+                else
+                {
+                }
+            }
+            foreach (Structure child in structure.nested_structures)
+            {
+                result += EmitUsingDLLs(child);
+            }
+            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            {
+            }
+            return result;
+        }
+
+        String EmitIncludeHeaders(Structure structure)
+        {
+            String result = "";
+            foreach (SR.FieldInfo fi in structure.simple_fields)
+            {
+                object field_value = fi.GetValue(structure.target_value);
+                String na = fi.Name;
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
+                String prefix = structure.FullName + ".";
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType) || TypesUtility.IsCampyTileStaticType(fi.FieldType))
+                {
+                    Type b = fi.FieldType;
+                    foreach (Type p in b.GenericTypeArguments)
+                    {
+                        if (p.IsClass || Campy.Types.Utils.Utility.IsStruct(p))
+                        {
+                            result += @"
+#include """ + Campy.Utils.Utility.NormalizeSystemReflectionName(p.FullName) + @"_unmanaged.h""
+";
+                        }
+                    }
+                }
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
+                {
+                }
+                else
+                {
+                }
+            }
+            foreach (Structure child in structure.nested_structures)
+            {
+                result += EmitUsingDLLs(child);
+            }
+            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            {
+            }
+            return result;
+        }
+
+        String EmitUsingNamespaces(Structure structure)
+        {
+            String result = "";
+            foreach (SR.FieldInfo fi in structure.simple_fields)
+            {
+                object field_value = fi.GetValue(structure.target_value);
+                String na = fi.Name;
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
+                String prefix = structure.FullName + ".";
+                if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
+                {
+                }
+                else if (TypesUtility.IsSimpleCampyType(fi.FieldType))
+                {
+                }
+                else
+                {
+                }
+            }
+            foreach (Structure child in structure.nested_structures)
+            {
+                result += EmitUsingNamespaces(child);
+            }
+            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            {
+            }
+            return result;
+        }
+
         void GenerateManagedCode(
             System.Delegate del,
             Structure structure,
@@ -191,35 +314,54 @@ namespace Campy
 
             // Get assembly qualifed name.
             String file_name_stem = mod_def.FullyQualifiedName;
-            if (Path.HasExtension(file_name_stem) && Utility.IsRecognizedExtension(Path.GetExtension(file_name_stem)))
+            if (Path.HasExtension(file_name_stem) && Campy.Utils.Utility.IsRecognizedExtension(Path.GetExtension(file_name_stem)))
             {
                 String ext = Path.GetExtension(file_name_stem);
                 file_name_stem = file_name_stem.Replace(ext, "");
             }
 
             // Generate CPP code for managed class.
-            result += "/* This file, " + managed_cpp_file_name + ", is automatically generated" + eol;
-            result += " * via Campy.NET, " + FileVersionInfo.GetVersionInfo(this.GetType().Assembly.Location).FileVersion + "." + eol;
-            result += " * The user's assembly, which contains Campy.NET calls, is located at " + eol;
-            result += " * " + mod_def.FullyQualifiedName + eol;
-            result += " */" + eol;
-            result += "#include \"" + unmanaged_h_file_name.Replace("\\", "\\\\") + "\"" + eol;
-            result += "#using \"Campy.Types.dll\"" + eol;
-            result += "#using \"e:\\Personal\\Work\\Graph\\GraphClassStructures\\NewGraphs\\bin\\Debug\\Newgraphs.dll\"" + eol;
-            result += eol;
-            result += "using namespace System;" + eol;
-            result += "using namespace Campy::Types;" + eol;
-            result += "using namespace NewGraphs;" + eol;
-            result += eol + eol;
-            result += "public ref class " + kernel_full_name + "_managed" + eol;
-            result += "{" + eol;
+            result += @"
+/* This file, " + managed_cpp_file_name + @", is automatically generated
+ * via Campy.NET, " + FileVersionInfo.GetVersionInfo(this.GetType().Assembly.Location).FileVersion + @".
+ * The user's assembly, which contains Campy.NET calls, is located at 
+ * " + mod_def.FullyQualifiedName + @"
+ */
+
+#using ""Campy.Types.dll""
+";
+
+            // Emit code to include DLLs.
+            result += EmitUsingDLLs(structure);
+
+            // Emit code to include headers.
+            result += @"
+
+#include """ + unmanaged_h_file_name.Replace("\\", "\\\\") + @"""
+";
+            //result += EmitIncludeHeaders(structure);
+
+            // Include namespaces.
+            result += @"
+
+using namespace System;
+using namespace Campy::Types;
+";
+            result += EmitUsingNamespaces(structure);
+
+            // Emit class definition.
+            result += @"
+
+public ref class " + kernel_full_name + @"_managed
+{
+";
 
             // Create class member fields to retain the
             // graph of target objects.
-            result += "public:" + eol;
-            result += "GraphAdjList<Object^>^ graph;" + eol;
-            result += "System::Delegate^ del;" + eol;
-            result += "Accelerator_View^ accelerator_view;" + eol;
+            result += @"
+public:
+    Accelerator_View^ accelerator_view;
+";
             if (null != extent as Tiled_Extent)
                 result += "Tiled_Extent^ extent;" + eol;
             else
@@ -230,7 +372,7 @@ namespace Campy
 
             object ob = del;
             String method_name = (ob as System.Delegate).Method.Name;
-            method_name = Utility.NormalizeMonoCecilName(method_name);
+            method_name = Campy.Utils.Utility.NormalizeMonoCecilName(method_name);
             result += "// primary delegate entry point" + eol;
             result += "void " + method_name + "()" + eol;
             result += "{" + eol;
@@ -263,7 +405,7 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                 }
@@ -273,8 +415,8 @@ namespace Campy
                 }
                 else
                 {
-                    na = Utility.NormalizeSystemReflectionName(na);
-                    tys = Utility.NormalizeSystemReflectionName(tys);
+                    na = Campy.Utils.Utility.NormalizeSystemReflectionName(na);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += tys + " " + na + ";" + eol;
                 }
             }
@@ -302,10 +444,14 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                 {
-                    result += "array_view<int, 1> "
+                    Type element_type = fi.FieldType.GetGenericArguments().First();
+                    String element_type_name = Campy.Utils.Utility.GetFriendlyTypeName(element_type);
+                    result += "array_view<"
+                        + element_type_name.Replace(".", "::")
+                        + ", 1> "
                         + na + ";" + eol;
                 }
                 else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
@@ -333,8 +479,8 @@ namespace Campy
                 }
                 else
                 {
-                    na = Utility.NormalizeSystemReflectionName(na);
-                    tys = Utility.NormalizeSystemReflectionName(tys);
+                    na = Campy.Utils.Utility.NormalizeSystemReflectionName(na);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += tys + " " + na + ";" + eol;
                 }
             }
@@ -349,8 +495,8 @@ namespace Campy
             {
                 String na = pair.Item1;
                 SR.MethodInfo dd = pair.Item2;
-                String tys = Utility.GetFriendlyTypeName(dd.ReturnType);
-                tys = Utility.NormalizeSystemReflectionName(tys);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(dd.ReturnType);
+                tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                 result += tys + " " + na;
                 // Find method of delegate.
                 MethodDefinition md = ConvertToMonoCecilType(dd);
@@ -397,12 +543,14 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
                 if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                 {
-                    result += "*(array_view<int, 1>*)"
-                        + "(((Campy::Types::Native_Array_View<int> *) " + prefix + "n_" + na + ")->native)"
+                    Type element_type = fi.FieldType.GetGenericArguments().First();
+                    String element_type_name = Campy.Utils.Utility.GetFriendlyTypeName(element_type);
+                    result += "*(array_view<" + element_type_name.Replace(".", "::") + ", 1>*)"
+                        + "(((Campy::Types::Native_Array_View<" + element_type_name.Replace(".", "::") + "> *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
                 else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
@@ -434,8 +582,8 @@ namespace Campy
                 }
                 else
                 {
-                    na = Utility.NormalizeSystemReflectionName(na);
-                    tys = Utility.NormalizeSystemReflectionName(tys);
+                    na = Campy.Utils.Utility.NormalizeSystemReflectionName(na);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += prefix + na + "," + eol;
                 }
             }
@@ -465,7 +613,7 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure.target_value);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
                 if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
@@ -516,7 +664,7 @@ namespace Campy
                 // Output primary delegate method.
                 object ob = del;
                 String method_name = (ob as System.Delegate).Method.Name;
-                method_name = Utility.NormalizeMonoCecilName(method_name);
+                method_name = Campy.Utils.Utility.NormalizeMonoCecilName(method_name);
                 result += "// primary delegate entry point" + eol;
                 result += "public: void " + method_name + "();" + eol;
                 result += "};" + eol;
@@ -525,7 +673,7 @@ namespace Campy
 
             {
                 String method_name = (del as System.Delegate).Method.Name;
-                method_name = Utility.NormalizeMonoCecilName(method_name);
+                method_name = Campy.Utils.Utility.NormalizeMonoCecilName(method_name);
                 object ob = del;
 
                 // Set up unmanaged cpp file.
@@ -537,6 +685,10 @@ namespace Campy
                 result += "#include \"Native_Tiled_Extent.h\"" + eol;
                 result += "#include \"Native_Accelerator_View.h\"" + eol;
                 result += "#include \"Native_Atomics.h\"" + eol;
+
+                // Add in unmanaged headers.
+                result += EmitIncludeHeaders(structure);
+
                 result += "using namespace concurrency;" + eol + eol;
 
                 // Output entry point of unmanaged delegate.
@@ -726,8 +878,8 @@ namespace Campy
 
             // Derive name of output files based on the name of the full name.
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", del.Method.ReturnType.FullName, Utility.RemoveGenericParameters(del.Method.ReflectedType), del.Method.Name, string.Join(",", del.Method.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name);
+            String kernel_full_name = string.Format("{0} {1}.{2}({3})", del.Method.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(del.Method.ReflectedType), del.Method.Name, string.Join(",", del.Method.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            kernel_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(kernel_full_name);
             String file_name_stem = kernel_full_name;
             String managed_cpp_file_name = file_name_stem + "_managed.cpp";
             String managed_h_file_name = file_name_stem + "_managed.cpp";

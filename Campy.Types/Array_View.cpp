@@ -5,9 +5,10 @@
 #include "Native_Array_View.h"
 #include "Native_Array_View_Base.h"
 #include "Native_Extent.h"
-#include "CSCPP.h"
 
 using namespace System;
+using namespace Campy::Types::Utils;
+
 
 namespace Campy {
 	namespace Types {
@@ -50,7 +51,7 @@ namespace Campy {
 					// Convert into array of structs and pin that.
 					// Don't worry about the declaration for the unmanaged struct type:
 					// layout handled here.
-					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
 					this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
 
 					// In order to create an array_view in C++ AMP, we have to have the representation
@@ -61,12 +62,12 @@ namespace Campy {
 
 					//void* p = (void*)Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
 					Campy::Types::Utils::NativeArrayViewGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayViewGenerator();
-
+					this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
 					this->_native = gen->Generate(
 						this->_blittable_element_type,
 						length,
 						this->_blittable_element_size,
-						Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type),
+						this->_native_data_buffer,
 						ptrToNativeString
 						).ToPointer();
 				}
@@ -193,6 +194,14 @@ namespace Campy {
 				Type ^ t = _Value_type::typeid;
 				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
 				nav->synchronize();
+				if (!this->_element_type->IsValueType)
+				{
+					// Copy from native.
+					Campy::Types::Utils::Utility::CopyFromNativeArray(
+						this->_native_data_buffer,
+						_data,
+						this->_blittable_element_type);
+				}
 			}
 
 		generic<typename _Value_type>

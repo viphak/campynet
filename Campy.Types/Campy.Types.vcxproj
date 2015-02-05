@@ -82,7 +82,6 @@
     <ClInclude Include="Array_View.h" />
     <ClInclude Include="Array_View_Base.h" />
     <ClInclude Include="Basic_Types.h" />
-    <ClInclude Include="CSCPP.h" />
     <ClInclude Include="Extent.h" />
     <ClInclude Include="Index.h" />
     <ClInclude Include="Native_Accelerator.h" />
@@ -116,9 +115,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Campy.Types.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="CSCPP.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Extent.cpp">

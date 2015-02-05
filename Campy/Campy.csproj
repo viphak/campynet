@@ -77,6 +77,10 @@
       <Project>{eecc0085-71a6-4759-a5ee-3438c2152f22}</Project>
       <Name>Campy.Builder</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Campy.Types.Utils\Campy.Types.Utils.csproj">
+      <Project>{42ec7285-a13f-4267-a14a-09bb0b195d8f}</Project>
+      <Name>Campy.Types.Utils</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Campy.Types\Campy.Types.vcxproj">
       <Project>{d7fcb0bb-c7d9-48cb-9e74-a73d56efe00e}</Project>
       <Name>Campy.Types</Name>
@@ -95,7 +99,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>..\\..\\..\\packages\\ilmerge.2.14.1208\\tools\\ILMerge.exe /out:campy.net.dll campy.dll campy.treewalker.dll campy.utility.dll icsharpcode.decompiler.dll icsharpcode.nrefactory.csharp.dll icsharpcode.nrefactory.dll mono.cecil.dll
+    <PostBuildEvent>..\\..\\..\\packages\\ilmerge.2.14.1208\\tools\\ILMerge.exe /out:campy.net.dll campy.dll campy.builder.dll campy.treewalker.dll campy.types.utils.dll campy.utility.dll icsharpcode.decompiler.dll icsharpcode.nrefactory.csharp.dll icsharpcode.nrefactory.dll mono.cecil.dll
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
