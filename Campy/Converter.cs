@@ -679,6 +679,7 @@ public:
                 // Set up unmanaged cpp file.
                 result = "";
                 result += "#include <amp.h>" + eol;
+                result += "#include <amp_math.h>" + eol;
                 result += "#include \"" + unmanaged_h_file_name.Replace("\\", "\\\\") + "\"" + eol;
                 result += "#include \"Native_Array_View.h\"" + eol;
                 result += "#include \"Native_Extent.h\"" + eol;
@@ -795,6 +796,7 @@ public:
                         }
                     }
 
+                    xxx = xxx.Replace("Math.Sqrt", "concurrency::precise_math::sqrt");
                     xxx = xxx.Replace("AMP.", "AMP::");
                     xxx = xxx.Replace("(ref", "(");
 

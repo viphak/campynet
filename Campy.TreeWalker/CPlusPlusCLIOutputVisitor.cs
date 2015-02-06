@@ -142,6 +142,143 @@ namespace Campy.TreeWalker
             EndNode(typeDeclaration);
         }
 
+        public override void WritePrimitiveValue(object val)
+        {
+            if (val == null)
+            {
+                // usually NullReferenceExpression should be used for this, but we'll handle it anyways
+                WriteKeyword("null");
+                return;
+            }
+
+            if (val is bool)
+            {
+                if ((bool)val)
+                {
+                    WriteKeyword("true");
+                }
+                else
+                {
+                    WriteKeyword("false");
+                }
+                return;
+            }
+
+            if (val is string)
+            {
+                formatter.WriteToken("\"" + ConvertString(val.ToString()) + "\"");
+                lastWritten = LastWritten.Other;
+            }
+            else if (val is char)
+            {
+                formatter.WriteToken("'" + ConvertCharLiteral((char)val) + "'");
+                lastWritten = LastWritten.Other;
+            }
+            else if (val is decimal)
+            {
+                formatter.WriteToken(((decimal)val).ToString(NumberFormatInfo.InvariantInfo) + "m");
+                lastWritten = LastWritten.Other;
+            }
+            else if (val is float)
+            {
+                float f = (float)val;
+                if (float.IsInfinity(f) || float.IsNaN(f))
+                {
+                    // Strictly speaking, these aren't PrimitiveExpressions;
+                    // but we still support writing these to make life easier for code generators.
+                    WriteKeyword("float");
+                    WriteToken(Roles.Dot);
+                    if (float.IsPositiveInfinity(f))
+                    {
+                        WriteIdentifier("PositiveInfinity");
+                    }
+                    else if (float.IsNegativeInfinity(f))
+                    {
+                        WriteIdentifier("NegativeInfinity");
+                    }
+                    else
+                    {
+                        WriteIdentifier("NaN");
+                    }
+                    return;
+                }
+                if (f == 0 && 1 / f == double.NegativeInfinity)
+                {
+                    // negative zero is a special case
+                    // (again, not a primitive expression, but it's better to handle
+                    // the special case here than to do it in all code generators)
+                    formatter.WriteToken("-");
+                }
+                //formatter.WriteToken(f.ToString("R", NumberFormatInfo.InvariantInfo) + "f");
+                formatter.WriteToken(f.ToString("R", NumberFormatInfo.InvariantInfo));
+                lastWritten = LastWritten.Other;
+            }
+            else if (val is double)
+            {
+                double f = (double)val;
+                if (double.IsInfinity(f) || double.IsNaN(f))
+                {
+                    // Strictly speaking, these aren't PrimitiveExpressions;
+                    // but we still support writing these to make life easier for code generators.
+                    WriteKeyword("double");
+                    WriteToken(Roles.Dot);
+                    if (double.IsPositiveInfinity(f))
+                    {
+                        WriteIdentifier("PositiveInfinity");
+                    }
+                    else if (double.IsNegativeInfinity(f))
+                    {
+                        WriteIdentifier("NegativeInfinity");
+                    }
+                    else
+                    {
+                        WriteIdentifier("NaN");
+                    }
+                    return;
+                }
+                if (f == 0 && 1 / f == double.NegativeInfinity)
+                {
+                    // negative zero is a special case
+                    // (again, not a primitive expression, but it's better to handle
+                    // the special case here than to do it in all code generators)
+                    formatter.WriteToken("-");
+                }
+                string number = f.ToString("R", NumberFormatInfo.InvariantInfo);
+                if (number.IndexOf('.') < 0 && number.IndexOf('E') < 0)
+                {
+                    number += ".0";
+                }
+                formatter.WriteToken(number);
+                // needs space if identifier follows number; this avoids mistaking the following identifier as type suffix
+                lastWritten = LastWritten.KeywordOrIdentifier;
+            }
+            else if (val is IFormattable)
+            {
+                StringBuilder b = new StringBuilder();
+                //				if (primitiveExpression.LiteralFormat == LiteralFormat.HexadecimalNumber) {
+                //					b.Append("0x");
+                //					b.Append(((IFormattable)val).ToString("x", NumberFormatInfo.InvariantInfo));
+                //				} else {
+                b.Append(((IFormattable)val).ToString(null, NumberFormatInfo.InvariantInfo));
+                //				}
+                if (val is uint || val is ulong)
+                {
+                    b.Append("u");
+                }
+                if (val is long || val is ulong)
+                {
+                    b.Append("L");
+                }
+                formatter.WriteToken(b.ToString());
+                // needs space if identifier follows number; this avoids mistaking the following identifier as type suffix
+                lastWritten = LastWritten.KeywordOrIdentifier;
+            }
+            else
+            {
+                formatter.WriteToken(val.ToString());
+                lastWritten = LastWritten.Other;
+            }
+        }
     }
 
     public class CPlusPlusCLIAstBuilder : BaseAstBuilder

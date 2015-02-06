@@ -25,7 +25,7 @@ using Mono.Cecil.Cil;
 
 namespace Campy.TreeWalker
 {
-    public class MethodBodyAstBuilder : BaseAstBuilder
+    public class MethodBodyAstBuilder : CPlusPlusCLIAstBuilder
     {
         public MethodBodyAstBuilder(DecompilerContext context)
             : base(context)
@@ -43,7 +43,7 @@ namespace Campy.TreeWalker
     /// <summary>
     /// Outputs the AST.
     /// </summary>
-    public class MethodBodyOutputVisitor : CSharpOutputVisitor
+    public class MethodBodyOutputVisitor : CPlusPlusCLIOutputVisitor
     {
         public MethodBodyOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
             : base(formatter, formattingPolicy)

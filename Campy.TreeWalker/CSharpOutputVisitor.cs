@@ -19,7 +19,7 @@ namespace Campy.TreeWalker
     /// </summary>
     public class CSharpOutputVisitor : IAstVisitor
     {
-        private readonly IOutputFormatter formatter;
+        protected readonly IOutputFormatter formatter;
         public readonly CSharpFormattingOptions policy;
         private readonly Stack<AstNode> containerStack = new Stack<AstNode>();
         private readonly Stack<AstNode> positionStack = new Stack<AstNode>();
@@ -27,9 +27,9 @@ namespace Campy.TreeWalker
         /// <summary>
         /// Used to insert the minimal amount of spaces so that the lexer recognizes the tokens that were written.
         /// </summary>
-        private LastWritten lastWritten;
+        protected LastWritten lastWritten;
 
-        private enum LastWritten
+        protected enum LastWritten
         {
             Whitespace,
             Other,
@@ -1128,7 +1128,7 @@ namespace Campy.TreeWalker
             return writer.ToString();
         }
 
-        private void WritePrimitiveValue(object val)
+        public virtual void WritePrimitiveValue(object val)
         {
             if (val == null)
             {
@@ -1265,7 +1265,7 @@ namespace Campy.TreeWalker
             }
         }
 
-        private static string ConvertCharLiteral(char ch)
+        protected static string ConvertCharLiteral(char ch)
         {
             if (ch == '\'')
             {
