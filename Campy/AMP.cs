@@ -62,6 +62,12 @@ namespace Campy
             return orig;
         }
 
+        static public void Copy<T>(Array_View<T> src, ref T[] dest)
+        {
+            for (int i = 0; i < dest.Length; ++i)
+                dest[i] = src[i];
+        }
+
         static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
         {
             Accelerator_View view = new Accelerator_View();

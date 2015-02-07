@@ -712,8 +712,8 @@ public:
                 else
                 {
                     Tiled_Extent te = extent as Tiled_Extent;
-                    result += "tiled_extent<" + te.tile_dims[0] + "> & _extent"
-                        + " = *(tiled_extent<" + te.tile_dims[0] + ">*)"
+                    result += "tiled_extent<" + te.Tile_Dims[0] + "> & _extent"
+                        + " = *(tiled_extent<" + te.Tile_Dims[0] + ">*)"
                         + "(((Campy::Types::Native_Extent *) native_extent)->native)"
                         + ";" + eol;
                 }
@@ -737,7 +737,7 @@ public:
                     if (extent as Tiled_Extent != null)
                     {
                         Tiled_Extent te = extent as Tiled_Extent;
-                        xxx = xxx.Replace("Tiled_Index", "tiled_index<" + +te.tile_dims[0] + ">");
+                        xxx = xxx.Replace("Tiled_Index", "tiled_index<" + +te.Tile_Dims[0] + ">");
                     }
                     else
                         xxx = xxx.Replace("Index", "index<1>");
@@ -797,6 +797,13 @@ public:
                     }
 
                     xxx = xxx.Replace("Math.Sqrt", "concurrency::precise_math::sqrt");
+                    xxx = xxx.Replace("AMP.Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
+                    xxx = xxx.Replace("Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
+                    xxx = xxx.Replace(".Tile[", ".tile[");
+                    xxx = xxx.Replace(".Local[", ".local[");
+                    xxx = xxx.Replace(".global[", ".global[");
+                    xxx = xxx.Replace(".Barrier.", ".barrier.");
+                    xxx = xxx.Replace(".Wait()", ".wait()");
                     xxx = xxx.Replace("AMP.", "AMP::");
                     xxx = xxx.Replace("(ref", "(");
 

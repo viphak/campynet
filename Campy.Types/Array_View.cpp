@@ -14,92 +14,127 @@ namespace Campy {
 	namespace Types {
 
 		generic<typename _Value_type>
-			Array_View<_Value_type>::Array_View(array<_Value_type> ^% data)
+			void Array_View<_Value_type>::do_late_binding()
 			{
-				int length = data->Length;
-
-				// Record basics about the array view.
-				this->_data = data;
-				this->_length = length;
-				this->_extent = gcnew Extent(length);
-				this->_element_type = _Value_type::typeid;
-
-				// Set up the equivalent managed and unmanaged C++ type strings for the element type.
-				this->_element_cppcli_type_string = CSCPP::ConvertToCPPCLI(_Value_type::typeid, 0);
-				this->_element_cppnat_type_string = CSCPP::ConvertToCPP(_Value_type::typeid, 0);
-				IntPtr ptrToNativeString = Marshal::StringToHGlobalAnsi(this->_element_cppnat_type_string);
-				char* nat_cpp_unm = static_cast<char*>(ptrToNativeString.ToPointer());
-
-				void * p = 0;
-
-				// For non-value types, set up the array if it's not set with all non-null values.
+				if (!this->dirty_managed_side)
+					return;
+				this->dirty_managed_side = false;
 				if (!this->_element_type->IsValueType)
 				{
-					// Init every element of array if it is an array of classes/structs (same thing, just
-					// different access rules) Elements in an array view in C++ will
-					// have to be value types; over here in C# world, it's an array of
-					// pointers.
-					for (int i = 0; i < length; ++i)
-					{
-						if (data[i] == nullptr)
-						{
-							data[i] = safe_cast<_Value_type>(System::Activator::CreateInstance(_Value_type::typeid));
-						}
-					}
-
-					// C# array is not blittable.
-					// Convert into array of structs and pin that.
-					// Don't worry about the declaration for the unmanaged struct type:
-					// layout handled here.
-					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
-					this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-
-					// In order to create an array_view in C++ AMP, we have to have the representation
-					// for the data type of the array. We have that, but it is a string that has to be
-					// placed in a data type in an assembly, which we can actually call at this point.
-					// To do that, we're going to have to call a builder for anything but the simpliest
-					// array_view.
-
-					//void* p = (void*)Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
-					Campy::Types::Utils::NativeArrayViewGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayViewGenerator();
-					this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
-					this->_native = gen->Generate(
-						this->_blittable_element_type,
-						length,
-						this->_blittable_element_size,
+					// Copy to native.
+					Campy::Types::Utils::Utility::CopyFromNativeArray(
 						this->_native_data_buffer,
-						ptrToNativeString
-						).ToPointer();
-				}
-				else
-				{
-					this->_blittable_element_size = Marshal::SizeOf(this->_element_type);
-
-					// Pin the damn C# array.
-					this->gchandle = GCHandle::Alloc(data, GCHandleType::Pinned);
-					System::IntPtr ptr = gchandle.AddrOfPinnedObject();
-					p = (void *)ptr.ToPointer();
-					if (this->_element_type == System::Int32::typeid)
-						this->_native = (void*) new Native_Array_View<int>(length, this->_blittable_element_size, p, nat_cpp_unm);
-					else if (this->_element_type == System::Int64::typeid)
-						this->_native = (void*) new Native_Array_View<long>(length, this->_blittable_element_size, p, nat_cpp_unm);
-					else if (this->_element_type == System::UInt32::typeid)
-						this->_native = (void*) new Native_Array_View<unsigned int>(length, this->_blittable_element_size, p, nat_cpp_unm);
-					else if (this->_element_type == System::UInt64::typeid)
-						this->_native = (void*) new Native_Array_View<unsigned long>(length, this->_blittable_element_size, p, nat_cpp_unm);
-					else
-						throw gcnew Exception("Unhandled type.");
+						_data,
+						this->_blittable_element_type);
 				}
 			}
 
+			generic<typename _Value_type>
+				Array_View<_Value_type>::Array_View(array<_Value_type> ^% data)
+				{
+					int length = data->Length;
+					this->_data = data;
+					this->_length = length;
+					this->_extent = gcnew Campy::Types::Extent(length);
+					this->_element_type = _Value_type::typeid;
+					this->dirty_managed_side = true;
+					this->_element_cppcli_type_string = CSCPP::ConvertToCPPCLI(_Value_type::typeid, 0);
+					this->_element_cppnat_type_string = CSCPP::ConvertToCPP(_Value_type::typeid, 0);
+					IntPtr ptrToNativeString = Marshal::StringToHGlobalAnsi(this->_element_cppnat_type_string);
+					char* nat_cpp_unm = static_cast<char*>(ptrToNativeString.ToPointer());
+					this->_native_data_buffer = IntPtr(nullptr);
+					this->_blittable_element_type = nullptr;
+					this->_blittable_element_size = 0;
+					this->dirty_managed_side = true;
+
+					void * p = 0;
+
+					// For non-value types, set up the array if it's not set with all non-null values.
+					if (!this->_element_type->IsValueType)
+					{
+						// C# array of class is not blittable.
+						// Convert into array of structs and pin that.
+						this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+						this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
+						this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
+						Campy::Types::Utils::NativeArrayViewGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayViewGenerator();
+						this->_native = gen->Generate(
+							this->_blittable_element_type,
+							length,
+							this->_blittable_element_size,
+							this->_native_data_buffer,
+							ptrToNativeString
+							).ToPointer();
+					}
+					else
+					{
+						this->_blittable_element_type = this->_element_type;
+						this->_blittable_element_size = Marshal::SizeOf(this->_element_type);
+						this->gchandle = GCHandle::Alloc(data, GCHandleType::Pinned);
+						System::IntPtr ptr = gchandle.AddrOfPinnedObject();
+						this->_native_data_buffer = ptr;
+						p = (void *)ptr.ToPointer();
+						if (this->_element_type == System::Int32::typeid)
+							this->_native = (void*) new Native_Array_View<int>(length, this->_blittable_element_size, p, nat_cpp_unm);
+						else if (this->_element_type == System::Int64::typeid)
+							this->_native = (void*) new Native_Array_View<long>(length, this->_blittable_element_size, p, nat_cpp_unm);
+						else if (this->_element_type == System::UInt32::typeid)
+							this->_native = (void*) new Native_Array_View<unsigned int>(length, this->_blittable_element_size, p, nat_cpp_unm);
+						else if (this->_element_type == System::UInt64::typeid)
+							this->_native = (void*) new Native_Array_View<unsigned long>(length, this->_blittable_element_size, p, nat_cpp_unm);
+						else
+							throw gcnew Exception("Unhandled type.");
+					}
+				}
+
+			generic<typename _Value_type>
+				Array_View<_Value_type>::Array_View(IntPtr data, int length, Native_Array_View_Base * nav)
+				{
+					this->_data = gcnew array<_Value_type>(length);
+					this->_length = length;
+					this->_extent = gcnew Campy::Types::Extent(length);
+					this->_element_type = _Value_type::typeid;
+					this->dirty_managed_side = false;
+					this->_element_cppcli_type_string = CSCPP::ConvertToCPPCLI(_Value_type::typeid, 0);
+					this->_element_cppnat_type_string = CSCPP::ConvertToCPP(_Value_type::typeid, 0);
+					IntPtr ptrToNativeString = Marshal::StringToHGlobalAnsi(this->_element_cppnat_type_string);
+					char* nat_cpp_unm = static_cast<char*>(ptrToNativeString.ToPointer());
+					this->_native_data_buffer = data;
+					this->_blittable_element_type = nullptr;
+					this->_blittable_element_size = 0;
+					this->dirty_managed_side = true;
+					this->_native = (void*)nav;
+					// For non-value types, set up the array if it's not set with all non-null values.
+					if (!this->_element_type->IsValueType)
+					{
+						// C# array of class is not blittable.
+						// Convert into array of structs and pin that.
+						this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+						this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
+					}
+					else
+					{
+						this->_blittable_element_type = this->_element_type;
+						this->_blittable_element_size = Marshal::SizeOf(this->_element_type);
+					}
+				}
+
 		generic<typename _Value_type>
-			Extent^ Array_View<_Value_type>::extent::get()
+			void Array_View<_Value_type>::Discard_Data()
+			{
+				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
+				nav->Discard_Data();
+				this->dirty_managed_side = false;
+			}
+
+		generic<typename _Value_type>
+			Extent^ Array_View<_Value_type>::Extent::get()
 			{
 				return _extent;
 			}
 
 		generic<typename _Value_type>
-			void Array_View<_Value_type>::extent::set(Extent^ extent)
+			void Array_View<_Value_type>::Extent::set(Campy::Types::Extent^ extent)
 			{
 				_extent = extent;
 			}
@@ -107,17 +142,13 @@ namespace Campy {
 		generic<typename _Value_type>
 			_Value_type Array_View<_Value_type>::default::get(int i)
 			{
-				Type ^ t = _Value_type::typeid;
 				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
-
-				_Value_type v;
-
+				do_late_binding();
 				// Copy from native array view.
-				void * ptr = nav->get(i);
+				void * ptr = nav->Get(i);
 				if (!this->_element_type->IsValueType)
 				{
-					// Copy from native.
-					void * p = nav->get(i);
+					void * p = nav->Get(i);
 					//Object^ bo = System::Activator::CreateInstance(this->_blittable_element_type);
 					Object^ bo = Marshal::PtrToStructure(IntPtr(p), this->_blittable_element_type);
 					Campy::Types::Utils::Utility::CopyFromBlittableType(bo, (Object^)_data[i]);
@@ -125,24 +156,25 @@ namespace Campy {
 				}
 				else
 				{
+					_Value_type v;
 					if (this->_element_type == System::Int32::typeid)
 					{
-						void * p = nav->get(i);
+						void * p = nav->Get(i);
 						v = (_Value_type)*(int*)p;
 					}
 					else if (this->_element_type == System::Int64::typeid)
 					{
-						void * p = nav->get(i);
+						void * p = nav->Get(i);
 						v = (_Value_type)*(long*)p;
 					}
 					else if (this->_element_type == System::UInt32::typeid)
 					{
-						void * p = nav->get(i);
+						void * p = nav->Get(i);
 						v = (_Value_type)*(unsigned int*)p;
 					}
 					else if (this->_element_type == System::UInt64::typeid)
 					{
-						void * p = nav->get(i);
+						void * p = nav->Get(i);
 						v = (_Value_type)*(unsigned long*)p;
 					}
 					else
@@ -155,8 +187,8 @@ namespace Campy {
 		generic<typename _Value_type>
 			void Array_View<_Value_type>::default::set(int i, _Value_type value)
 			{
+				do_late_binding();
 				_data[i] = value;
-
 				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
 				if (!this->_element_type->IsValueType)
 				{
@@ -166,22 +198,22 @@ namespace Campy {
 					if (this->_element_type == System::Int32::typeid)
 					{
 						void * p = (void*)&value;
-						nav->set(i, p);
+						nav->Set(i, p);
 					}
 					else if (this->_element_type == System::Int64::typeid)
 					{
 						void * p = (void*)&value;
-						nav->set(i, p);
+						nav->Set(i, p);
 					}
 					else if (this->_element_type == System::UInt32::typeid)
 					{
 						void * p = (void*)&value;
-						nav->set(i, p);
+						nav->Set(i, p);
 					}
 					else if (this->_element_type == System::UInt64::typeid)
 					{
 						void * p = (void*)&value;
-						nav->set(i, p);
+						nav->Set(i, p);
 					}
 					else
 						throw gcnew Exception("Unhandled type.");
@@ -189,11 +221,11 @@ namespace Campy {
 			}
 
 		generic<typename _Value_type>
-			void Array_View<_Value_type>::synchronize()
+			void Array_View<_Value_type>::Synchronize()
 			{
 				Type ^ t = _Value_type::typeid;
 				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
-				nav->synchronize();
+				nav->Synchronize();
 				if (!this->_element_type->IsValueType)
 				{
 					// Copy from native.
@@ -202,10 +234,19 @@ namespace Campy {
 						_data,
 						this->_blittable_element_type);
 				}
+				this->dirty_managed_side = false;
 			}
 
 		generic<typename _Value_type>
-			array<_Value_type>^ Array_View<_Value_type>::data()
+			void Array_View<_Value_type>::Synchronize_Async()
+			{
+				Type ^ t = _Value_type::typeid;
+				Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
+				nav->Synchronize();
+			}
+
+		generic<typename _Value_type>
+			array<_Value_type>^ Array_View<_Value_type>::Data()
 			{
 				return this->_data;
 			}
@@ -221,5 +262,24 @@ namespace Campy {
 			{
 				return Array_View<_Value_type>::default_value;
 			}
+
+		generic<typename _Value_type>
+			void Array_View<_Value_type>::Reinterpret_As()
+			{}
+
+		generic<typename _Value_type>
+			Array_View<_Value_type>^ Array_View<_Value_type>::Section(int  _I0, int _E0)
+			{
+				// Copy _E0 * blittable_element_size bytes from native.
+				Native_Array_View_Base * nav = (Native_Array_View_Base *)this->_native;
+				Native_Array_View_Base * new_nav = nav->Section(_I0, _E0);
+				IntPtr mem = this->_native_data_buffer + this->_blittable_element_size * _I0;
+				Array_View<_Value_type>^ result = gcnew Array_View<_Value_type>(mem, _E0, new_nav);
+				return result;
+			}
+
+		generic<typename _Value_type>
+			void Array_View<_Value_type>::Refresh()
+			{}
 	}
 }

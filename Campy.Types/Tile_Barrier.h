@@ -11,10 +11,10 @@ namespace Campy {
 		{
 		public:
 			Tile_Barrier();
-			void wait();
-			void wait_with_all_memory_fence();
-			void wait_with_global_memory_fence();
-			void wait_with_tile_static_memory_fence();
+			void Wait();
+			void Wait_With_All_Memory_Fence();
+			void Wait_With_Global_Memory_Fence();
+			void Wait_With_Tile_Static_Memory_Fence();
 		};
 	}
 }

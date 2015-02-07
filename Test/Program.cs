@@ -1,6 +1,7 @@
 ﻿using Campy;
 using Campy.Types;
 using System;
+using System.Diagnostics;
 
 namespace Test
 {
@@ -12,33 +13,24 @@ namespace Test
             public float y;
         }
 
-        static void ComputePiGPU()
+        static void ComputePiCPU()
         {
             int half_size = 5000;
             int size = half_size * half_size;
+            int[] ins = new int[size];
 
-            Point[] points = new Point[size];
-            for (int i = 0; i < size; ++i) points[i] = new Point();
             DateTime start;
             TimeSpan time;
             start = DateTime.Now;
             for (int i = 0; i < size; ++i)
             {
-                points[i].x = (float)(1.0 * (i / half_size) / half_size);
-                points[i].y = (float)(1.0 * (i % half_size) / half_size);
-            }
-            int[] ins = new int[size];
-            for (int i = 0; i < size; ++i)
-            {
                 float radius = 1.0f;
-                float tx = points[i].x;
-                float ty = points[i].y;
+                float tx = (float)(1.0 * (i / half_size) / half_size);
+                float ty = (float)(1.0 * (i % half_size) / half_size);
                 float t = (float)Math.Sqrt(tx * tx + ty * ty);
                 ins[i] = (t <= radius) ? 1 : 0;
             }
-            Extent e_half = new Extent(half_size);
-            int[] res = new int[1];
-            res[0] = 0;
+            int res = 0;
             for (int i = 0; i < half_size; ++i)
             {
                 for (int j = 1; j < half_size; ++j)
@@ -48,11 +40,10 @@ namespace Test
                     int t2 = ins[k];
                     int t3 = t1 + t2;
                     ins[k] = t3;
-                    // cannot decompile!!! ins[i * half_size] += ins[i * half_size + j];
                 }
-                res[0] += ins[i * half_size];
+                res += ins[i * half_size];
             }
-            int cou = res[0];
+            int cou = res;
             float pi = (4.0f * cou) / size;
             time = DateTime.Now - start;
             System.Console.WriteLine("Count is " + cou + " out of " + size);
@@ -60,55 +51,93 @@ namespace Test
             System.Console.WriteLine(String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
         }
 
-        static void ComputePiCPU()
+        static void ComputePiGPU()
         {
             int half_size = 5000;
             int size = half_size * half_size;
 
-            Point[] data = new Point[size];
-            for (int i = 0; i < size; ++i) data[i] = new Point();
-            Array_View<Point> points = new Array_View<Point>(ref data);
-            Extent e = new Extent(size);
+            int[] insc = new int[size];
+            Array_View<int> ins = new Array_View<int>(ref insc);
+            ins.Discard_Data();
             DateTime start;
             TimeSpan time;
             start = DateTime.Now;
-            AMP.Parallel_For_Each(e, (Index idx) =>
+            AMP.Parallel_For_Each(new Extent(size), (Index idx) =>
             {
                 int i = idx[0];
-                points[i].x = (float)(1.0 * (i / half_size) / half_size);
-                points[i].y = (float)(1.0 * (i % half_size) / half_size);
+                // Pseudo random number generated point.
+                float x = (float)(1.0 * (i / half_size) / half_size);
+                float y = (float)(1.0 * (i % half_size) / half_size);
+                float t = (float)Math.Sqrt(x * x + y * y);
+                ins[i] = (t <= 1.0f) ? 1 : 0;
             });
-            int[] insc = new int[size];
-            Array_View<int> ins = new Array_View<int>(ref insc);
-            //ins.discard_data();
-            AMP.Parallel_For_Each(e, (Index idx) =>
-            {
-                int i = idx[0];
-                float radius = 1.0f;
-                float tx = points[i].x;
-                float ty = points[i].y;
-                float t = (float)Math.Sqrt(tx * tx + ty * ty);
-                ins[i] = (t <= radius) ? 1 : 0;
-            });
-            Extent e_half = new Extent(half_size);
             int[] count = new int[1];
             count[0] = 0;
+
             Array_View<int> res = new Array_View<int>(ref count);
-            AMP.Parallel_For_Each(e_half, (Index idx) =>
+            //AMP.Parallel_For_Each(new Extent(half_size), (Index idx) =>
+            //{
+            //    int i = idx[0];
+            //    int c = 0;
+            //    for (int j = 0; j < half_size; ++j)
+            //    {
+            //        int k = i * half_size;
+            //        int t1 = ins[k + j];
+            //        int t2 = c;
+            //        int t3 = t1 + t2;
+            //        c = t3;
+            //    }
+            //    AMP.Atomic_Fetch_Add(ref res, 0, c);
+            //});
+
+            Func<int, int> pow2 = (int e) =>
             {
-                int i = idx[0];
-                for (int j = 1; j < half_size; ++j)
+                int x = 1;
+                for (int i = 0; i < e; ++i)
+                    x *= 2;
+                return x;
+            };
+
+            Func<int, int> flog2 = (int v) =>
+            {
+                int x = 0;
+                while ((v = (v >> 1)) != 0)
                 {
-                    int k = i * half_size;
-                    int t1 = ins[k + j];
-                    int t2 = ins[k];
-                    int t3 = t1 + t2;
-                    ins[k] = t3;
-                    // cannot decompile!!! ins[i * half_size] += ins[i * half_size + j];
+                    x++;
                 }
-                AMP.Atomic_Fetch_Add(ref res, 0, ins[i * half_size]);
-            });
-            int cou = res[0];
+                return x;
+            };
+
+            // Round up H to power of 2.
+            int rounded_size = 1;
+            for (uint i = 0; rounded_size < size; ++i) rounded_size <<= 1;
+            int increment = 1;
+            int levels = flog2(rounded_size);
+            Accelerator_View acc = Accelerator_View.Default_Value;
+            for (int level = 1; level <= levels; level += increment)
+            {
+                int step = pow2(level);
+                int threads = rounded_size / step;
+                if (threads == 0)
+                    threads = 1;
+                AMP.Parallel_For_Each(new Extent(threads), (Index idx) =>
+                {
+                    int i = idx[0] * step;
+                    if (i < size)
+                    {
+                        int t1 = ins[i];
+                        int t2 = ins[i + step / 2];
+                        ins[i] = t1 + t2;
+                    }
+                });
+                //ins.Synchronize();
+            }
+	        acc.Wait();
+            int[] result = new int[1];
+            AMP.Copy(ins.Section(0, 1), ref result);
+            int cou = result[0];
+
+            //std::cout << "result = " << d << "\n";
             float pi = (4.0f * cou) / size;
             time = DateTime.Now - start;
             System.Console.WriteLine("Count is " + cou + " out of " + size);

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Extent.h"
 #include "Index.h"
 

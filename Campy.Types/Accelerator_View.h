@@ -18,9 +18,9 @@ namespace Campy {
 
 		public:
 			Accelerator_View();
-			void flush();
-			Accelerator^ get_accelerator();
-			void wait();
+			void Flush();
+			Accelerator^ Get_Accelerator();
+			void Wait();
 			static property Accelerator_View^ Default_Value
 			{
 				Accelerator_View^ get();

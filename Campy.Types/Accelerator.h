@@ -18,15 +18,15 @@ namespace Campy {
 
 		public:
 			Accelerator();
-			static System::Collections::Generic::List<Accelerator^>^ get_all();
-			static bool set_default(String^ path);
-			static Accelerator_View^ get_default_view();
-			property bool is_emulated
+			static System::Collections::Generic::List<Accelerator^>^ Get_All();
+			static bool Set_Default(String^ path);
+			static Accelerator_View^ Get_Default_View();
+			property bool Is_Emulated
 			{
 				bool get();
 			}
-			String^ description();
-			String^ device_path();
+			String^ Description();
+			String^ Device_Path();
 			static property Accelerator^ Default_Value
 			{
 				Accelerator^ get();

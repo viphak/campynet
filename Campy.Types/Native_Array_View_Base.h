@@ -18,13 +18,16 @@ namespace Campy {
 			int _byte_size_of_element;
 			void * native;
 
-			Native_Array_View_Base();
-			Native_Array_View_Base(int num_elements, int byte_size_of_element, void * ptr, char * representation);
+			Native_Array_View_Base() {}
+			Native_Array_View_Base(int num_elements, int byte_size_of_element, void * ptr, char * representation) {}
 
 			// Basic API.
-			virtual void synchronize();
-			virtual void * get(int i);
-			virtual void set(int i, void * value);
+			virtual void Discard_Data() = 0;
+			virtual void * Get(int i) = 0;
+			virtual Native_Array_View_Base * Section(int _I0, int _E0) = 0;
+			virtual void Set(int i, void * value) = 0;
+			virtual void Synchronize() = 0;
+			virtual void Synchronize_Async() = 0;
 		};
 	}
 }

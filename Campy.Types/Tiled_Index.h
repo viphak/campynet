@@ -16,11 +16,11 @@ namespace Campy {
 			int _Rank;
 
 		public:
-			Index^ local;
-			Index^ global;
-			Index^ tile;
-			Index^ tile_origin;
-			Tile_Barrier^ barrier;
+			Index^ Local;
+			Index^ Global;
+			Index^ Tile;
+			Index^ Tile_Origin;
+			Tile_Barrier^ Barrier;
 			Tiled_Index();
 		};
 	}

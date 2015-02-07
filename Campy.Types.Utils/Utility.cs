@@ -163,29 +163,24 @@ namespace Campy.Types.Utils
 
         public static IntPtr CreateNativeArray(Array from, Type blittable_element_type)
         {
-            // Convert
             int size_element = Marshal.SizeOf(blittable_element_type);
-
-            IntPtr a = Marshal.AllocHGlobal(size_element * from.Length);
-            return CopyToNativeArray(from, blittable_element_type, a);
+            IntPtr cpp_array = Marshal.AllocHGlobal(size_element * from.Length);
+            return cpp_array;
         }
 
-        public static IntPtr CopyToNativeArray(Array from, Type blittable_element_type, IntPtr a)
+        public static IntPtr CopyToNativeArray(Array from, Type blittable_element_type, IntPtr cpp_array)
         {
-            // Convert
+            IntPtr byte_ptr = cpp_array;
             int size_element = Marshal.SizeOf(blittable_element_type);
-
-            IntPtr mem = a;
-
             for (int i = 0; i < from.Length; ++i)
             {
                 // copy.
                 object obj = Activator.CreateInstance(blittable_element_type);
                 Campy.Types.Utils.Utility.CopyToBlittableType(from.GetValue(i), ref obj);
-                Marshal.StructureToPtr(obj, mem, false);
-                mem = new IntPtr((long)mem + size_element);
+                Marshal.StructureToPtr(obj, byte_ptr, false);
+                byte_ptr = new IntPtr((long)byte_ptr + size_element);
             }
-            return a;
+            return cpp_array;
         }
 
         public static IntPtr CopyFromNativeArray(IntPtr a, Array to, Type blittable_element_type)

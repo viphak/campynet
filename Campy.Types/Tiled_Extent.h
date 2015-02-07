@@ -12,8 +12,8 @@ namespace Campy {
 		public ref class Tiled_Extent : Extent
 		{
 		internal:
-			int _Tile_rank;
-			array<int>^ _Tile_dim;
+			int _Tile_Rank;
+			array<int>^ _Tile_Dim;
 
 		public:
 			Tiled_Extent(Extent^ e);
@@ -21,18 +21,18 @@ namespace Campy {
 			Tiled_Extent(int _I0, int _I1, Extent^ e);
 			Tiled_Extent(int _I0, int _I1, int _I2, Extent^ e);
 			Tiled_Extent(array<int>^ _Array, Extent^ e);
-			property int tile_rank
+			property int tile_Rank
 			{
 				int get()
 				{
-					return _Tile_rank;
+					return _Tile_Rank;
 				}
 			}
-			property array<int>^ tile_dims
+			property array<int>^ Tile_Dims
 			{
 				array<int>^ get()
 				{
-					return _Tile_dim;
+					return _Tile_Dim;
 				}
 			}
 

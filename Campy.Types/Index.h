@@ -49,7 +49,7 @@ namespace Campy {
 			}
 
 		public:
-			property int rank
+			property int Rank
 			{
 				int get()
 				{

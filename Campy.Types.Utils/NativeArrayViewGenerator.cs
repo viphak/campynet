@@ -238,41 +238,68 @@ using std::vector;     // Ditto. Comes from <vector> brought in by amp.h
 namespace Campy {
 	namespace Types {
 
-        template<typename T>
-        Native_Array_View<T>::Native_Array_View(int length, int element_length, void * data, char * representation)
-        {
-	        native = (void*) new array_view<T, 1>(length, (T*)data);
-        }
+		template<typename T>
+		Native_Array_View<T>::Native_Array_View(int length, int element_length, void * data, char * representation)
+		{
+			native = (void*) new array_view<T, 1>(length, (T*)data);
+		}
 
-        template<typename T>
-        Native_Array_View<T>::Native_Array_View()
-        {
-	        native = (void*)0;
-        }
+		template<typename T>
+		Native_Array_View<T>::Native_Array_View()
+		{
+			native = (void*)0;
+		}
 
-        template<typename T>
-        void Native_Array_View<T>::synchronize()
-        {
-	        // load unmanaged type and call synchronize.
-	        ((array_view<T, 1>*)native)->synchronize();
-        }
+		template<typename T>
+		Native_Array_View_Base * Native_Array_View<T>::Section(int _I0, int _E0)
+		{
+			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			array_view<T, 1> s = n->section(_I0, _E0);
+			void * x = (void *)new array_view<T, 1>(s);
+			Native_Array_View<T> * new_array_view = new Native_Array_View<T>();
+			new_array_view->native = x;
+			return new_array_view;
+		}
 
-        template<typename T>
-        void * Native_Array_View<T>::get(int i)
-        {
-	        return (void *)&((*(array_view<T, 1>*)native)[i]);
-        }
+		template<typename T>
+		void Native_Array_View<T>::Synchronize()
+		{
+			// load unmanaged type and call synchronize.
+			((array_view<T, 1>*)native)->synchronize();
+		}
 
-        template<typename T>
-        void Native_Array_View<T>::set(int i, void * value)
-        {
-	        (*(array_view<T, 1>*)native)[i] = *(T*) value;
-        }
+		template<typename T>
+		void Native_Array_View<T>::Synchronize_Async()
+		{
+			// load unmanaged type and call synchronize.
+			((array_view<T, 1>*)native)->synchronize_async();
+		}
+
+		template<typename T>
+		void * Native_Array_View<T>::Get(int i)
+		{
+			return (void *)&((*(array_view<T, 1>*)native)[i]);
+		}
+
+		template<typename T>
+		void Native_Array_View<T>::Set(int i, void * value)
+		{
+			(*(array_view<T, 1>*)native)[i] = *(T*) value;
+		}
+
+		template<typename T>
+		void Native_Array_View<T>::Discard_Data()
+		{
+			array_view<T, 1>* nav = (array_view<T, 1>*)this->native;
+			nav->discard_data();
+		}
+
+
+		// Instantiate templates.
 
         template Native_Array_View<" + type.FullName.Replace(".", "::") + @">;
     }
-}
-";
+}";
 
             // (I should get source from Campy itself, but this will work, too.)
             _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_native_array_view_type_file_name, result);

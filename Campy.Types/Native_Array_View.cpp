@@ -23,24 +23,48 @@ namespace Campy {
 		}
 
 		template<typename T>
-		void Native_Array_View<T>::synchronize()
+		Native_Array_View_Base * Native_Array_View<T>::Section(int _I0, int _E0)
+		{
+			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			array_view<T, 1> s = n->section(_I0, _E0);
+			void * x = (void *)new array_view<T, 1>(s);
+			Native_Array_View<T> * new_array_view = new Native_Array_View<T>();
+			new_array_view->native = x;
+			return new_array_view;
+		}
+
+		template<typename T>
+		void Native_Array_View<T>::Synchronize()
 		{
 			// load unmanaged type and call synchronize.
 			((array_view<T, 1>*)native)->synchronize();
 		}
 
 		template<typename T>
-		void * Native_Array_View<T>::get(int i)
+		void Native_Array_View<T>::Synchronize_Async()
+		{
+			// load unmanaged type and call synchronize.
+			((array_view<T, 1>*)native)->synchronize_async();
+		}
+
+		template<typename T>
+		void * Native_Array_View<T>::Get(int i)
 		{
 			return (void *)&((*(array_view<T, 1>*)native)[i]);
 		}
 
 		template<typename T>
-		void Native_Array_View<T>::set(int i, void * value)
+		void Native_Array_View<T>::Set(int i, void * value)
 		{
 			(*(array_view<T, 1>*)native)[i] = *(T*) value;
 		}
 
+		template<typename T>
+		void Native_Array_View<T>::Discard_Data()
+		{
+			array_view<T, 1>* nav = (array_view<T, 1>*)this->native;
+			nav->discard_data();
+		}
 
 		// Instantiate templates.
 		template Native_Array_View<int>;

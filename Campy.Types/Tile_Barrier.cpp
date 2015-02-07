@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Tile_Barrier.h"
 
 using namespace System;
@@ -9,16 +8,16 @@ namespace Campy {
 		Tile_Barrier::Tile_Barrier()
 		{}
 
-		void Tile_Barrier::wait()
+		void Tile_Barrier::Wait()
 		{}
 
-		void Tile_Barrier::wait_with_all_memory_fence()
+		void Tile_Barrier::Wait_With_All_Memory_Fence()
 		{}
 
-		void Tile_Barrier::wait_with_global_memory_fence()
+		void Tile_Barrier::Wait_With_Global_Memory_Fence()
 		{}
 
-		void Tile_Barrier::wait_with_tile_static_memory_fence()
+		void Tile_Barrier::Wait_With_Tile_Static_Memory_Fence()
 		{}
 	}
 }

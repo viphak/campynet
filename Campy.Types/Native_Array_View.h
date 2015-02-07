@@ -22,9 +22,13 @@ namespace Campy {
 		public:
 			Native_Array_View();
 			Native_Array_View(int num_elements, int byte_size_of_element, void * ptr, char * representation);
-			virtual void synchronize();
-			virtual void * get(int i);
-			virtual void set(int i, void * value);
+
+			void Discard_Data();
+			virtual void * Get(int i);
+			virtual Native_Array_View_Base * Section(int _I0, int _E0);
+			virtual void Set(int i, void * value);
+			virtual void Synchronize();
+			virtual void Synchronize_Async();
 		};
 	}
 }

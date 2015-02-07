@@ -80,27 +80,27 @@ namespace Campy {
 		}
 
 
-		Native_Tiled_Extent * Native_Extent::tile()
+		Native_Tiled_Extent * Native_Extent::Tile()
 		{
 			Native_Tiled_Extent * nte = new Native_Tiled_Extent(this);
 			return nte;
 		}
 
-		Native_Tiled_Extent * Native_Extent::tile(int dim0)
+		Native_Tiled_Extent * Native_Extent::Tile(int dim0)
 		{
 			extent<1> * e = (extent<1>*)native;
 			Native_Tiled_Extent * nte = new Native_Tiled_Extent(dim0, this);
 			return nte;
 		}
 
-		Native_Tiled_Extent * Native_Extent::tile(int dim0, int dim1)
+		Native_Tiled_Extent * Native_Extent::Tile(int dim0, int dim1)
 		{
 			extent<2> * e = (extent<2>*)native;
 			Native_Tiled_Extent * nte = new Native_Tiled_Extent(dim0, dim1, this);
 			return nte;
 		}
 
-		Native_Tiled_Extent * Native_Extent::tile(int dim0, int dim1, int dim2)
+		Native_Tiled_Extent * Native_Extent::Tile(int dim0, int dim1, int dim2)
 		{
 			extent<3> * e = (extent<3>*)native;
 			Native_Tiled_Extent * nte = new Native_Tiled_Extent(dim0, dim1, dim2, this);

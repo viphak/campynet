@@ -33,22 +33,22 @@ namespace Campy {
 
 			void * native; // concurrency::accelerator
 			Native_Accelerator();
-			static Native_Accelerator** get_all();
-			static bool set_default(std::wstring path);
-			std::wstring get_device_path();
-			unsigned int get_version();
-			std::wstring get_description();
-			bool get_is_debug();
-			bool get_is_emulated();
-			bool get_has_display();
-			bool get_supports_double_precision();
-			bool get_supports_limited_double_precision();
-			bool get_supports_cpu_shared_memory();
-			Native_Accelerator_View* get_default_view();
-			size_t get_dedicated_memory();
-			access_type get_default_cpu_access_type();
-			bool set_default_cpu_access_type(access_type _Default_cpu_access_type);
-			Native_Accelerator_View create_view(queuing_mode qmode = queuing_mode_automatic);
+			static Native_Accelerator** Get_All();
+			static bool Set_Default(std::wstring path);
+			std::wstring Get_Device_Path();
+			unsigned int Get_Version();
+			std::wstring Get_Description();
+			bool Get_Is_Debug();
+			bool Get_Is_Emulated();
+			bool Get_Has_Display();
+			bool Get_Supports_Double_Precision();
+			bool Get_Supports_Limited_Double_Precision();
+			bool Get_Supports_Cpu_shared_Memory();
+			Native_Accelerator_View* Get_Default_View();
+			size_t Get_Dedicated_Memory();
+			access_type Get_Default_Cpu_Access_Type();
+			bool Set_Default_Cpu_Access_Type(access_type _Default_cpu_access_type);
+			Native_Accelerator_View Create_View(queuing_mode qmode = queuing_mode_automatic);
 
 			bool operator==(const Native_Accelerator &_Other);
 			bool operator!=(const Native_Accelerator &_Other);

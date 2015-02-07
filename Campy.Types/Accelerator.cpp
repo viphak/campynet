@@ -13,10 +13,10 @@ namespace Campy {
 		{
 		}
 
-		System::Collections::Generic::List<Accelerator^>^ Accelerator::get_all()
+		System::Collections::Generic::List<Accelerator^>^ Accelerator::Get_All()
 		{
 			System::Collections::Generic::List<Accelerator^>^ result = gcnew System::Collections::Generic::List<Accelerator^>();
-			Native_Accelerator** list = Native_Accelerator::get_all();
+			Native_Accelerator** list = Native_Accelerator::Get_All();
 			for (int i = 0; *list; ++i)
 			{
 				Accelerator^ a = gcnew Accelerator();
@@ -27,32 +27,32 @@ namespace Campy {
 			return result;
 		}
 
-		Accelerator_View^ Accelerator::get_default_view()
+		Accelerator_View^ Accelerator::Get_Default_View()
 		{
 			Accelerator_View^ result = gcnew Accelerator_View();
 			return result;
 		}
 
-		bool Accelerator::is_emulated::get()
+		bool Accelerator::Is_Emulated::get()
 		{
-			return ((Native_Accelerator*)_native)->get_is_emulated();
+			return ((Native_Accelerator*)_native)->Get_Is_Emulated();
 		}
 
-		bool Accelerator::set_default(String^ path)
+		bool Accelerator::Set_Default(String^ path)
 		{
 			pin_ptr<const wchar_t> str1 = PtrToStringChars(path);
-			return Native_Accelerator::set_default(str1);
+			return Native_Accelerator::Set_Default(str1);
 		}
 
-		String^ Accelerator::description()
+		String^ Accelerator::Description()
 		{
-			String^ result = gcnew String(((Native_Accelerator*)this->_native)->get_description().c_str());
+			String^ result = gcnew String(((Native_Accelerator*)this->_native)->Get_Description().c_str());
 			return result;
 		}
 
-		String^ Accelerator::device_path()
+		String^ Accelerator::Device_Path()
 		{
-			String^ result = gcnew String(((Native_Accelerator*)this->_native)->get_device_path().c_str());
+			String^ result = gcnew String(((Native_Accelerator*)this->_native)->Get_Device_Path().c_str());
 			return result;
 		}
 

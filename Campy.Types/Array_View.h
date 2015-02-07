@@ -33,14 +33,17 @@ namespace Campy {
 				IntPtr _native_data_buffer;
                 static array<_Value_type>^ default_data = gcnew array<_Value_type>(1);
                 static Array_View^ default_value = gcnew Array_View(default_data);
+				bool dirty_managed_side;
+				void do_late_binding();
 
             public:
                 Array_View(array<_Value_type> ^% data);
+				Array_View(IntPtr data, int length, Native_Array_View_Base * nav);
 
-                property Extent^ extent
+                property Extent^ Extent
                 {
-                    Extent^ get();
-                    void set(Extent^ extent);
+                    Campy::Types::Extent^ get();
+					void set(Campy::Types::Extent^ extent);
                 }
 
                 property _Value_type default[int]
@@ -49,12 +52,17 @@ namespace Campy {
                     void set(int i, _Value_type value);
                 }
 
-                void synchronize();
-                array<_Value_type>^ data();
+                array<_Value_type>^ Data();
                 static property Array_View^ Default_Value
                 {
                     Array_View^ get();
                 }
+				void Discard_Data();
+				void Refresh();
+				void Reinterpret_As();
+				Array_View<_Value_type>^ Section(int  _I0, int _E0);
+				void Synchronize();
+				void Synchronize_Async();
 
             public:
                 // Native array view, provided for kernels.

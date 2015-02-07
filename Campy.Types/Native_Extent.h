@@ -23,10 +23,10 @@ namespace Campy {
 			Native_Extent(int dim0, int dim2);
 			Native_Extent(int dim0, int dim2, int dim3);
 			Native_Extent(int rank, int* dims);
-			Native_Tiled_Extent * tile();
-			Native_Tiled_Extent * tile(int dim0);
-			Native_Tiled_Extent * tile(int dim0, int dim2);
-			Native_Tiled_Extent * tile(int dim0, int dim2, int dim3);
+			Native_Tiled_Extent * Tile();
+			Native_Tiled_Extent * Tile(int dim0);
+			Native_Tiled_Extent * Tile(int dim0, int dim2);
+			Native_Tiled_Extent * Tile(int dim0, int dim2, int dim3);
 		};
 	}
 }

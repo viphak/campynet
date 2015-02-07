@@ -1,5 +1,4 @@
 
-#include "stdafx.h"
 #include "Accelerator.h"
 #include "Accelerator_View.h"
 #include "Array_View_Base.h"

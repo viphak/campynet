@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Extent.h"
 #include "Index.h"
 #include "Native_Extent.h"
@@ -14,11 +13,11 @@ namespace Campy {
 		Tiled_Index::Tiled_Index()
 		{
 			_Rank = 1;
-			local = gcnew Index();
-			global = gcnew Index();
-			tile = gcnew Index();
-			tile_origin = gcnew Index();
-			barrier = gcnew Tile_Barrier();
+			Local = gcnew Index();
+			Global = gcnew Index();
+			Tile = gcnew Index();
+			Tile_Origin = gcnew Index();
+			Barrier = gcnew Tile_Barrier();
 		}
 	}
 }

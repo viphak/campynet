@@ -18,12 +18,12 @@ namespace Campy {
 			this->native = av;
 		}
 
-		void Native_Accelerator_View::flush()
+		void Native_Accelerator_View::Flush()
 		{
 			((accelerator_view*)(this->native))->flush();
 		}
 
-		Native_Accelerator* Native_Accelerator_View::get_accelerator()
+		Native_Accelerator* Native_Accelerator_View::Get_Accelerator()
 		{
 			accelerator* a = new accelerator(((accelerator_view*)(this->native))->get_accelerator());
 			Native_Accelerator * na = new Native_Accelerator();
@@ -31,7 +31,7 @@ namespace Campy {
 			return na;
 		}
 
-		void Native_Accelerator_View::wait()
+		void Native_Accelerator_View::Wait()
 		{
 			((accelerator_view*)(this->native))->wait();
 		}

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "Extent.h"
 #include "Index.h"
 #include "Native_Extent.h"
@@ -64,7 +63,7 @@ namespace Campy {
 			if (_Rank == 3)	_native = (void*) new Native_Extent(_M_base[0], _M_base[1], _M_base[2]);
 		}
 
-		int Extent::size()
+		int Extent::Size()
 		{
 			int result = 1;
 			for (int i = 0; i < _Rank; ++i)
@@ -72,19 +71,19 @@ namespace Campy {
 			return result;
 		}
 
-		Tiled_Extent^ Extent::tile(int _I0)
+		Tiled_Extent^ Extent::Tile(int _I0)
 		{
 			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, this);
 			return te;
 		}
 
-		Tiled_Extent^ Extent::tile(int _I0, int _I1)
+		Tiled_Extent^ Extent::Tile(int _I0, int _I1)
 		{
 			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, _I1, this);
 			return te;
 		}
 
-		Tiled_Extent^ Extent::tile(int _I0, int _I1, int _I2)
+		Tiled_Extent^ Extent::Tile(int _I0, int _I1, int _I2)
 		{
 			Tiled_Extent^ te = gcnew Tiled_Extent(_I0, _I1, _I2, this);
 			return te;

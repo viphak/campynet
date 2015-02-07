@@ -14,22 +14,22 @@ namespace Campy {
 			this->_native = (void*) new Native_Accelerator_View();
 		}
 
-		void Accelerator_View::flush()
+		void Accelerator_View::Flush()
 		{
 		}
 
-		Accelerator^ Accelerator_View::get_accelerator()
+		Accelerator^ Accelerator_View::Get_Accelerator()
 		{
-			Native_Accelerator * na = ((Native_Accelerator_View*)(this->_native))->get_accelerator();
+			Native_Accelerator * na = ((Native_Accelerator_View*)(this->_native))->Get_Accelerator();
 			Accelerator^ result = gcnew Accelerator();
 			result->_native = na;
 			return result;
 		}
 
-		void Accelerator_View::wait()
+		void Accelerator_View::Wait()
 		{
 			Native_Accelerator_View * nav = (Native_Accelerator_View*)(this->_native);
-			nav->wait();
+			nav->Wait();
 		}
 
 		void* Accelerator_View::native()

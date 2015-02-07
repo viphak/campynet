@@ -25,10 +25,10 @@ namespace Campy {
 			Extent(int _I0, int _I1);
 			Extent(int _I0, int _I1, int _I2);
 			Extent(array<int>^ _Array);
-			Tiled_Extent^ tile(int _I0);
-			Tiled_Extent^ tile(int _I0, int _I1);
-			Tiled_Extent^ tile(int _I0, int _I1, int _I2);
-			int size();
+			Tiled_Extent^ Tile(int _I0);
+			Tiled_Extent^ Tile(int _I0, int _I1);
+			Tiled_Extent^ Tile(int _I0, int _I1, int _I2);
+			int Size();
 			int operator[](int i);
 			int operator[](Index^ i);
 			static Extent^ operator +(Extent^ _Lhs, Index^ _Rhs);

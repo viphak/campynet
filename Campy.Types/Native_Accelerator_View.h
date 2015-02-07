@@ -17,9 +17,9 @@ namespace Campy {
 		public:
 			void * native; // concurrency::accelerator_view
 			Native_Accelerator_View();
-			void flush();
-			Native_Accelerator* get_accelerator();
-			void wait();
+			void Flush();
+			Native_Accelerator* Get_Accelerator();
+			void Wait();
 		};
 	}
 }
