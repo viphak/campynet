@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 
-namespace NewGraphs
+namespace Campy.Graphs
 {
     public class BinaryTreeLinkList<NAME, NODE, EDGE> : TreeLinkedList<NAME, NODE, EDGE>
         where NODE : BinaryTreeLinkList<NAME, NODE, EDGE>.Vertex, new()

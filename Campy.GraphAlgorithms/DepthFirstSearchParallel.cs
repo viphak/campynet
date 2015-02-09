@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NewGraphs;
+using Campy.Graphs;
 
-namespace GraphAlgorithms
+namespace Campy.GraphAlgorithms
 {
     public class FFFF
     {

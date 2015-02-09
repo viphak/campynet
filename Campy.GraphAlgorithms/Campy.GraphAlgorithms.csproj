@@ -30,12 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="campy.net">
-      <HintPath>C:\cygwin64\home\Ken\Campy.NET\Campy\bin\Debug\campy.net.dll</HintPath>
-    </Reference>
-    <Reference Include="Campy.Types">
-      <HintPath>C:\cygwin64\home\Ken\Campy.NET\Campy\bin\Debug\Campy.Types.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -46,7 +40,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BreadthFirstSearchParallel.cs" />
-    <Compile Include="BreadthFirstSearchParallelGPU.cs" />
     <Compile Include="BreadthFirstTraversal.cs" />
     <Compile Include="DepthFirstInorderTraversal.cs" />
     <Compile Include="DepthFirstPostorderTraversal.cs" />

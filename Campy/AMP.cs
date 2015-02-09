@@ -9,7 +9,7 @@ using Mono.Cecil.PE;
 using SR = System.Reflection;
 using System.IO;
 using System.Runtime.InteropServices;
-using NewGraphs;
+using Campy.Graphs;
 using Campy.Types;
 using Campy.Utils;
 using Campy.Builder;

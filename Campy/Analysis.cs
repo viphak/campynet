@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Campy.Utils;
 using Campy.Types;
-using NewGraphs;
+using Campy.Graphs;
 
 namespace Campy
 {
@@ -248,7 +248,7 @@ namespace Campy
             StackQueue<object> stack = new StackQueue<object>();
             stack.Push(obj);
             // Build a graph of the closure of obj across all fields.
-            NewGraphs.GraphLinkedList<object> graph = new GraphLinkedList<object>();
+            Campy.Graphs.GraphLinkedList<object> graph = new GraphLinkedList<object>();
             while (stack.Count > 0)
             {
                 object node = stack.Pop();
@@ -442,7 +442,7 @@ namespace Campy
             closure_graph.SetNameSpace(subset);
             foreach (object node in subset)
                 closure_graph.AddVertex(node);
-            GraphAlgorithms.DepthFirstPreorderTraversal<object> dfpt = new GraphAlgorithms.DepthFirstPreorderTraversal<object>(graph, new object[] { obj });
+            Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object> dfpt = new Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object>(graph, new object[] { obj });
             foreach (object node in dfpt)
             {
                 if (subset.Contains(node))

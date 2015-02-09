@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace NewGraphs
+namespace Campy.Graphs
 {
     public class GraphLinkedList<NAME, NODE, EDGE> : IGraph<NAME>
         where NODE : GraphLinkedList<NAME, NODE, EDGE>.Vertex, new()

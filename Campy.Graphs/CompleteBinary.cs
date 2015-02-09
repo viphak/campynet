@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NewGraphs
+namespace Campy.Graphs
 {
     public class CompleteBinary: BinaryTreeLinkList<int>
     {

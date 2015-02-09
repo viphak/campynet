@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 
-namespace NewGraphs
+namespace Campy.Graphs
 {
     public class TreeAdjList<NAME> : GraphAdjList<NAME>
     {

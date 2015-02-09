@@ -51,9 +51,6 @@
     <Reference Include="Mono.Cecil">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\Mono.Cecil.dll</HintPath>
     </Reference>
-    <Reference Include="NewGraphs">
-      <HintPath>E:\Personal\Work\Graph\GraphClassStructures\NewGraphs\bin\Debug\NewGraphs.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\nunit.framework.dll</HintPath>
     </Reference>
@@ -76,6 +73,14 @@
     <ProjectReference Include="..\Campy.Builder\Campy.Builder.csproj">
       <Project>{eecc0085-71a6-4759-a5ee-3438c2152f22}</Project>
       <Name>Campy.Builder</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.GraphAlgorithms\Campy.GraphAlgorithms.csproj">
+      <Project>{a9b4e66b-8c83-4059-a0ab-54fe5204cd25}</Project>
+      <Name>Campy.GraphAlgorithms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Campy.Graphs\Campy.Graphs.csproj">
+      <Project>{d1d35561-eae2-461a-a006-478dc6082761}</Project>
+      <Name>Campy.Graphs</Name>
     </ProjectReference>
     <ProjectReference Include="..\Campy.Types.Utils\Campy.Types.Utils.csproj">
       <Project>{42ec7285-a13f-4267-a14a-09bb0b195d8f}</Project>

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace NewGraphs
+namespace Campy.Graphs
 {
     /// <summary>
     /// StackQueue - a data structure that has both Stack and Queue interfaces.
