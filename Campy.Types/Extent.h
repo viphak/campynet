@@ -13,12 +13,12 @@ namespace Campy {
 		public ref class Extent
 		{
 		internal:
-			int _Rank;
 			array<int>^ _M_base;
 			void * _native;
 			static Extent^ default_value = gcnew Extent();
 
 		public:
+			int _Rank;
 			Extent();
 			Extent(Extent^ e);
 			Extent(int _I0);

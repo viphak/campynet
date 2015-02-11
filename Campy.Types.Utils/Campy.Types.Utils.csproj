@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSCPP.cs" />
+    <Compile Include="NativeArrayGenerator.cs" />
     <Compile Include="NativeArrayViewGenerator.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

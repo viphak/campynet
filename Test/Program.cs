@@ -147,6 +147,9 @@ namespace Test
 
         static void Main(string[] args)
         {
+            Array<int> xx = new Array<int>(10);
+            Array<int> xx2 = new Array<int>(10, 20);
+
             ComputePiCPU();
             ComputePiGPU();
         }
