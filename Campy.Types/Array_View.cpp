@@ -22,9 +22,9 @@ namespace Campy {
 				if (!this->_element_type->IsValueType)
 				{
 					// Copy to native.
-					Campy::Types::Utils::Utility::CopyFromNativeArray(
-						this->_native_data_buffer,
+					Campy::Types::Utils::Utility::CopyToNativeArray(
 						_data,
+						this->_native_data_buffer,
 						this->_blittable_element_type);
 				}
 			}

@@ -104,7 +104,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>..\\..\\..\\packages\\ilmerge.2.14.1208\\tools\\ILMerge.exe /out:campy.net.dll campy.dll campy.builder.dll campy.treewalker.dll campy.types.utils.dll campy.utility.dll icsharpcode.decompiler.dll icsharpcode.nrefactory.csharp.dll icsharpcode.nrefactory.dll mono.cecil.dll
+    <PostBuildEvent>..\\..\\..\\packages\\ilmerge.2.14.1208\\tools\\ILMerge.exe /out:campy.net.dll campy.dll campy.builder.dll campy.graphalgorithms.dll campy.graphs.dll campy.treewalker.dll campy.types.utils.dll campy.utility.dll icsharpcode.decompiler.dll icsharpcode.nrefactory.csharp.dll icsharpcode.nrefactory.dll mono.cecil.dll
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

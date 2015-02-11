@@ -147,6 +147,19 @@ namespace Test
 
         static void Main(string[] args)
         {
+            int half_size = 10;
+            int size = half_size * half_size;
+
+            Point[] data = new Point[size];
+            for (int i = 0; i < size; ++i) data[i] = new Point();
+            for (int i = 0; i < size; ++i)
+            {
+                data[i].x = i;
+                data[i].y = -i;
+            }
+            Array_View<Point> points = new Array_View<Point>(ref data);
+            System.Console.WriteLine(points[1].x);
+
             Array<int> xx = new Array<int>(10);
             Array<int> xx2 = new Array<int>(10, 20);
 

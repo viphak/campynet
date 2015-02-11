@@ -303,48 +303,6 @@ namespace Campy {
 
             // (I should get source from Campy itself, but this will work, too.)
             _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_native_array_view_type_file_name, result);
-
-            result = @"
-#pragma managed(push,off)
-
-#include <amp.h>
-#include <iostream>
-#include ""Native_Array_View_Base.h""
-
-using namespace concurrency;    // Save some typing :)
-using std::vector;     // Ditto. Comes from <vector> brought in by amp.h
-
-namespace Campy {
-	namespace Types {
-
-		Native_Array_View_Base::Native_Array_View_Base(int length, int element_length, void * data, char * representation)
-		{
-			native = (void*)data;
-		}
-
-		Native_Array_View_Base::Native_Array_View_Base()
-		{
-			native = (void*)0;
-		}
-
-		void Native_Array_View_Base::synchronize()
-		{
-		}
-
-		void * Native_Array_View_Base::get(int i)
-		{
-			return 0;
-		}
-
-		void Native_Array_View_Base::set(int i, void * value)
-		{
-		}
-	}
-}
-";
-            
-            _assembly.unmanaged_cpp_files.Add("Native_Array_View_Base.cpp", result);
-
         }
 
         public void Convert(Type type)

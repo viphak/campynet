@@ -168,7 +168,7 @@ namespace Campy.Types.Utils
             return cpp_array;
         }
 
-        public static IntPtr CopyToNativeArray(Array from, Type blittable_element_type, IntPtr cpp_array)
+        public static IntPtr CopyToNativeArray(Array from, IntPtr cpp_array, Type blittable_element_type)
         {
             IntPtr byte_ptr = cpp_array;
             int size_element = Marshal.SizeOf(blittable_element_type);
