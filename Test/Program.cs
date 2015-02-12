@@ -145,8 +145,91 @@ namespace Test
             System.Console.WriteLine(String.Format("{0}.{1}", time.Seconds, time.Milliseconds.ToString().PadLeft(3, '0')));
         }
 
+        delegate T op<T>(T lhs, T rhs);
+
+        static T reduction_simple_1<T>(Campy.Types.Array<T> a, op<T> operation)
+        {
+	        int size = a.Extent.Size();
+	        int element_count = size;
+	        Debug.Assert(element_count != 0); // Cannot reduce an empty sequence.
+	        if (element_count == 1)
+	        {
+		        return a[0];
+	        }
+
+	        // Using array, as we mostly need just temporary memory to store
+	        // the algorithm state between iterations and in the end we have to copy
+	        // back only the first element.
+	        //array<T, 1> a(element_count, source.begin());
+
+	        // Takes care of odd input elements – we could completely avoid tail sum
+	        // if we would require source to have even number of elements.
+            T val = (element_count % 2 == 1) ? a[element_count - 1] : default(T);
+	        T[] tail_sum = new T[1]; 
+            tail_sum[0] = val;
+
+            Array_View<T> av_tail_sum = new Array_View<T>(ref tail_sum);
+
+	        // Each thread reduces two elements.
+	        for (int s = element_count / 2; s > 0; s /= 2)
+	        {
+		        AMP.Parallel_For_Each(new Extent(s), (Index idx) =>
+		        {
+                    int i = idx[0];
+                    T lhs = a[i];
+                    T rhs = a[i + s];
+			        a[i] = operation(lhs, rhs);
+
+			        // Reduce the tail in cases where the number of elements is odd.
+			        if ((idx[0] == s - 1) && ((s & 0x1) == 1) && (s != 1))
+			        {
+                        lhs = av_tail_sum[0];
+                        rhs = a[s - 1];
+				        av_tail_sum[0] = operation(lhs, rhs);
+			        }
+		        });
+	        }
+
+	        // Copy the results back to CPU.
+	        T[] result = new T[1];
+	        av_tail_sum.Synchronize();
+            AMP.Copy(a.Section(0, 1), ref result);
+
+	        return operation(result[0], tail_sum[0]);
+        }
+
+        static int add(int a, int b)
+        {
+            return a + b;
+        }
+
+        static void doit()
+        {
+            int half_size = 5000;
+            int size = half_size * half_size;
+
+            Array<int> ins = new Array<int>(size);
+            DateTime start;
+            TimeSpan time;
+            start = DateTime.Now;
+            AMP.Parallel_For_Each(new Extent(size), (Index idx) =>
+            {
+                int i = idx[0];
+                // Pseudo random number generated point.
+                float x = (float)(1.0 * (i / half_size) / half_size);
+                float y = (float)(1.0 * (i % half_size) / half_size);
+                float t = (float)Math.Sqrt(x * x + y * y);
+                ins[i] = (t <= 1.0f) ? 1 : 0;
+            });
+            int[] count = new int[1];
+            count[0] = 0;
+
+            int res = reduction_simple_1(ins, add);
+        }
+
         static void Main(string[] args)
         {
+            doit();
             int half_size = 10;
             int size = half_size * half_size;
 

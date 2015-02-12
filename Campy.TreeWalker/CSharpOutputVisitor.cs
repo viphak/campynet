@@ -21,8 +21,8 @@ namespace Campy.TreeWalker
     {
         protected readonly IOutputFormatter formatter;
         public readonly CSharpFormattingOptions policy;
-        private readonly Stack<AstNode> containerStack = new Stack<AstNode>();
-        private readonly Stack<AstNode> positionStack = new Stack<AstNode>();
+        protected readonly Stack<AstNode> containerStack = new Stack<AstNode>();
+        protected readonly Stack<AstNode> positionStack = new Stack<AstNode>();
 
         /// <summary>
         /// Used to insert the minimal amount of spaces so that the lexer recognizes the tokens that were written.
@@ -117,12 +117,12 @@ namespace Campy.TreeWalker
         /// Writes all specials between the current position (in the positionStack) and the next
         /// node with the specified role. Advances the current position.
         /// </summary>
-        private void WriteSpecialsUpToRole(Role role)
+        public void WriteSpecialsUpToRole(Role role)
         {
             WriteSpecialsUpToRole(role, null);
         }
 
-        private void WriteSpecialsUpToRole(Role role, AstNode nextNode)
+        public void WriteSpecialsUpToRole(Role role, AstNode nextNode)
         {
             if (positionStack.Count == 0)
             {

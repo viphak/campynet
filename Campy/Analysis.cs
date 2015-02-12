@@ -282,7 +282,8 @@ namespace Campy
                         stack.Push(target);
                     }
                 }
-                else if (TypesUtility.IsCampyArrayViewType(node.GetType()))
+                else if (TypesUtility.IsCampyArrayViewType(node.GetType())
+                    || TypesUtility.IsCampyArrayType(node.GetType()))
                 {
                     // recurse into type of array object.
                     Type t = node.GetType();
@@ -322,6 +323,12 @@ namespace Campy
                             if (field.FieldType.IsValueType)
                                 continue;
                             if (TypesUtility.IsCampyArrayViewType(field.FieldType))
+                            {
+                                // chase type.
+                                stack.Push(value);
+                                continue;
+                            }
+                            if (TypesUtility.IsCampyArrayType(field.FieldType))
                             {
                                 // chase type.
                                 stack.Push(value);
@@ -390,6 +397,10 @@ namespace Campy
                     }
                 }
                 else if (TypesUtility.IsCampyArrayViewType(node.GetType()))
+                {
+                    graph.AddEdge(node, target);
+                }
+                else if (TypesUtility.IsCampyArrayType(node.GetType()))
                 {
                     graph.AddEdge(node, target);
                 }

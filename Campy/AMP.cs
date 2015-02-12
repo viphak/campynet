@@ -312,6 +312,10 @@ namespace Campy
                     {
                         deviceObjectField.SetValue(staging_object, Array_View<int>.Default_Value);
                     }
+                    else if (TypesUtility.IsCampyArrayType(fi.FieldType))
+                    {
+                        deviceObjectField.SetValue(staging_object, Array<int>.Default_Value);
+                    }
                     else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
                     {
                         deviceObjectField.SetValue(staging_object, Accelerator.Default_Value);

@@ -1,6 +1,7 @@
 
 #include "Accelerator.h"
 #include "Accelerator_View.h"
+#include "Array_Base.h"
 #include "Array_View_Base.h"
 #include "Basic_Types.h"
 #include "Extent.h"
@@ -24,6 +25,8 @@ namespace Campy {
 					break;
 				if (IsCampyArrayViewType(t))
 					return true;
+				if (IsCampyArrayType(t))
+					return true;
 				if (t == Accelerator::typeid)
 					return true;
 				if (t == Accelerator_View::typeid)
@@ -39,6 +42,19 @@ namespace Campy {
 				if (t == Tiled_Extent::typeid)
 					return true;
 				if (t == Tiled_Index::typeid)
+					return true;
+				t = t->BaseType;
+			}
+			return false;
+		}
+
+		bool TypesUtility::IsCampyArrayType(Type^ t)
+		{
+			for (;;)
+			{
+				if (t == nullptr)
+					break;
+				if (t == Array_Base::typeid)
 					return true;
 				t = t->BaseType;
 			}

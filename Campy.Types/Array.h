@@ -1,6 +1,7 @@
 // Array.h
 
 #pragma once
+#include "Array_Base.h"
 #include "Array_View.h"
 #include "Array_View_Base.h"
 #include "Accelerator_View.h"
@@ -18,7 +19,7 @@ namespace Campy {
 	namespace Types {
 
 		generic<typename _Value_type>
-			public ref class Array
+			public ref class Array : Array_Base
 			{
 
 			private:
@@ -37,6 +38,7 @@ namespace Campy {
 				void do_late_binding();
 				Accelerator_View^ _accelerator_view;
 				Accelerator_View^ _associated_accelerator_view;
+				static Array^ default_value = gcnew Array(1);
 
 
 			public:
@@ -71,6 +73,10 @@ namespace Campy {
 				Array_View<_Value_type>^ Section(int  _I0, int _E0);
 				Accelerator_View^ Get_Accelerator_View();
 				Accelerator_View^ Get_Associated_Accelerator_View();
+				static property Array^ Default_Value
+				{
+					Array^ get();
+				}
 
 			public:
 				// Native array, provided for kernels.

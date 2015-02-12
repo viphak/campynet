@@ -427,7 +427,7 @@ namespace Campy {
             Array_View<_Value_type>^ Array<_Value_type>::Section(int  _I0, int _E0)
             {
                 // Copy _E0 * blittable_element_size bytes from native.
-                Native_Array_View_Base * nav = (Native_Array_View_Base *)this->_native;
+                Native_Array_Base * nav = (Native_Array_Base *)this->_native;
                 Native_Array_View_Base * new_nav = nav->Section(_I0, _E0);
                 IntPtr mem = this->_native_data_buffer + this->_blittable_element_size * _I0;
                 Array_View<_Value_type>^ result = gcnew Array_View<_Value_type>(mem, _E0, new_nav);
@@ -445,5 +445,12 @@ namespace Campy {
             {
                 return this->_associated_accelerator_view;
             }
-    }
+
+		generic<typename _Value_type>
+			Array<_Value_type>^ Array<_Value_type>::Default_Value::get()
+			{
+				return Array<_Value_type>::default_value;
+			}
+
+	}
 }

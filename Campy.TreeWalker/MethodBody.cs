@@ -31,12 +31,22 @@ namespace Campy.TreeWalker
             : base(context)
         { }
 
+        Dictionary<String, String> _rewrite = new Dictionary<string, string>();
+
+        public void SetUpGenericSubstitition(Dictionary<String, String> rewrite)
+        {
+            _rewrite = rewrite;
+        }
+
+
         public override void GenerateCode(ITextOutput output)
         {
             syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
             var outputFormatter = new TextOutputFormatter(output) { FoldBraces = context.Settings.FoldBraces };
             var formattingPolicy = context.Settings.CSharpFormattingOptions;
-            syntaxTree.AcceptVisitor(new MethodBodyOutputVisitor(outputFormatter, formattingPolicy));
+            MethodBodyOutputVisitor vis = new MethodBodyOutputVisitor(outputFormatter, formattingPolicy);
+            vis.SetUpGenericSubstitition(this._rewrite);
+            syntaxTree.AcceptVisitor(vis);
         }
     }
 

@@ -46,6 +46,13 @@ namespace Campy.TreeWalker
         {
         }
 
+        Dictionary<String, String> _rewrite = new Dictionary<string, string>();
+
+        public void SetUpGenericSubstitition(Dictionary<String, String> rewrite)
+        {
+            _rewrite = rewrite;
+        }
+
         public override void VisitCSharpTokenNode(CSharpTokenNode cSharpTokenNode)
         {
             CSharpModifierToken mod = cSharpTokenNode as CSharpModifierToken;
@@ -140,6 +147,30 @@ namespace Campy.TreeWalker
             OptionalSemicolon();
             NewLine();
             EndNode(typeDeclaration);
+        }
+
+        public override void WriteIdentifier(string identifier, Role<Identifier> identifierRole = null)
+        {
+            WriteSpecialsUpToRole(identifierRole ?? Roles.Identifier);
+            if (IsKeyword(identifier, containerStack.Peek()))
+            {
+                if (lastWritten == LastWritten.KeywordOrIdentifier)
+                {
+                    Space();
+                }
+                // this space is not strictly required, so we call Space()
+                formatter.WriteToken("@");
+            }
+            else if (lastWritten == LastWritten.KeywordOrIdentifier)
+            {
+                formatter.Space();
+                // this space is strictly required, so we directly call the formatter
+            }
+            String rew = "";
+            if (_rewrite.TryGetValue(identifier, out rew))
+                identifier = rew;
+            formatter.WriteIdentifier(identifier);
+            lastWritten = LastWritten.KeywordOrIdentifier;
         }
 
         public override void WritePrimitiveValue(object val)

@@ -31,7 +31,7 @@ namespace Campy {
 		template<typename T>
 		Native_Array_View_Base * Native_Array<T>::Section(int _I0, int _E0)
 		{
-			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			array<T, 1> * n = (array<T, 1>*)native;
 			array_view<T, 1> s = n->section(_I0, _E0);
 			void * x = (void *)new array_view<T, 1>(s);
 			Native_Array_View<T> * new_array_view = new Native_Array_View<T>();

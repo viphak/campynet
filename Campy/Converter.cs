@@ -105,6 +105,10 @@ namespace Campy
                     // it isn't useful because static tiles must be declared
                     // local in the body of the kernel.
                 }
+                else if (TypesUtility.IsCampyArrayType(fi.FieldType))
+                {
+                    result += "Array_Base^ " + na + ";" + eol;
+                }
                 else if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
                 {
                     result += "Array_View_Base^ " + na + ";" + eol;
@@ -190,7 +194,9 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (TypesUtility.IsCampyArrayViewType(fi.FieldType) || TypesUtility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType)
+                    || TypesUtility.IsCampyArrayType(fi.FieldType)
+                    || TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     Type b = fi.FieldType;
                     foreach (Type p in b.GenericTypeArguments)
@@ -239,7 +245,9 @@ namespace Campy
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
-                if (TypesUtility.IsCampyArrayViewType(fi.FieldType) || TypesUtility.IsCampyTileStaticType(fi.FieldType))
+                if (TypesUtility.IsCampyArrayViewType(fi.FieldType)
+                    || TypesUtility.IsCampyArrayType(fi.FieldType)
+                    || TypesUtility.IsCampyTileStaticType(fi.FieldType))
                 {
                     Type b = fi.FieldType;
                     foreach (Type p in b.GenericTypeArguments)
@@ -453,6 +461,15 @@ public:
                         + ", 1> "
                         + na + ";" + eol;
                 }
+                else if (TypesUtility.IsCampyArrayType(fi.FieldType))
+                {
+                    Type element_type = fi.FieldType.GetGenericArguments().First();
+                    String element_type_name = Campy.Utils.Utility.GetFriendlyTypeName(element_type);
+                    result += "array_view<"                            // NOTE MUST BE ARRAY_VIEW, ASSIGNED FROM ARRAY<>!!!!!
+                        + element_type_name.Replace(".", "::")
+                        + ", 1> "
+                        + na + ";" + eol;
+                }
                 else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
                 {
                     result += "accelerator "
@@ -516,6 +533,15 @@ public:
                         new ICSharpCode.Decompiler.DecompilerContext(
                             mod_def) { CurrentType = md.DeclaringType });
                     astBuilder.AddMethod(md);
+                    Type z = dd.DeclaringType;
+                    while (z != null)
+                    {
+                        if (z.IsGenericType)
+                        {
+                            Type[] z2 = z.GetGenericArguments();
+                        }
+                        z = z.DeclaringType;
+                    }
                     StringWriter output = new StringWriter();
                     astBuilder.GenerateCode(new PlainTextOutput(output));
                     String field_result = output.ToString();
@@ -550,6 +576,14 @@ public:
                     String element_type_name = Campy.Utils.Utility.GetFriendlyTypeName(element_type);
                     result += "*(array_view<" + element_type_name.Replace(".", "::") + ", 1>*)"
                         + "(((Campy::Types::Native_Array_View<" + element_type_name.Replace(".", "::") + "> *) " + prefix + "n_" + na + ")->native)"
+                        + "," + eol;
+                }
+                else if (TypesUtility.IsCampyArrayType(fi.FieldType))
+                {
+                    Type element_type = fi.FieldType.GetGenericArguments().First();
+                    String element_type_name = Campy.Utils.Utility.GetFriendlyTypeName(element_type);
+                    result += "*(array<" + element_type_name.Replace(".", "::") + ", 1>*)"
+                        + "(((Campy::Types::Native_Array<" + element_type_name.Replace(".", "::") + "> *) " + prefix + "n_" + na + ")->native)"
                         + "," + eol;
                 }
                 else if (TypesUtility.IsCampyAcceleratorType(fi.FieldType))
@@ -680,6 +714,7 @@ public:
                 result += "#include <amp.h>" + eol;
                 result += "#include <amp_math.h>" + eol;
                 result += "#include \"" + unmanaged_h_file_name.Replace("\\", "\\\\") + "\"" + eol;
+                result += "#include \"Native_Array.h\"" + eol;
                 result += "#include \"Native_Array_View.h\"" + eol;
                 result += "#include \"Native_Extent.h\"" + eol;
                 result += "#include \"Native_Tiled_Extent.h\"" + eol;
@@ -749,6 +784,23 @@ public:
                         new ICSharpCode.Decompiler.DecompilerContext(
                             mod_def) { CurrentType = td });
                     astBuilder.AddMethod(main_md);
+                    // Go up the type decls and collect generic parameters.
+                    Dictionary<String, String> rew = new Dictionary<string,string>();
+                    Type z = del.Method.DeclaringType;
+                    while (z != null)
+                    {
+                        if (z.IsGenericType)
+                        {
+                            Type z3 = z.GetGenericTypeDefinition();
+                            Type[] z4 = z3.GetGenericArguments();
+                            Type[] z2 = z.GetGenericArguments();
+                            for (int z5 = 0; z5 < z4.Length; ++z5)
+                                rew.Add(z4[z5].Name, Campy.Utils.Utility.GetFriendlyTypeName(z2[z5]));
+                        }
+                        z = z.DeclaringType;
+                    }
+                    if (rew.Count > 0)
+                        astBuilder.SetUpGenericSubstitition(rew);
                     StringWriter output = new StringWriter();
                     astBuilder.GenerateCode(new PlainTextOutput(output));
                     String xxx = output.ToString();

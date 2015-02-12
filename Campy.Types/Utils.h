@@ -9,6 +9,7 @@ namespace Campy {
 		{
 		public:
 			static bool IsSimpleCampyType(Type^ t);
+			static bool IsCampyArrayType(Type^ t);
 			static bool IsCampyArrayViewType(Type^ t);
 			static bool IsCampyAcceleratorType(Type^ t);
 			static bool IsCampyAcceleratorViewType(Type^ t);
