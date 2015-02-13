@@ -656,7 +656,9 @@ public:
                     if (foo == null) continue;
                     String static_string = "tile_static int " +
                         fi.Name + "[" + foo.Length + "];" + eol;
-                    result = result.Replace("{", "{" + static_string);
+                    // Replace first occurence only (outermost bracket).
+                    Regex regex2 = new Regex(Regex.Escape("{"));
+                    result = regex2.Replace(result, "{" + static_string, 1);
 
                     // In code, replace "this." + fi.Name with just fi.Name.
                     Regex regex = new Regex("this." + fi.Name + "([^a-zA-Z_]+)");
@@ -857,6 +859,40 @@ public:
                     xxx = xxx.Replace(".Wait()", ".wait()");
                     xxx = xxx.Replace("AMP.", "AMP::");
                     xxx = xxx.Replace("(ref", "(");
+
+                    // Replace "default(int)" to 0, etc.
+                    Regex regex = new Regex("default\\s?[(][a-zA-Z_]+[)]");
+                    var arr = regex.Matches(xxx)
+                        .Cast<Match>()
+                        .Select(m => m.Value)
+                        .ToArray();
+                    if (arr.Count() > 0)
+                    {
+                        List<String> subs = new List<string>();
+                        for (int i = 0; i < arr.Count(); ++i)
+                        {
+                            String su = arr[i];
+                            su = su.Replace("default", "");
+                            su = su.Replace("(", "");
+                            su = su.Replace(")", "");
+                            su = su.Replace(" ", "");
+                            su = su.Replace("\t", "");
+                            if (su.Equals("int"))
+                                subs.Add("0");
+                            else if (su.Equals("float"))
+                                subs.Add("0.0");
+                            else if (su.Equals("uint"))
+                                subs.Add("0");
+                            else if (su.Equals("double"))
+                                subs.Add("0.0");
+                            else
+                                subs.Add(arr[i]);
+                        }
+                        for (int i = 0; i < arr.Count(); ++i)
+                        {
+                            xxx = regex.Replace(xxx, subs[i], 1);
+                        }
+                    }
 
                     // Severe magic (hacking) here. There are no static variables within a method,
                     // so here we opt for tile_statics to be declared in C# outside the parallel_for_each

@@ -33,6 +33,9 @@ namespace Campy {
 		{
 			array<T, 1> * n = (array<T, 1>*)native;
 			array_view<T, 1> s = n->section(_I0, _E0);
+			// Note, s has no buffers yet.
+			// Convert into pointer to array_view with copy constructor.
+			// We need to do this so we have a persistent handle to it.
 			void * x = (void *)new array_view<T, 1>(s);
 			Native_Array_View<T> * new_array_view = new Native_Array_View<T>();
 			new_array_view->native = x;

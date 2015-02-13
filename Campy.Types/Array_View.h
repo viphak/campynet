@@ -19,26 +19,30 @@ namespace Campy {
             {
 
             private:
-                String^ _element_cppcli_type_string;
+				array<_Value_type> ^ _data;
+				IntPtr _native_data_buffer;
+
+				String^ _element_cppcli_type_string;
                 String^ _element_cppnat_type_string;
                 Type^ _blittable_element_type; // type in C++ world.
                 int _blittable_element_size; // bytes.
                 Type^ _element_type; // type in C# world.
                 int _Rank = 1;
-                array<_Value_type> ^ _data;
-                int _length;
+                //int _length;
                 Extent ^ _extent;
                 void * _native;
                 GCHandle gchandle;
-				IntPtr _native_data_buffer;
                 static array<_Value_type>^ default_data = gcnew array<_Value_type>(1);
                 static Array_View^ default_value = gcnew Array_View(default_data);
 				bool dirty_managed_side;
 				void do_late_binding();
 
+				void InitializeCommon(array<_Value_type> ^% data);
+
             public:
                 Array_View(array<_Value_type> ^% data);
 				Array_View(IntPtr data, int length, Native_Array_View_Base * nav);
+				Array_View(int length, Native_Array_View_Base * nav);
 
                 property Extent^ Extent
                 {

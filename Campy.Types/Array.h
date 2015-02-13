@@ -33,9 +33,9 @@ namespace Campy {
 				Extent ^ _extent;
 				void * _native;
 				GCHandle gchandle;
-				IntPtr _native_data_buffer;
-				bool dirty_managed_side;
-				void do_late_binding();
+				//IntPtr _native_data_buffer;
+				//bool dirty_managed_side;
+				//void do_late_binding();
 				Accelerator_View^ _accelerator_view;
 				Accelerator_View^ _associated_accelerator_view;
 				static Array^ default_value = gcnew Array(1);

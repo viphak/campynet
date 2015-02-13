@@ -37,20 +37,23 @@ namespace Campy {
 		void Native_Array_View<T>::Synchronize()
 		{
 			// load unmanaged type and call synchronize.
-			((array_view<T, 1>*)native)->synchronize();
+			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			n->synchronize();
 		}
 
 		template<typename T>
 		void Native_Array_View<T>::Synchronize_Async()
 		{
 			// load unmanaged type and call synchronize.
-			((array_view<T, 1>*)native)->synchronize_async();
+			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			n->synchronize_async();
 		}
 
 		template<typename T>
 		void * Native_Array_View<T>::Get(int i)
 		{
-			return (void *)&((*(array_view<T, 1>*)native)[i]);
+			array_view<T, 1> * n = (array_view<T, 1>*)native;
+			return (void *)&((*n)[i]);
 		}
 
 		template<typename T>

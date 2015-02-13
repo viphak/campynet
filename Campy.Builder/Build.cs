@@ -23,18 +23,43 @@ namespace Campy.Builder
         {
             // Need to know where Campy include files are located.
             String campy_root = Environment.GetEnvironmentVariable("CAMPYNETROOT");
-            String inc = "..\\..\\..\\Campy.Types";
-            inc = Path.GetFullPath(inc);
-            if (Directory.Exists(inc))
-                campy_include_path = inc;
-            if (campy_include_path == null)
-            {
-                if (campy_root != null && Directory.Exists(campy_root))
-                    campy_include_path = campy_root + "\\Campy.Types";
-            }
-            if (campy_include_path == null)
-                throw new Exception("Cannot determine Campy.NET root. Set CAMPYNETROOT to path of Campy.NET directory.");
 
+            for (; ; )
+            {
+                // Check current path if built and run from Campy.Net test program.
+                String inc = "..\\..\\..\\Campy.Types";
+                inc = Path.GetFullPath(inc);
+                if (Directory.Exists(inc))
+                {
+                    campy_include_path = inc;
+                    break;
+                }
+
+                // Campy root must be set.
+                if (campy_root == null)
+                    throw new Exception("CAMPYNETROOT must be set.");
+                
+                // Campy root must exist.
+                if (!Directory.Exists(campy_root))
+                    throw new Exception("CAMPYNETROOT is not a directory.");
+
+                // Campy root must have include directory.
+                if (Directory.Exists(campy_root + "\\include"))
+                {
+                    campy_include_path = campy_root + "\\include";
+                    break;
+                }
+
+                // Campy root must have if using source tree and campynetroot points to tree,
+                // then types will be there.
+                if (Directory.Exists(campy_root + "\\Campy.Types"))
+                {
+                    campy_include_path = campy_root + "\\Campy.Types";
+                    break;
+                }
+
+                throw new Exception("Cannot determine Campy.NET root. Set CAMPYNETROOT to path of Campy.NET directory.");
+            }
             // Set up cl.exe, link.exe, includes, etc., so that we can complete a build.
 
             // Look for environmental variables.

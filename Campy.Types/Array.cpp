@@ -34,14 +34,14 @@ namespace Campy {
                     // Convert into array of structs and pin that.
                     this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-                    this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
+                    IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
                     this->_native = gen->Generate(
                         this->_blittable_element_type,
                         this->_extent->_Rank,
                         this->_extent->_M_base,
                         this->_blittable_element_size,
-                        this->_native_data_buffer,
+						temp_buffer,
                         ptrToNativeString
                         ).ToPointer();
                 }
@@ -84,14 +84,14 @@ namespace Campy {
                     // Convert into array of structs and pin that.
                     this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-                    this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
+					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
                     this->_native = gen->Generate(
                         this->_blittable_element_type,
                         this->_extent->_Rank,
                         this->_extent->_M_base,
                         this->_blittable_element_size,
-                        this->_native_data_buffer,
+						temp_buffer,
                         ptrToNativeString
                         ).ToPointer();
                 }
@@ -134,14 +134,14 @@ namespace Campy {
                     // Convert into array of structs and pin that.
                     this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-                    this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
+					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
                     this->_native = gen->Generate(
                         this->_blittable_element_type,
                         this->_extent->_Rank,
                         this->_extent->_M_base,
                         this->_blittable_element_size,
-                        this->_native_data_buffer,
+						temp_buffer,
                         ptrToNativeString
                         ).ToPointer();
                 }
@@ -184,14 +184,14 @@ namespace Campy {
                     // Convert into array of structs and pin that.
                     this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-                    this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
+					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
                     this->_native = gen->Generate(
                         this->_blittable_element_type,
                         this->_extent->_Rank,
                         this->_extent->_M_base,
                         this->_blittable_element_size,
-                        this->_native_data_buffer,
+						temp_buffer,
                         ptrToNativeString
                         ).ToPointer();
                 }
@@ -212,33 +212,31 @@ namespace Campy {
                 }
             }
 
-        generic<typename _Value_type>
-            void Array<_Value_type>::do_late_binding()
-            {
-                if (!this->dirty_managed_side)
-                    return;
-                this->dirty_managed_side = false;
-                if (!this->_element_type->IsValueType)
-                {
-                    // Copy to native.
-                    Campy::Types::Utils::Utility::CopyFromNativeArray(
-                        this->_native_data_buffer,
-                        _data,
-                        this->_blittable_element_type);
-                }
-            }
+        //generic<typename _Value_type>
+        //    void Array<_Value_type>::do_late_binding()
+        //    {
+        //        if (!this->dirty_managed_side)
+        //            return;
+        //        this->dirty_managed_side = false;
+        //        if (!this->_element_type->IsValueType)
+        //        {
+        //            // Copy to native.
+        //            Campy::Types::Utils::Utility::CopyFromNativeArray(
+        //                this->_native_data_buffer,
+        //                _data,
+        //                this->_blittable_element_type);
+        //        }
+        //    }
 
         generic<typename _Value_type>
             Array<_Value_type>::Array(array<_Value_type> ^% data)
             {
 				this->_extent = gcnew Campy::Types::Extent(data->Length);
                 this->_element_type = _Value_type::typeid;
-                this->dirty_managed_side = true;
                 this->_element_cppcli_type_string = CSCPP::ConvertToCPPCLI(_Value_type::typeid, 0);
                 this->_element_cppnat_type_string = CSCPP::ConvertToCPP(_Value_type::typeid, 0);
                 IntPtr ptrToNativeString = Marshal::StringToHGlobalAnsi(this->_element_cppnat_type_string);
                 char* nat_cpp_unm = static_cast<char*>(ptrToNativeString.ToPointer());
-                this->_native_data_buffer = IntPtr(nullptr);
                 this->_blittable_element_type = nullptr;
                 this->_blittable_element_size = 0;
 				pin_ptr<int> dims = &this->_extent->_M_base[0];
@@ -252,14 +250,14 @@ namespace Campy {
                     // Convert into array of structs and pin that.
                     this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
-                    this->_native_data_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
+					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
                     this->_native = gen->Generate(
                         this->_blittable_element_type,
 						this->_extent->_Rank,
 						this->_extent->_M_base,
 						this->_blittable_element_size,
-                        this->_native_data_buffer,
+						temp_buffer,
                         ptrToNativeString
                         ).ToPointer();
                 }
@@ -269,7 +267,7 @@ namespace Campy {
                     this->_blittable_element_size = Marshal::SizeOf(this->_element_type);
                     this->gchandle = GCHandle::Alloc(data, GCHandleType::Pinned);
                     System::IntPtr ptr = gchandle.AddrOfPinnedObject();
-                    this->_native_data_buffer = ptr;
+					IntPtr temp_buffer = ptr;
                     p = (void *)ptr.ToPointer();
 					if (this->_element_type == System::Int32::typeid)
 						this->_native = (void*) new Native_Array<int>(this->_extent->_Rank, dims, this->_blittable_element_size, nat_cpp_unm);
@@ -290,12 +288,11 @@ namespace Campy {
                 this->_data = gcnew array<_Value_type>(length);
                 this->_extent = gcnew Campy::Types::Extent(length);
                 this->_element_type = _Value_type::typeid;
-                this->dirty_managed_side = false;
                 this->_element_cppcli_type_string = CSCPP::ConvertToCPPCLI(_Value_type::typeid, 0);
                 this->_element_cppnat_type_string = CSCPP::ConvertToCPP(_Value_type::typeid, 0);
                 IntPtr ptrToNativeString = Marshal::StringToHGlobalAnsi(this->_element_cppnat_type_string);
                 char* nat_cpp_unm = static_cast<char*>(ptrToNativeString.ToPointer());
-                this->_native_data_buffer = data;
+                //this->_native_data_buffer = data;
                 this->_blittable_element_type = nullptr;
                 this->_blittable_element_size = 0;
                 this->_native = (void*)nav;
@@ -329,9 +326,8 @@ namespace Campy {
         generic<typename _Value_type>
             _Value_type Array<_Value_type>::default::get(int i)
             {
-                Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
-                do_late_binding();
-                // Copy from native array view.
+                Native_Array_Base * nav = (Native_Array_Base*)this->_native;
+                // Copy from native array.
                 void * ptr = nav->Get(i);
                 if (!this->_element_type->IsValueType)
                 {
@@ -374,7 +370,7 @@ namespace Campy {
         generic<typename _Value_type>
             void Array<_Value_type>::default::set(int i, _Value_type value)
             {
-                do_late_binding();
+                //do_late_binding();
                 _data[i] = value;
                 Native_Array_View_Base * nav = (Native_Array_View_Base*)this->_native;
                 if (!this->_element_type->IsValueType)
@@ -429,8 +425,7 @@ namespace Campy {
                 // Copy _E0 * blittable_element_size bytes from native.
                 Native_Array_Base * nav = (Native_Array_Base *)this->_native;
                 Native_Array_View_Base * new_nav = nav->Section(_I0, _E0);
-                IntPtr mem = this->_native_data_buffer + this->_blittable_element_size * _I0;
-                Array_View<_Value_type>^ result = gcnew Array_View<_Value_type>(mem, _E0, new_nav);
+                Array_View<_Value_type>^ result = gcnew Array_View<_Value_type>(_E0, new_nav);
                 return result;
             }
 

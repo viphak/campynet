@@ -68,6 +68,13 @@ namespace Campy
                 dest[i] = src[i];
         }
 
+        static public void Copy<T>(Array<T> src, ref T[] dest)
+        {
+            Array_View<T> from = src.Section(0, src.Extent.Size());
+            for (int i = 0; i < dest.Length; ++i)
+                dest[i] = from[i];
+        }
+
         static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
         {
             Accelerator_View view = new Accelerator_View();
@@ -137,41 +144,6 @@ namespace Campy
             // Call thunk method.
             mi2.Invoke(obj, new object[] { });
         }
-
-        //static public void Parallel_For_Each(Tiled_Extent tiled_Extent, _Kernel_type _kernel)
-        //{
-        //    Accelerator_View view = new Accelerator_View();
-        //    Parallel_For_Each(view, tiled_Extent, _kernel);
-        //}
-
-        //static public void Parallel_For_Each(Accelerator_View view, Tiled_Extent tiled_extent, _Kernel_type _kernel)
-        //{
-        //    // Compile and link any "to do" work before any DLL loading.
-        //    builder.Build();
-
-        //    // Get corresponding Campy code for C# kernel.
-        //    Type thunk = GetThunk(_kernel, tiled_extent);
-
-        //    // Create thunk object.
-        //    object obj = Activator.CreateInstance(thunk);
-
-        //    Structure structure = Analysis.FindAllTargets(_kernel);
-
-        //    // Set fields of thunk based on lambda.
-        //    CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
-
-        //    // Set extent.
-        //    CopyExtentToStaging(tiled_extent, ref obj);
-
-        //    // Set extent.
-        //    CopyViewToStaging(view, ref obj);
-
-        //    // Get address of thunk method.
-        //    SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
-
-        //    // Call thunk method.
-        //    mi2.Invoke(obj, new object[] { });
-        //}
 
         private static Type GetThunk(Delegate kernel, Campy.Types.Extent extent)
         {

@@ -161,6 +161,12 @@ namespace Campy.Types.Utils
             Marshal.PtrToStructure(ptr, blittable_object);
         }
 
+        public static IntPtr CreateNativeArray(int length, int blittable_element_size)
+        {
+            IntPtr cpp_array = Marshal.AllocHGlobal(blittable_element_size * length);
+            return cpp_array;
+        }
+
         public static IntPtr CreateNativeArray(Array from, Type blittable_element_type)
         {
             int size_element = Marshal.SizeOf(blittable_element_type);

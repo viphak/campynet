@@ -31,8 +31,6 @@ namespace Campy {
 			{
 				Accelerator^ get();
 			}
-
-		public:
 			// Native accelerator, provided for kernels.
 			void * native();
 		};
