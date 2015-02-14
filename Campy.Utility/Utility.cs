@@ -5,11 +5,31 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace Campy.Utils
 {
     public class Utility
     {
+
+        public static string FindExePath(string exe)
+        {
+            exe = Environment.ExpandEnvironmentVariables(exe);
+            if (!File.Exists(exe))
+            {
+                if (Path.GetDirectoryName(exe) == String.Empty)
+                {
+                    foreach (string test in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+                    {
+                        string path = test.Trim();
+                        if (!String.IsNullOrEmpty(path) && File.Exists(path = Path.Combine(path, exe)))
+                            return Path.GetFullPath(path);
+                    }
+                }
+                return null;
+            }
+            return Path.GetFullPath(exe);
+        }
 
         /// <summary>
         /// C# .NET really does not provide any API to get a "user friendly" name of a type,

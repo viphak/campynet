@@ -5,25 +5,29 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
+using Campy.Utils;
 
 namespace Campy.Builder
 {
     public class Build
     {
-        String compiler_path = null;
+        String cl_path = null;
+        String link_path = null;
+        String uncrustify_path = null;
+        String campy_root = null;
+        String campy_include_path = null;
         String vc_include_path = null;
         String vc_atlmfc_include_path = null;
         String vc_lib_path = null;
         String wk_include_path = null;
         String wk_lib_path = null;
         String ref_asm_path = null;
-        String campy_include_path = null;
 
         void SetupEnv()
         {
-            // Need to know where Campy include files are located.
-            String campy_root = Environment.GetEnvironmentVariable("CAMPYNETROOT");
 
+            // Need to know where Campy files are located.
+            campy_root = Environment.GetEnvironmentVariable("CAMPYNETROOT");
             for (; ; )
             {
                 // Check current path if built and run from Campy.Net test program.
@@ -32,6 +36,10 @@ namespace Campy.Builder
                 if (Directory.Exists(inc))
                 {
                     campy_include_path = inc;
+                    campy_root = inc + "\\..";
+                    campy_root = Path.GetFullPath(campy_root);
+                    if (!Directory.Exists(campy_root))
+                        throw new Exception("bad path " + campy_root);
                     break;
                 }
 
@@ -60,8 +68,8 @@ namespace Campy.Builder
 
                 throw new Exception("Cannot determine Campy.NET root. Set CAMPYNETROOT to path of Campy.NET directory.");
             }
-            // Set up cl.exe, link.exe, includes, etc., so that we can complete a build.
 
+            // Set up cl.exe, link.exe, includes, etc., so that we can complete a build.
             // Look for environmental variables.
             // Try in order: VS140COMNTOOLS, VS120COMNTOOLS.
             String root_14;
@@ -80,10 +88,12 @@ namespace Campy.Builder
                     bool found = File.Exists(path + "\\cl.exe");
                     if (!found)
                         break;
-                    compiler_path = path;
+                    cl_path = path + "\\cl.exe";
                     found = File.Exists(path + "\\link.exe");
                     if (!found)
                         throw new Exception("cl.exe found but link.exe not found!!");
+                    link_path = path + "\\link.exe";
+
                     // Check path for existence of includes.
                     path = root + "\\..\\..\\VC\\INCLUDE";
                     path = Path.GetFullPath(path);
@@ -96,7 +106,7 @@ namespace Campy.Builder
                     break;
                 }
             }
-            if (compiler_path == null && root_12 != null && root_12 != "")
+            if (cl_path == null && root_12 != null && root_12 != "")
             {
                 for (; ; )
                 {
@@ -108,10 +118,11 @@ namespace Campy.Builder
                     bool found = File.Exists(path + "\\cl.exe");
                     if (!found)
                         break;
-                    compiler_path = path;
+                    cl_path = path + "\\cl.exe";
                     found = File.Exists(path + "\\link.exe");
                     if (!found)
                         throw new Exception("cl.exe found but link.exe not found!!");
+                    link_path = path + "\\link.exe";
                     // Check path for existence of includes.
                     path = root + "\\..\\..\\VC\\INCLUDE";
                     path = Path.GetFullPath(path);
@@ -124,14 +135,14 @@ namespace Campy.Builder
                     break;
                 }
             }
-            if (compiler_path == null)
+            if (cl_path == null || link_path == null)
                 throw new Exception("Neither Visual Studio 2013 nor 2015 installed.");
 
             // Look for Windows Kits, using the compiler path and current OS
             // as a guide.
             PlatformID pid = Environment.OSVersion.Platform;
             String ver = Environment.OSVersion.Version.ToString();
-            String pre = compiler_path + "\\..\\..\\..\\Windows Kits";
+            String pre = Path.GetDirectoryName(cl_path) + "\\..\\..\\..\\Windows Kits";
             pre = Path.GetFullPath(pre);
             if (ver.IndexOf("6.2") == 0 || ver.IndexOf("6.3") == 0)
             {
@@ -161,6 +172,28 @@ namespace Campy.Builder
             ref_asm_path = "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5";
             if (!Directory.Exists(ref_asm_path))
                 throw new Exception("Expecting for .NET 4.5 to be installed.");
+
+
+            // Find uncrustify.
+            for (;;)
+            {
+                if (File.Exists(campy_root + "\\uncrustify.exe"))
+                {
+                    uncrustify_path = campy_root + "\\uncrustify.exe";
+                    break;
+                }
+
+                // Check path.
+                String where = Campy.Utils.Utility.FindExePath("uncrustify.exe");
+                if (where != null)
+                {
+                    uncrustify_path = where;
+                    break;
+                }
+
+                throw new Exception("uncrustify not found.");
+            }
+
         }
 
         public Build()
@@ -185,7 +218,7 @@ namespace Campy.Builder
                     p.StartInfo.RedirectStandardOutput = true;
                     p.StartInfo.RedirectStandardError = true;
                     p.StartInfo.CreateNoWindow = true;
-                    p.StartInfo.FileName = compiler_path + "\\link.exe";
+                    p.StartInfo.FileName = link_path;
                     p.StartInfo.Arguments = line;
                     p.Start();
                     p.WaitForExit();
@@ -304,10 +337,15 @@ eat_blanks_after_open_brace	= TRUE
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.FileName = "uncrustify.exe";
+            p.StartInfo.FileName = uncrustify_path;
             p.StartInfo.Arguments = "-c cfg.cfg -f \"" + source_file_name + "\" -o \"" + source_file_name + "\"";
-            p.Start();
-            p.WaitForExit();
+            try
+            {
+                p.Start();
+                p.WaitForExit();
+            }
+            catch
+            {}
             String output = p.StandardOutput.ReadToEnd();
             String out_err = p.StandardError.ReadToEnd();
             if (p.ExitCode > 0)
@@ -363,7 +401,7 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
                 p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.FileName = compiler_path + "\\cl.exe";
+                p.StartInfo.FileName = cl_path;
                 p.StartInfo.Arguments =
                     "/c"
                     + " /I\"" + campy_include_path + "\""
@@ -427,7 +465,7 @@ eat_blanks_after_open_brace	= TRUE
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
                 p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.FileName = compiler_path + "\\cl.exe";
+                p.StartInfo.FileName = cl_path;
                 p.StartInfo.Arguments =
                     "/c"
                     + " /I\"" + campy_include_path + "\""
@@ -497,7 +535,7 @@ eat_blanks_after_open_brace	= TRUE
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.FileName = compiler_path + "\\link.exe";
+            p.StartInfo.FileName = link_path;
             p.StartInfo.Arguments =
                 "/OUT:" + "\"" + assembly.Name + "\""
                 + " /MANIFEST"
