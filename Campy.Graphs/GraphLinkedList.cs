@@ -47,6 +47,38 @@ namespace Campy.Graphs
             }
         }
 
+        class VertexNodeEnumerator : IEnumerable<NODE>
+        {
+            NODE[] VertexSpace;
+
+            public VertexNodeEnumerator(NODE[] vs)
+            {
+                VertexSpace = vs;
+            }
+
+            public IEnumerator<NODE> GetEnumerator()
+            {
+                for (int i = 0; i < VertexSpace.Length; ++i)
+                {
+                    if (VertexSpace[i] != null)
+                        yield return VertexSpace[i];
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public IEnumerable<NODE> VertexNodes
+        {
+            get
+            {
+                return new VertexNodeEnumerator(VertexSpace);
+            }
+        }
+
         public class EdgeEnumerator : IEnumerable<IEdge<NAME>>
         {
             EDGE[] EdgeSpace;

@@ -276,10 +276,24 @@ namespace Campy
                         // If target is null, then the delegate is a function that
                         // uses either static data, or does not require any additional
                         // data.
+
                     }
                     else
                     {
                         stack.Push(target);
+                    }
+                    // Examine code for control flow graph.
+                    MethodInfo del_method_info = del.Method;
+                    Mono.Cecil.MethodDefinition del_method_definition = Converter.ConvertToMonoCecilType(del_method_info);
+                    Mono.Cecil.Cil.MethodBody del_method_definition_body = del_method_definition.Body;
+                    Mono.Collections.Generic.Collection<Mono.Cecil.Cil.Instruction> instructions = del_method_definition_body.Instructions;
+                    foreach (Mono.Cecil.Cil.Instruction i in instructions)
+                    {
+                        Mono.Cecil.Cil.OpCode op = i.OpCode;
+                        Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
+                        if (fc == Mono.Cecil.Cil.FlowControl.Call)
+                        {
+                        }
                     }
                 }
                 else if (TypesUtility.IsCampyArrayViewType(node.GetType())

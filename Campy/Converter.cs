@@ -26,7 +26,7 @@ namespace Campy
         Dictionary<System.Object, bool> compiled_targets = new Dictionary<object, bool>();
         Dictionary<String, MulticastDelegate> multicastdelegates = new Dictionary<string, MulticastDelegate>();
 
-        public Mono.Cecil.ModuleDefinition GetMonoCecilModuleDefinition(System.Delegate del)
+        public static Mono.Cecil.ModuleDefinition GetMonoCecilModuleDefinition(System.Delegate del)
         {
             SR.MethodInfo mi = del.Method;
 
@@ -38,7 +38,7 @@ namespace Campy
             return md;
         }
 
-        public Mono.Cecil.MethodDefinition ConvertToMonoCecilType(System.Reflection.MethodInfo mi)
+        public static Mono.Cecil.MethodDefinition ConvertToMonoCecilType(System.Reflection.MethodInfo mi)
         {
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
@@ -957,6 +957,10 @@ public:
 
         public void Convert(System.Delegate del, Campy.Types.Extent extent)
         {
+            //CFG cfg = new CFG(del.Method.Module.Assembly);
+            //CFA cfa = new CFA(cfg);
+           // cfa.AnalyzeNodes();
+
             Structure structure = Analysis.FindAllTargets(del);
 
             // Create a class in C++ CLI which contains the top-level

@@ -228,6 +228,7 @@ namespace Campy
 
                 if (rebuild)
                 {
+
                     Converter converter = new Converter(assembly);
 
                     // Convert lambda into GPU target code.
