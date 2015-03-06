@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Campy.Graphs;
+using Campy.Utils;
 
 namespace Campy.GraphAlgorithms
 {
@@ -55,9 +56,9 @@ namespace Campy.GraphAlgorithms
                     System.Console.WriteLine("Stack " + i);
                     for (int j = 0; j < Stack[i].Count; ++j)
                     {
-                        System.Console.Write(j + ": " + Stack[i].Peek(j).Item1 + " ");
-                        for (int k = 0; k < Stack[i].Peek(j).Item2.Count; ++k)
-                            System.Console.Write(Stack[i].Peek(j).Item2.Peek(k) + " ");
+                        System.Console.Write(j + ": " + Stack[i].PeekBottom(j).Item1 + " ");
+                        for (int k = 0; k < Stack[i].PeekBottom(j).Item2.Count; ++k)
+                            System.Console.Write(Stack[i].PeekBottom(j).Item2.PeekBottom(k) + " ");
                         System.Console.WriteLine();
                     }
                 }
@@ -71,11 +72,11 @@ namespace Campy.GraphAlgorithms
             lock (Stack[index])
             {
                 // Clean up.
-                while (Stack[index].Count > 1 && Stack[index].Top().Item2.Count == 0)
+                while (Stack[index].Count > 1 && Stack[index].PeekTop().Item2.Count == 0)
                     Stack[index].Pop();
 
                 // Check if there is work.
-                if (!(Stack[index].Count == 1 && Stack[index].Top().Item2.Count == 0))
+                if (!(Stack[index].Count == 1 && Stack[index].PeekTop().Item2.Count == 0))
                     return;
             }
 
@@ -95,7 +96,7 @@ namespace Campy.GraphAlgorithms
                         int count = 0;
                         for (int i = 0; i < Stack[from].Count - CutOff; ++i)
                         {
-                            count += Stack[from].Peek(i).Item2.Count;
+                            count += Stack[from].PeekBottom(i).Item2.Count;
                         }
                         if (count <= 1)
                             continue;
@@ -116,7 +117,7 @@ namespace Campy.GraphAlgorithms
                             new StackQueue<Tuple<T, StackQueue<T>>>();
                         for (int i = 0; i < Stack[from].Count - CutOff && count > 0; ++i)
                         {
-                            Tuple<T, StackQueue<T>> tf = Stack[from].Peek(i);
+                            Tuple<T, StackQueue<T>> tf = Stack[from].PeekBottom(i);
                             T tb = tf.Item1;
                             StackQueue<T> s = tf.Item2;
 
@@ -167,7 +168,7 @@ namespace Campy.GraphAlgorithms
                         done = false;
                         break;
                     }
-                    if (Stack[target].Top().Item2.Count != 0)
+                    if (Stack[target].PeekTop().Item2.Count != 0)
                     {
                         done = false;
                         break;
@@ -185,7 +186,7 @@ namespace Campy.GraphAlgorithms
             // Look up stack and see if v is on backtrack list.
             for (int i = 0; i < Stack[index].Count; ++i)
             {
-                T bt = Stack[index].Peek(i).Item1;
+                T bt = Stack[index].PeekBottom(i).Item1;
                 if (v.Equals(bt))
                     return true;
             }
@@ -206,7 +207,7 @@ namespace Campy.GraphAlgorithms
 
             // Initialize first worker with stack containing all sources.
             foreach (T v in Source)
-                Stack[0].Top().Item2.Push(v);
+                Stack[0].PeekTop().Item2.Push(v);
 
             // Spawn workers.
             Parallel.For(0, NumberOfWorkers, (int index) =>
@@ -218,13 +219,13 @@ namespace Campy.GraphAlgorithms
 
                     GetWork(index);
 
-                    while (Stack[index].Count >= 1 && Stack[index].Top().Item2.Count > 0)
+                    while (Stack[index].Count >= 1 && Stack[index].PeekTop().Item2.Count > 0)
                     {
                         // There is stuff in the to do list. Pop it and perform dfs
                         // expansion of the vertex.
                         // Safe: No other threads will grab nodes within the cutoff,
                         // and no other threads can change this stack size.
-                        StackQueue<T> todo = Stack[index].Top().Item2;
+                        StackQueue<T> todo = Stack[index].PeekTop().Item2;
                         u = todo.Pop();
                         Visited[u] = true;
 

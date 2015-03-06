@@ -14,22 +14,30 @@ namespace Campy
 {
     class Structure
     {
-        public object target_value;
+        // A class instance in the call chain.
+        public object _class_instance;
+
+        // A list of fields in the class instance.
         List<FieldInfo> _simple_fields = new List<FieldInfo>();
-        public List<FieldInfo> simple_fields { get { return _simple_fields; } }
+
+        // A list of method in the class instance.
+        List<Tuple<String, MethodInfo>> _methods = new List<Tuple<string, MethodInfo>>();
+
+        // A list of next instances in the call chain.
         List<Structure> _nested_structures = new List<Structure>();
+
         public List<Structure> nested_structures { get { return _nested_structures; } }
-        List<Tuple<String, MethodInfo>> _methods = new List<Tuple<string,MethodInfo>>();
         public List<Tuple<String, MethodInfo>> methods { get { return _methods; } }
         public String Name { get; set; }
         public String FullName { get; set; }
         public int level { get; set; }
         public List<String> rewrite_names = new List<string>();
+        public List<FieldInfo> simple_fields { get { return _simple_fields; } }
 
         public Structure(Structure parent, object target)
         {
             parent._nested_structures.Add(this);
-            this.target_value = target;
+            this._class_instance = target;
         }
 
         class StructureEnumerator : IEnumerable<Structure>
@@ -79,7 +87,7 @@ namespace Campy
             this.FullName = last_prefix + this.Name;
             this.level = last_depth;
             System.Delegate start = del as System.Delegate;
-            this.target_value = start.Target;
+            this._class_instance = start.Target;
 
             // Create a type which is a nested struct that mirrors the graph.
             // It isn't necessary, but just helps reinforces the runtime model
@@ -132,9 +140,9 @@ namespace Campy
                 }
                 if (current_depth > last_depth)
                 {
-                    Structure p = stack_of_structures.Top();
+                    Structure p = stack_of_structures.PeekTop();
                     stack_of_structures.Push(new Structure(p, target));
-                    Structure c = stack_of_structures.Top();
+                    Structure c = stack_of_structures.PeekTop();
                     c.Name = "s" + current_depth;
                     c.FullName = current_prefix + c.Name;
                     c.level = current_depth;
@@ -143,7 +151,7 @@ namespace Campy
                 {
                     stack_of_structures.Pop();
                 }
-                Structure current_structure = stack_of_structures.Top();
+                Structure current_structure = stack_of_structures.PeekTop();
                 last_depth = current_depth;
                 last_prefix = current_prefix;
                 map_target_to_structure.Add(target, current_structure);
@@ -244,6 +252,12 @@ namespace Campy
             // it cannot access data outside of auto variables (variables declared
             // in the lexically enclosing block). As a result, the call to the
             // delegate must be inlined to the top level delegate.
+            
+            CFG cfg = new CFG();
+            Delegate dddd = (Delegate)obj;
+            cfg.AddAssembly(dddd.Method.Module.Assembly);
+            CFA cfa = new CFA(cfg);
+            cfa.AnalyzeCFG();
 
             StackQueue<object> stack = new StackQueue<object>();
             stack.Push(obj);
@@ -359,7 +373,7 @@ namespace Campy
                 }
             }
 
-            if (false)
+            if (true)
             foreach (object node in graph.Vertices)
             {
                 System.Console.WriteLine("Node "
@@ -441,7 +455,7 @@ namespace Campy
                 }
             }
 
-            if (false)
+            if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in graph.Vertices)
@@ -482,7 +496,7 @@ namespace Campy
                 }
             }
 
-            if (false)
+            if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in closure_graph.Vertices)
@@ -497,6 +511,7 @@ namespace Campy
                 }
                 System.Console.WriteLine();
             }
+
             Structure res = new Structure(closure_graph);
 
             return res;

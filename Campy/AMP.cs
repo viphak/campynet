@@ -86,13 +86,13 @@ namespace Campy
             // Compile and link any "to do" work before any DLL loading.
             builder.Make();
 
+            Structure structure = Analysis.FindAllTargets(_kernel);
+
             // Get corresponding Campy code for C# kernel.
-            Type thunk = GetThunk(_kernel, extent);
+            Type thunk = GetThunk(_kernel, extent, structure);
 
             // Create thunk object.
             object obj = Activator.CreateInstance(thunk);
-
-            Structure structure = Analysis.FindAllTargets(_kernel);
 
             // Set fields of thunk based on lambda.
             CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
@@ -121,13 +121,13 @@ namespace Campy
             // Compile and link any "to do" work before any DLL loading.
             builder.Make();
 
+            Structure structure = Analysis.FindAllTargets(_kernel);
+
             // Get corresponding Campy code for C# kernel.
-            Type thunk = GetThunk(_kernel, extent);
+            Type thunk = GetThunk(_kernel, extent, structure);
 
             // Create thunk object.
             object obj = Activator.CreateInstance(thunk);
-
-            Structure structure = Analysis.FindAllTargets(_kernel);
 
             // Set fields of thunk based on lambda.
             CopyFieldsFromHostToStaging(_kernel, structure, ref obj);
@@ -145,7 +145,7 @@ namespace Campy
             mi2.Invoke(obj, new object[] { });
         }
 
-        private static Type GetThunk(Delegate kernel, Campy.Types.Extent extent)
+        private static Type GetThunk(Delegate kernel, Campy.Types.Extent extent, Structure structure)
         {
             // Get MethodInfo for lambda.
             SR.MethodInfo mi = kernel.Method;
@@ -228,11 +228,10 @@ namespace Campy
 
                 if (rebuild)
                 {
-
                     Converter converter = new Converter(assembly);
 
                     // Convert lambda into GPU target code.
-                    converter.Convert(kernel, extent);
+                    converter.Convert(kernel, extent, structure);
 
                     // Compile target code into object code.
                     builder.Compile(assembly);
@@ -261,7 +260,7 @@ namespace Campy
             SR.FieldInfo[] sfi = s.GetFields();
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Utility.GetFriendlyTypeName(fi.FieldType);
                 // Copy.

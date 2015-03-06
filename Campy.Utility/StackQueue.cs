@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 
-namespace Campy
+namespace Campy.Utils
 {
     /// <summary>
     /// StackQueue - a data structure that has both Stack and Queue interfaces.
     /// </summary>
     /// <typeparam name="NAME"></typeparam>
-    class StackQueue<T>
+    public class StackQueue<T>
     {
         private int _size;
         private int _top;
@@ -27,6 +27,14 @@ namespace Campy
             _items[_top++] = value;
         }
 
+        public StackQueue(StackQueue<T> other)
+        {
+            _size = other._size;
+            _top = other._top;
+            _items = new T[_size];
+            System.Array.Copy(other._items, _items, _size);
+        }
+
         public int Size()
         {
             return _top;
@@ -44,6 +52,7 @@ namespace Campy
                 int index = _top - 1;
                 T cur = _items[index];
                 _items[index] = default(T);
+                _top = _top - 1;
                 return cur;
             }
             else
@@ -135,6 +144,7 @@ namespace Campy
             for (int i = _top - 1; i >= 0; --i)
                 _items[i + 1] = _items[i];
             _items[0] = value;
+            ++_top;
         }
 
         public T DequeueTop()
@@ -149,8 +159,9 @@ namespace Campy
             if (_top > 0)
             {
                 T cur = _items[0];
-                for (int i = _top - 1; i >= 0; --i)
-                    _items[i] = _items[i + 1];
+                for (int i = 1; i <= _top; ++i)
+                    _items[i - 1] = _items[i];
+                _top--;
                 return cur;
             }
             else
@@ -161,7 +172,7 @@ namespace Campy
 
         public bool Contains(T item)
         {
-            return System.Array.FindIndex(_items, (T t) => t.Equals(item)) >= 0;
+            return System.Array.FindIndex(_items, 0, _top, (T t) => t.Equals(item)) >= 0;
         }
 
         public System.Collections.Generic.IEnumerator<T> GetEnumerator()
@@ -172,9 +183,15 @@ namespace Campy
             }
         }
 
-        public System.ArraySegment<T> Segment(int start, int length)
+        public ArraySection<T> Section(int start, int length)
         {
-            System.ArraySegment<T> result = new System.ArraySegment<T>(_items, start, length);
+            ArraySection<T> result = new ArraySection<T>(_items, start, length);
+            return result;
+        }
+
+        public ArraySection<T> Section(int length)
+        {
+            ArraySection<T> result = new ArraySection<T>(_items, this._top, length);
             return result;
         }
     }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Campy.Graphs;
+using Campy.Utils;
 
 namespace Campy.GraphAlgorithms
 {
@@ -16,6 +17,7 @@ namespace Campy.GraphAlgorithms
         IGraph<T> graph;
         IEnumerable<T> Source;
         Dictionary<T, bool> Visited = new Dictionary<T, bool>();
+        StackQueue<T> Stack = new StackQueue<T>();
 
         public DepthFirstPreorderTraversal(IGraph<T> g, IEnumerable<T> s)
         {
@@ -24,8 +26,6 @@ namespace Campy.GraphAlgorithms
             foreach (T v in graph.Vertices)
                 Visited.Add(v, false);
         }
-
-        StackQueue<T> Stack = new StackQueue<T>();
 
         public System.Collections.Generic.IEnumerator<T> GetEnumerator()
         {
@@ -49,4 +49,40 @@ namespace Campy.GraphAlgorithms
         }
     }
 
+    public class DepthFirstPreorderTraversalViaPredecessors<T>
+    {
+        IGraph<T> graph;
+        IEnumerable<T> Source;
+        Dictionary<T, bool> Visited = new Dictionary<T, bool>();
+        StackQueue<T> Stack = new StackQueue<T>();
+
+        public DepthFirstPreorderTraversalViaPredecessors(IGraph<T> g, IEnumerable<T> s)
+        {
+            graph = g;
+            Source = s;
+            foreach (T v in graph.Vertices)
+                Visited.Add(v, false);
+        }
+
+        public System.Collections.Generic.IEnumerator<T> GetEnumerator()
+        {
+            foreach (T v in graph.Vertices)
+                Visited[v] = false;
+
+            foreach (T v in Source)
+                Stack.Push(v);
+
+            while (Stack.Count != 0)
+            {
+                T u = Stack.Pop();
+                Visited[u] = true;
+                yield return u;
+                foreach (T v in graph.ReversePredecessors(u))
+                {
+                    if (!Visited[v] && !Stack.Contains(v))
+                        Stack.Push(v);
+                }
+            }
+        }
+    }
 }

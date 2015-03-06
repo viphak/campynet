@@ -344,7 +344,7 @@
 		<row><td>ISX_DEFAULTCOMPONENT</td><td>{D7F13B88-9343-414C-9204-677BE5EE371E}</td><td>INCLUDE</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td>{1419A90A-BCC8-4274-A718-F66F1DD75665}</td><td>INSTALLDIR</td><td>2</td><td/><td/><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 		<row><td>campy.net.dll</td><td>{07AA8D6E-F95F-4F31-9A6D-239331FE0310}</td><td>INSTALLDIR</td><td>2</td><td/><td>campy.net.dll</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
-		<row><td>uncrustify.exe</td><td>{0A31E83D-7627-43F5-BBBF-62E4E2357EF0}</td><td>INSTALLDIR</td><td>2</td><td/><td>uncrustify.exe</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
+		<row><td>uncrustify.exe</td><td>{915751F1-F22D-4DED-A586-0C2465C5311A}</td><td>INSTALLDIR</td><td>2</td><td/><td>uncrustify.exe</td><td>17</td><td/><td/><td/><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td><td>/LogFile=</td></row>
 	</table>
 
 	<table name="Condition">
@@ -1914,7 +1914,7 @@
 		<row><td>tile_static.h</td><td>ISX_DEFAULTCOMPONENT</td><td>TILE_S~1.H|Tile_Static.h</td><td>0</td><td/><td/><td/><td>1</td><td>C:\cygwin64\home\Ken\Campy.NET\Campy.Types\Tile_Static.h</td><td>1</td><td/></row>
 		<row><td>tiled_extent.h</td><td>ISX_DEFAULTCOMPONENT</td><td>TILED_~1.H|Tiled_Extent.h</td><td>0</td><td/><td/><td/><td>1</td><td>C:\cygwin64\home\Ken\Campy.NET\Campy.Types\Tiled_Extent.h</td><td>1</td><td/></row>
 		<row><td>tiled_index.h</td><td>ISX_DEFAULTCOMPONENT</td><td>TILED_~1.H|Tiled_Index.h</td><td>0</td><td/><td/><td/><td>1</td><td>C:\cygwin64\home\Ken\Campy.NET\Campy.Types\Tiled_Index.h</td><td>1</td><td/></row>
-		<row><td>uncrustify.exe</td><td>uncrustify.exe</td><td>UNCRUS~1.EXE|uncrustify.exe</td><td>0</td><td/><td/><td/><td>1</td><td>H:\Downloads\uncrustify-0.61.3-gf65394e-win32\uncrustify-0.61.3-gf65394e-win32\uncrustify.exe</td><td>1</td><td/></row>
+		<row><td>uncrustify.exe</td><td>uncrustify.exe</td><td>UNCRUS~1.EXE|uncrustify.exe</td><td>0</td><td/><td/><td/><td>1</td><td>H:\Old_Downloads\uncrustify-0.61.3-gf65394e-win32\uncrustify-0.61.3-gf65394e-win32\uncrustify.exe</td><td>1</td><td/></row>
 		<row><td>utils.h</td><td>ISX_DEFAULTCOMPONENT</td><td>Utils.h</td><td>0</td><td/><td/><td/><td>1</td><td>C:\cygwin64\home\Ken\Campy.NET\Campy.Types\Utils.h</td><td>1</td><td/></row>
 		<row><td>wrapper.h</td><td>ISX_DEFAULTCOMPONENT</td><td>Wrapper.h</td><td>0</td><td/><td/><td/><td>1</td><td>C:\cygwin64\home\Ken\Campy.NET\Campy.Types\Wrapper.h</td><td>1</td><td/></row>
 	</table>
@@ -2064,7 +2064,7 @@
 		<row><td>ISX_DEFAULTCOMPONENT</td><td/><td/><td>_7E4889B6_EEF2_44F8_A811_7CDF1C87121D_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>ISX_DEFAULTCOMPONENT1</td><td/><td/><td>_95A592DF_B2FE_41C9_B79C_3FE355EE7DFE_FILTER</td><td/><td/><td/><td/></row>
 		<row><td>campy.net.dll</td><td/><td/><td>_BA4D24B3_CA37_4B9E_98F2_5E8EBE207218_FILTER</td><td/><td/><td/><td/></row>
-		<row><td>uncrustify.exe</td><td/><td/><td>_908029AF_83E8_4D2D_8057_F54B99B7C341_FILTER</td><td/><td/><td/><td/></row>
+		<row><td>uncrustify.exe</td><td/><td/><td>_68137FC1_B83F_4653_9ADB_A6928589717A_FILTER</td><td/><td/><td/><td/></row>
 	</table>
 
 	<table name="ISCustomActionReference">
@@ -3496,6 +3496,7 @@
 		<row><td>IDS_SETUPEXE_EXPIRE_MSG</td><td>1033</td><td>This setup works until %s. The setup will now exit.</td><td>0</td><td/><td>1629730164</td></row>
 		<row><td>IDS_SETUPEXE_LAUNCH_COND_E</td><td>1033</td><td>This setup was built with an evaluation version of InstallShield and can only be launched from setup.exe.</td><td>0</td><td/><td>1629730164</td></row>
 		<row><td>IDS_SHORTCUT_DISPLAY_NAME1</td><td>1033</td><td>LAUNCH~1.EXE|Launch uncrustify.exe</td><td>0</td><td/><td>1763957322</td></row>
+		<row><td>IDS_SHORTCUT_DISPLAY_NAME2</td><td>1033</td><td>LAUNCH~1.EXE|Launch uncrustify.exe</td><td>0</td><td/><td>-652004273</td></row>
 		<row><td>IDS_SQLBROWSE_INTRO</td><td>1033</td><td>From the list of servers below, select the database server you would like to target.</td><td>0</td><td/><td>1629730164</td></row>
 		<row><td>IDS_SQLBROWSE_INTRO_DB</td><td>1033</td><td>From the list of catalog names below, select the database catalog you would like to target.</td><td>0</td><td/><td>1629730164</td></row>
 		<row><td>IDS_SQLBROWSE_INTRO_TEMPLATE</td><td>1033</td><td>[IS_SQLBROWSE_INTRO]</td><td>0</td><td/><td>1629730164</td></row>
@@ -3898,6 +3899,7 @@
 		<col def="S255">ISBuildSourcePath</col>
 		<col def="I2">ISIconIndex</col>
 		<row><td>ARPPRODUCTICON.exe</td><td/><td>&lt;ISProductFolder&gt;\redist\Language Independent\OS Independent\setupicon.ico</td><td>0</td></row>
+		<row><td>uncrustify.exe_4B49783ACBCF4649925A7F56AA3218C7.exe</td><td/><td>&lt;ISProductFolder&gt;\redist\Language Independent\OS Independent\GenericExe.ico</td><td>0</td></row>
 		<row><td>uncrustify.exe_F6F41EC830DA4B9DAFA66B552927E0F4.exe</td><td/><td>&lt;ISProductFolder&gt;\redist\Language Independent\OS Independent\GenericExe.ico</td><td>0</td></row>
 	</table>
 
@@ -4032,7 +4034,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>ISTheme</td><td>InstallShield Blue.theme</td></row>
 		<row><td>ISUSLock</td><td>{93B80551-D9B3-40C2-9193-9D1607564A9D}</td></row>
 		<row><td>ISUSSignature</td><td>{4D2AB7B7-8FE6-442E-90C1-08C09358E293}</td></row>
-		<row><td>ISVisitedViews</td><td>viewAssistant,viewSetupDesign,viewEnvironmentVariables,viewISToday,viewProject,viewRealSetupDesign,viewSetupTypes,viewUpgradePaths,viewAppV,viewObjects,viewUpdateService,viewUI,viewInstallScriptStd,viewSystemSearch,viewSupportFiles,viewTextMessages,viewAppFiles,viewFeatureFiles</td></row>
+		<row><td>ISVisitedViews</td><td>viewAssistant,viewSetupDesign,viewEnvironmentVariables,viewISToday,viewProject,viewRealSetupDesign,viewSetupTypes,viewUpgradePaths,viewAppV,viewObjects,viewUpdateService,viewUI,viewInstallScriptStd,viewSystemSearch,viewSupportFiles,viewTextMessages,viewAppFiles,viewFeatureFiles,viewRelease,viewCustomActions,viewBillboards,viewSQLServer,viewComponentServices,viewDependencies,viewRegistry,viewIniFiles,viewTextFiles,viewFileExtensions,viewDesignPatches</td></row>
 		<row><td>Limited</td><td>1</td></row>
 		<row><td>LockPermissionMode</td><td>1</td></row>
 		<row><td>MsiExecCmdLineOptions</td><td/></row>
@@ -4486,8 +4488,6 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<col def="L255">FileName</col>
 		<col def="s72">DirProperty</col>
 		<col def="i2">InstallMode</col>
-		<row><td>FileKey1</td><td>uncrustify.exe</td><td/><td>domemt_1_domem_technologies__inc</td><td>2</td></row>
-		<row><td>FileKey2</td><td>uncrustify.exe</td><td/><td>campy.net</td><td>2</td></row>
 		<row><td>uncrustify.exe</td><td>uncrustify.exe</td><td/><td>campy.net</td><td>2</td></row>
 	</table>
 
@@ -4574,7 +4574,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<col def="S255">ISComments</col>
 		<col def="S255">ISShortcutName</col>
 		<col def="I4">ISAttributes</col>
-		<row><td>uncrustify.exe</td><td>campy.net</td><td>##IDS_SHORTCUT_DISPLAY_NAME1##</td><td>uncrustify.exe</td><td>AlwaysInstall</td><td/><td/><td/><td>uncrustify.exe_F6F41EC830DA4B9DAFA66B552927E0F4.exe</td><td>0</td><td>1</td><td>INSTALLDIR</td><td/><td/><td/><td/><td/><td/><td/></row>
+		<row><td>uncrustify.exe</td><td>campy.net</td><td>##IDS_SHORTCUT_DISPLAY_NAME2##</td><td>uncrustify.exe</td><td>AlwaysInstall</td><td/><td/><td/><td>uncrustify.exe_4B49783ACBCF4649925A7F56AA3218C7.exe</td><td>0</td><td>1</td><td>INSTALLDIR</td><td/><td/><td/><td/><td/><td/><td/></row>
 	</table>
 
 	<table name="Signature">

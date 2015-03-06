@@ -95,7 +95,7 @@ namespace Campy
             result += "{" + eol;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 tys = tys.Replace(".", "::");
@@ -147,7 +147,7 @@ namespace Campy
             result += "{" + eol;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -190,7 +190,7 @@ namespace Campy
             String result = "";
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -241,7 +241,7 @@ namespace Campy
             String result = "";
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -282,7 +282,7 @@ namespace Campy
             String result = "";
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -410,7 +410,7 @@ public:
             result += "{" + eol;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 if (TypesUtility.IsCampyTileStaticType(fi.FieldType))
@@ -449,7 +449,7 @@ public:
             result += "{" + eol;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 if (TypesUtility.IsCampyArrayViewType(fi.FieldType))
@@ -566,7 +566,7 @@ public:
             result += "{" + eol;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -644,7 +644,7 @@ public:
             String result = code;
             foreach (SR.FieldInfo fi in structure.simple_fields)
             {
-                object field_value = fi.GetValue(structure.target_value);
+                object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 String prefix = structure.FullName + ".";
@@ -955,14 +955,8 @@ public:
             _assembly = assembly;
         }
 
-        public void Convert(System.Delegate del, Campy.Types.Extent extent)
+        public void Convert(System.Delegate del, Campy.Types.Extent extent, Structure structure)
         {
-            //CFG cfg = new CFG(del.Method.Module.Assembly);
-            //CFA cfa = new CFA(cfg);
-           // cfa.AnalyzeNodes();
-
-            Structure structure = Analysis.FindAllTargets(del);
-
             // Create a class in C++ CLI which contains the top-level
             // delegate method. This method will need to take the entire
             // closure of list_of_targets, inline the chain of method calls.

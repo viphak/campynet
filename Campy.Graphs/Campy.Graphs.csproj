@@ -54,9 +54,14 @@
     <Compile Include="ITreeVertex.cs" />
     <Compile Include="IVertex.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StackQueue.cs" />
     <Compile Include="TreeAdjList.cs" />
     <Compile Include="TreeLinkedList.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -23,7 +23,7 @@ namespace Campy.GraphAlgorithms
 
         bool Terminate = false;
 
-        public void VisitNodes(Func<NAME, bool> func)
+        public void VisitNodes(Func<NAME, bool> func, bool backwards = false)
         {
             if (Source.Count() != 0)
             {

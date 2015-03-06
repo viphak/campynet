@@ -12,12 +12,14 @@ namespace Campy.GraphAlgorithms
 
         IGraph<T> graph;
         IEnumerable<T> Source;
+        bool _backwards;
         Dictionary<T, bool> Visited = new Dictionary<T, bool>();
 
-        public BreadthFirstTraversal(IGraph<T> g, IEnumerable<T> s)
+        public BreadthFirstTraversal(IGraph<T> g, IEnumerable<T> s, bool backwards = false)
         {
             graph = g;
             Source = s;
+            _backwards = backwards;
             foreach (T v in graph.Vertices)
                 Visited.Add(v, false);
         }
@@ -46,7 +48,8 @@ namespace Campy.GraphAlgorithms
                     T u = frontier.Peek();
                     frontier.Dequeue();
                     yield return u;
-                    foreach (T v in graph.Successors(u))
+                    IEnumerable<T> ordered_enumerator = _backwards ? graph.Predecessors(u) : graph.Successors(u);
+                    foreach (T v in ordered_enumerator)
                     {
                         if (!Visited[v])
                         {

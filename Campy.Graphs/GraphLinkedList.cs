@@ -169,11 +169,20 @@ namespace Campy.Graphs
             return edge;
         }
 
-        virtual public GraphLinkedList<NAME, NODE, EDGE>.Edge AddEdge(GraphLinkedList<NAME, NODE, EDGE>.Vertex f, GraphLinkedList<NAME, NODE, EDGE>.Vertex t)
+        virtual public GraphLinkedList<NAME, NODE, EDGE>.Edge AddEdge(GraphLinkedList<NAME, NODE, EDGE>.Vertex vf, GraphLinkedList<NAME, NODE, EDGE>.Vertex vt)
         {
+            // Graphs should not have duplicates!
+            if (!allow_duplicates)
+            {
+                foreach (Edge search in vf._Successors)
+                {
+                    if (search.to == vt)
+                        return search;
+                }
+            }
             EDGE edge = new EDGE();
-            edge.from = f;
-            edge.to = t;
+            edge.from = vf;
+            edge.to = vt;
             //Edge edge = new Edge((Vertex)f, (Vertex)t);
             edge.from._Successors.Add(edge);
             edge.to._Predecessors.Add(edge);
@@ -264,6 +273,70 @@ namespace Campy.Graphs
         public IEnumerable<NAME> ReversePredecessors(NAME n)
         {
             return new ReversePredecessorEnumerator(this, n);
+        }
+
+        class PredecessorNodesEnumerator : IEnumerable<NODE>
+        {
+            GraphLinkedList<NAME, NODE, EDGE> graph;
+            NODE _node;
+
+            public PredecessorNodesEnumerator(GraphLinkedList<NAME, NODE, EDGE> g, NODE n)
+            {
+                graph = g;
+                _node = n;
+            }
+
+            public IEnumerator<NODE> GetEnumerator()
+            {
+                int n = graph.NameSpace.BijectFromBasetype(_node.Name);
+                NODE node = graph.VertexSpace[n];
+                foreach (EDGE e in node._Predecessors)
+                {
+                    yield return (NODE)e.from;
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public IEnumerable<NODE> PredecessorNodes(NODE n)
+        {
+            return new PredecessorNodesEnumerator(this, n);
+        }
+
+        class SuccessorNodesEnumerator : IEnumerable<NODE>
+        {
+            GraphLinkedList<NAME, NODE, EDGE> graph;
+            NODE _node;
+
+            public SuccessorNodesEnumerator(GraphLinkedList<NAME, NODE, EDGE> g, NODE n)
+            {
+                graph = g;
+                _node = n;
+            }
+
+            public IEnumerator<NODE> GetEnumerator()
+            {
+                int n = graph.NameSpace.BijectFromBasetype(_node.Name);
+                NODE node = graph.VertexSpace[n];
+                foreach (EDGE e in node._Successors)
+                {
+                    yield return (NODE)e.to;
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public IEnumerable<NODE> SuccessorNodes(NODE n)
+        {
+            return new SuccessorNodesEnumerator(this, n);
         }
 
         class SuccessorEnumerator : IEnumerable<NAME>

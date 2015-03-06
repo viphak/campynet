@@ -55,6 +55,10 @@
       <Project>{d1d35561-eae2-461a-a006-478dc6082761}</Project>
       <Name>Campy.Graphs</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Campy.Utility\Campy.Utils.csproj">
+      <Project>{f7a47b23-bbce-4b4b-90b8-b310e776b4cc}</Project>
+      <Name>Campy.Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
