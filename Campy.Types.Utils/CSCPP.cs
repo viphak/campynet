@@ -23,7 +23,7 @@ namespace Campy.Types.Utils
             {
                 return "unsigned int";
             }
-            else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
+            else if (type.IsClass || Campy.Types.Utils.ReflectionCecilInterop.IsStruct(type))
             {
                 // Emit namespace declarations.
                 if (level == 0)
@@ -91,7 +91,7 @@ namespace Campy.Types.Utils
             {
                 return "unsigned int";
             }
-            else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
+            else if (type.IsClass || Campy.Types.Utils.ReflectionCecilInterop.IsStruct(type))
             {
                 // Emit namespace declarations.
                 if (level == 0)
@@ -160,7 +160,7 @@ namespace Campy.Types.Utils
             {
                 return "unsigned int";
             }
-            else if (type.IsClass || Campy.Types.Utils.Utility.IsStruct(type))
+            else if (type.IsClass || Campy.Types.Utils.ReflectionCecilInterop.IsStruct(type))
             {
                 // Complex type.
                 String result = "";

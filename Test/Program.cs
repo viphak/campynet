@@ -32,9 +32,16 @@ namespace Test
 
         static int factorial(int x)
         {
+            int result = 1;
+            if (x == 0)
+                return 1;
             if (x == 1)
                 return 1;
-            return x * factorial(x - 1);
+            for (int i = x; i > 0; --i)
+            {
+                result = result * i;
+            }
+            return result;
         }
 
         static void Main(string[] args)
@@ -52,9 +59,11 @@ namespace Test
             AMP.Parallel_For_Each(new Extent(size), (Index idx) =>
             {
                 int i = idx[0];
-                fg[i] = factorial(10);
+                fg[i] = factorial(i % 6);
             });
             fg.Synchronize();
+            for (int i = 0; i < 30; ++i)
+                System.Console.WriteLine(f[i]);
         }
     }
 }

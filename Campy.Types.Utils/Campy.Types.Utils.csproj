@@ -30,6 +30,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Mono.Cecil">
+      <HintPath>..\ILSpy-master\ILSpy-master\ILSpy\bin\Debug\Mono.Cecil.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -42,6 +45,7 @@
     <Compile Include="CSCPP.cs" />
     <Compile Include="NativeArrayGenerator.cs" />
     <Compile Include="NativeArrayViewGenerator.cs" />
+    <Compile Include="ReflectionCecilInterop.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

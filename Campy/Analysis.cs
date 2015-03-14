@@ -12,10 +12,19 @@ using Campy.Graphs;
 
 namespace Campy
 {
+    /// <summary>
+    /// C++ AMP cannot represent pointers, but can represent a structure containing nested
+    /// C++ structs. "Structure" is an intermediate representation in the form of a tree
+    /// which the GPU uses. However, C++ AMP does not allow any value in the struct to be
+    /// altered.
+    /// </summary>
     class Structure
     {
         // A class instance in the call chain.
         public object _class_instance;
+
+        // The main method, if any.
+        public MethodInfo _main_method;
 
         // A list of fields in the class instance.
         List<FieldInfo> _simple_fields = new List<FieldInfo>();
@@ -34,7 +43,7 @@ namespace Campy
         public List<String> rewrite_names = new List<string>();
         public List<FieldInfo> simple_fields { get { return _simple_fields; } }
 
-        public Structure(Structure parent, object target)
+        private Structure(Structure parent, object target)
         {
             parent._nested_structures.Add(this);
             this._class_instance = target;
@@ -76,22 +85,30 @@ namespace Campy
             }
         }
 
-        public Structure(GraphAdjList<object> list_of_targets)
+        public Structure()
+        {
+        }
+
+        // Create an intermediate representation of data_graph and control_flow_grpah
+        // that contains the nodes in the graphs as Structures, and edges between
+        // nodes represented by nesting of Structures. This representation is
+        // needed for translation to C++ AMP.
+        public void Initialize(GraphAdjList<object> data_graph, CFG control_flow_graph)
         {
             List<Tuple<object, String>> target_field_name_map = new List<Tuple<object, string>>();
-            object del = list_of_targets.Vertices.First();
+
+            object del = data_graph.Vertices.First();
+            System.Delegate start_delegate = del as System.Delegate;
+            this._class_instance = start_delegate.Target;
+            this._main_method = start_delegate.Method;
+
             int last_depth = 1;
             String last_prefix = "";
 
             this.Name = "s" + last_depth;
             this.FullName = last_prefix + this.Name;
             this.level = last_depth;
-            System.Delegate start = del as System.Delegate;
-            this._class_instance = start.Target;
 
-            // Create a type which is a nested struct that mirrors the graph.
-            // It isn't necessary, but just helps reinforces the runtime model
-            // on the unmanaged side.
             List<object> targets = new List<object>();
             StackQueue<String> stack_of_prefix = new StackQueue<string>();
             StackQueue<object> stack_of_nodes = new StackQueue<object>();
@@ -132,7 +149,7 @@ namespace Campy
 
                 object target = current_node;
 //                result += "// Target " + Utility.GetFriendlyTypeName(target.GetType()) + eol;
-                foreach (object next in list_of_targets.Successors(current_node))
+                foreach (object next in data_graph.Successors(current_node))
                 {
                     stack_of_nodes.Push(next);
                     depth.Add(next, current_depth + 1);
@@ -210,7 +227,7 @@ namespace Campy
                 }
             }
 
-            foreach (object node in list_of_targets.Vertices)
+            foreach (object node in data_graph.Vertices)
             {
                 Structure current_structure = null;
                 map_target_to_structure.TryGetValue(node, out current_structure);
@@ -223,6 +240,39 @@ namespace Campy
                     }
                 }
             }
+
+            // Add methods from control flow graph.
+            foreach (CFG.CFGVertex node in control_flow_graph.VertexNodes)
+            {
+                if (node.IsEntry)
+                {
+                    // Scan structure and see if the instance contains the method.
+                    foreach (KeyValuePair<object, Structure> pair in map_target_to_structure)
+                    {
+                        object o = pair.Key;
+                        Structure s = pair.Value;
+                        Type t = o.GetType();
+                        Mono.Cecil.TypeDefinition td = node.Method.DeclaringType;
+                        Type tdt = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionType(td);
+                        if (tdt == t)
+                        {
+                            // Add method to structure if this method isn't the top level method.
+                            MethodInfo mi = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(node.Method);
+                            if (mi != _main_method)
+                            {
+                                s.AddMethod(mi, mi.Name);
+                            }
+                            // Get calls.
+                            foreach (CFG.CFGVertex c in control_flow_graph.AllInterproceduralCalls(node))
+                            {
+                                MethodInfo mic = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(c.Method);
+                                s.AddMethod(mic, mic.Name);
+                            }
+                        }
+                    }
+                }
+            }
+
         }
         
         public void AddField(FieldInfo field)
@@ -235,40 +285,57 @@ namespace Campy
             Tuple<String, MethodInfo> p = new Tuple<String, MethodInfo>(true_name, method);
             _methods.Add(p);
         }
+
+        public void Dump()
+        {
+            StackQueue<Structure> stack = new StackQueue<Structure>();
+            stack.Push(this);
+            while (stack.Count > 0)
+            {
+                Structure structure = stack.Pop();
+                System.Console.WriteLine("Struct");
+                System.Console.WriteLine("Name " + structure.Name);
+                System.Console.WriteLine("Fullname " + structure.FullName);
+                System.Console.WriteLine("Rewrite Names " + rewrite_names);
+                System.Console.WriteLine("level " + structure.level);
+                System.Console.WriteLine("instance of " + structure._class_instance);
+                System.Console.WriteLine("Fields:");
+                foreach (FieldInfo fi in structure._simple_fields)
+                {
+                    System.Console.WriteLine(fi);
+                }
+                foreach (Tuple<String, MethodInfo> pair in structure._methods)
+                {
+                    System.Console.WriteLine(pair.Item1 + " " + pair.Item2);
+                }
+                foreach (Structure child in structure._nested_structures)
+                {
+                    stack.Push(child);
+                }
+            }
+        }
     }
 
     class Analysis
     {
         public static Structure FindAllTargets(object obj)
         {
-            // To do this properly, a complete control flow graph with constant
-            // propagation would have to be contructed. With that information,
-            // we could determine with reasonable certainty what targets would
-            // require translation to C++ AMP. We already use ILSpy for the
-            // representation of the program, or we could go back to System.Reflection.
-            //
-            // For now, perform a transitive closure of the fields of the delegate.
-            // This does a pretty reason job. C++ AMP adds a constraint in that
-            // it cannot access data outside of auto variables (variables declared
-            // in the lexically enclosing block). As a result, the call to the
-            // delegate must be inlined to the top level delegate.
-            
-            CFG cfg = new CFG();
+            // Construct control flow graph from the method of the delegate.
+            CFG control_flow_graph = CFG.Singleton();
             Delegate dddd = (Delegate)obj;
-            cfg.AddAssembly(dddd.Method.Module.Assembly);
-            CFA cfa = new CFA(cfg);
-            cfa.AnalyzeCFG();
+            control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(dddd.Method));
+            control_flow_graph.ExtractBasicBlocks();
 
+            // Construct graph containing delegates used in program.
             StackQueue<object> stack = new StackQueue<object>();
             stack.Push(obj);
-            // Build a graph of the closure of obj across all fields.
-            Campy.Graphs.GraphLinkedList<object> graph = new GraphLinkedList<object>();
+            Campy.Graphs.GraphLinkedList<object> preliminary_data_graph = new GraphLinkedList<object>();
             while (stack.Count > 0)
             {
                 object node = stack.Pop();
-                if (graph.Vertices.Contains(node))
+                if (preliminary_data_graph.Vertices.Contains(node))
                     continue;
-                graph.AddVertex(node);
+                preliminary_data_graph.AddVertex(node);
 
                 // Case 1: object is multicast delegate.
                 System.MulticastDelegate md = node as System.MulticastDelegate;
@@ -290,50 +357,11 @@ namespace Campy
                         // If target is null, then the delegate is a function that
                         // uses either static data, or does not require any additional
                         // data.
-
                     }
                     else
                     {
                         stack.Push(target);
                     }
-                    // Examine code for control flow graph.
-                    MethodInfo del_method_info = del.Method;
-                    Mono.Cecil.MethodDefinition del_method_definition = Converter.ConvertToMonoCecilType(del_method_info);
-                    Mono.Cecil.Cil.MethodBody del_method_definition_body = del_method_definition.Body;
-                    Mono.Collections.Generic.Collection<Mono.Cecil.Cil.Instruction> instructions = del_method_definition_body.Instructions;
-                    foreach (Mono.Cecil.Cil.Instruction i in instructions)
-                    {
-                        Mono.Cecil.Cil.OpCode op = i.OpCode;
-                        Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
-                        if (fc == Mono.Cecil.Cil.FlowControl.Call)
-                        {
-                        }
-                    }
-                }
-                else if (TypesUtility.IsCampyArrayViewType(node.GetType())
-                    || TypesUtility.IsCampyArrayType(node.GetType()))
-                {
-                    // recurse into type of array object.
-                    Type t = node.GetType();
-                    Type[] args = t.GenericTypeArguments;
-                    if (args[0].IsValueType)
-                        continue;
-                    // get first element of array. Let this define
-                    // array view element.
-                    // Find _data field of Array_View.
-                    BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
-                         BindingFlags.Static | BindingFlags.Instance |
-                         BindingFlags.DeclaredOnly;
-                    FieldInfo[] sfi = t.GetFields(flags);
-                    FieldInfo sn = sfi.Where(f => "_data" == f.Name).FirstOrDefault();
-                    if (sn == null)
-                        throw new ArgumentException("Field not found.");
-                    object obj_array = sn.GetValue(node);
-                    if (obj_array == null)
-                        throw new ArgumentException("Value not found.");
-                    Array array = obj_array as Array;
-                    object element = array.GetValue(0);
-                    stack.Push(element);
                 }
                 else
                 {
@@ -347,34 +375,21 @@ namespace Campy
                         var value = field.GetValue(node);
                         if (value != null)
                         {
-                            // Chase down the field.
                             if (field.FieldType.IsValueType)
                                 continue;
-                            if (TypesUtility.IsCampyArrayViewType(field.FieldType))
-                            {
-                                // chase type.
-                                stack.Push(value);
-                                continue;
-                            }
                             if (TypesUtility.IsCampyArrayType(field.FieldType))
-                            {
-                                // chase type.
-                                stack.Push(value);
                                 continue;
-                            }
-                            if (!TypesUtility.IsSimpleCampyType(field.FieldType))
-                            {
-                                // chase type.
-                                stack.Push(value);
+                            if (TypesUtility.IsSimpleCampyType(field.FieldType))
                                 continue;
-                            }
+                            // chase pointer type.
+                            stack.Push(value);
                         }
                     }
                 }
             }
 
             if (true)
-            foreach (object node in graph.Vertices)
+            foreach (object node in preliminary_data_graph.Vertices)
             {
                 System.Console.WriteLine("Node "
                     + node.GetHashCode()
@@ -386,7 +401,7 @@ namespace Campy
                 System.Console.WriteLine();
             }
 
-            foreach (object node in graph.Vertices)
+            foreach (object node in preliminary_data_graph.Vertices)
             {
                 object target = node;
 
@@ -402,7 +417,7 @@ namespace Campy
                             //    + node.GetHashCode() + " " + node.ToString());
                             //System.Console.WriteLine("-> "
                             //        + node2.GetHashCode() + " " + node2.ToString());
-                            graph.AddEdge(target, node2);
+                            preliminary_data_graph.AddEdge(target, node2);
                         }
                     }
                 }
@@ -421,16 +436,8 @@ namespace Campy
                     else
                     {
                         target = check;
-                        graph.AddEdge(node, target);
+                        preliminary_data_graph.AddEdge(node, target);
                     }
-                }
-                else if (TypesUtility.IsCampyArrayViewType(node.GetType()))
-                {
-                    graph.AddEdge(node, target);
-                }
-                else if (TypesUtility.IsCampyArrayType(node.GetType()))
-                {
-                    graph.AddEdge(node, target);
                 }
                 else
                 {
@@ -442,14 +449,14 @@ namespace Campy
                     foreach (var field in target_type_fieldinfo)
                     {
                         var value = field.GetValue(target);
-                        if (value != null && graph.Vertices.Contains(value))
+                        if (value != null && preliminary_data_graph.Vertices.Contains(value))
                         {
                             //System.Console.WriteLine("Node "
                             //    + node.GetHashCode() + " " + node.ToString());
                             //System.Console.WriteLine("-> "
                             //        + value.GetHashCode() + " " + value.ToString());
                             // Chase down the field.
-                            graph.AddEdge(target, value);
+                            preliminary_data_graph.AddEdge(target, value);
                         }
                     }
                 }
@@ -458,40 +465,42 @@ namespace Campy
             if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
-                foreach (object node in graph.Vertices)
+                foreach (object node in preliminary_data_graph.Vertices)
                 {
                     System.Console.WriteLine("Node "
                         + node.GetHashCode()
                         + " "
                         + node.ToString());
-                    foreach (object succ in graph.Successors(node))
+                    foreach (object succ in preliminary_data_graph.Successors(node))
                         System.Console.WriteLine("-> "
                             + succ.GetHashCode() + " " + succ.ToString());
                 }
                 System.Console.WriteLine();
             }
-            // Perform final depth first traversal of objects and create new graph with those objects in chain of delegates.
+
+            // Perform final depth first traversal of grpah, computing
+            // new graph with those objects in chain of delegates.
             List<object> delegates = new List<object>();
             List<object> subset = new List<object>();
-            foreach (object node in graph.Vertices)
+            foreach (object node in preliminary_data_graph.Vertices)
                // if (chained_to_delegate.Contains(node))
                     subset.Add(node);
 
-            GraphAdjList<object> closure_graph = new GraphAdjList<object>();
-            closure_graph.SetNameSpace(subset);
+            GraphAdjList<object> data_graph = new GraphAdjList<object>();
+            data_graph.SetNameSpace(subset);
             foreach (object node in subset)
-                closure_graph.AddVertex(node);
-            Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object> dfpt = new Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object>(graph, new object[] { obj });
+                data_graph.AddVertex(node);
+            Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object> dfpt = new Campy.GraphAlgorithms.DepthFirstPreorderTraversal<object>(preliminary_data_graph, new object[] { obj });
             foreach (object node in dfpt)
             {
                 if (subset.Contains(node))
                 {
-                    IEnumerable<object> list = graph.Predecessors(node);
+                    IEnumerable<object> list = preliminary_data_graph.Predecessors(node);
                     if (list.Count() > 0)
                     {
                         // Assume graph is actually a tree.
                         object pred = list.First();
-                        closure_graph.AddEdge(pred, node);
+                        data_graph.AddEdge(pred, node);
                     }
                 }
             }
@@ -499,20 +508,22 @@ namespace Campy
             if (true)
             {
                 System.Console.WriteLine("Full graph of lambda closure.");
-                foreach (object node in closure_graph.Vertices)
+                foreach (object node in data_graph.Vertices)
                 {
                     System.Console.WriteLine("Node "
                         + node.GetHashCode()
                         + " "
                         + node.ToString());
-                    foreach (object succ in closure_graph.Successors(node))
+                    foreach (object succ in data_graph.Successors(node))
                         System.Console.WriteLine("-> "
                             + succ.GetHashCode() + " " + succ.ToString());
                 }
                 System.Console.WriteLine();
             }
 
-            Structure res = new Structure(closure_graph);
+            Structure res = new Structure();
+            res.Initialize(data_graph, control_flow_graph);
+            res.Dump();
 
             return res;
         }

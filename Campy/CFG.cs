@@ -14,98 +14,213 @@ namespace Campy
 
     public class CFG : GraphLinkedList<object, CFG.CFGVertex, CFG.CFGEdge>
     {
-        List<Assembly> _assemblies;
         static int _node_number = 1;
+        List<Mono.Cecil.ModuleDefinition> _modules = new List<ModuleDefinition>();
+        StackQueue<Mono.Cecil.MethodDefinition> _to_do = new StackQueue<Mono.Cecil.MethodDefinition>();
+        List<Mono.Cecil.MethodDefinition> _done = new List<MethodDefinition>();
+        CFA _cfa;
 
         public CFG()
             : base()
         {
-            _assemblies = new List<Assembly>();
+            _cfa = new CFA(this);
         }
 
-        // Add assembly to graph.
-        public void AddAssembly(Assembly assembly)
+        static CFG _singleton = null;
+
+        public static CFG Singleton()
         {
-            _assemblies.Add(assembly);
-            ExtractBasicBlocks(assembly);
+            if (_singleton == null)
+                _singleton = new CFG();
+            return _singleton;
         }
 
-        private void ExtractBasicBlocks(Assembly assembly)
+        public void FindNewBlocks()
         {
-            // Get assembly name which encloses code for kernel.
-            String kernel_assembly_file_name = assembly.Location;
+            foreach (CFG.CFGVertex node in this.VertexNodes)
+            {
+                foreach (Inst i in node.Instructions)
+                {
+                    Mono.Cecil.Cil.OpCode op = i.OpCode;
+                    Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
+                    if (!(fc == Mono.Cecil.Cil.FlowControl.Call))
+                        continue;
+                    object operand = i.Operand;
+                    Mono.Cecil.MethodReference call_to = operand as Mono.Cecil.MethodReference;
+                    // Search for _Kernel_type.
+                    if (call_to.FullName.Equals("System.Void Campy.AMP/_Kernel_type::.ctor(System.Object,System.IntPtr)"))
+                    {
+                        Add(call_to);
+                    }
+                    // Check if Campy based API call.
+                    if (call_to.FullName.Contains(" Campy."))
+                        continue;
 
-            // Use Mono.Cecil to get all instructions, functions, entry points, etc.
-            // First, decompile entire module.
-            ModuleDefinition md = ModuleDefinition.ReadModule(kernel_assembly_file_name);
+                    Add(call_to);
+                }
+            }
+        }
 
-            // Examine all types, then all methods of types in order to find all blocks.
-            List<Type> types = new List<Type>();
-            StackQueue<TypeDefinition> type_definitions = new StackQueue<TypeDefinition>();
-            StackQueue<TypeDefinition> type_definitions_closure = new StackQueue<TypeDefinition>();
-            foreach (TypeDefinition td in md.Types)
+        public void HeuristicAdd(Mono.Cecil.ModuleDefinition module)
+        {
+            // Search module for PFEs and add enclosing method.
+            // Find all pfe's in graph.
+            foreach (Mono.Cecil.MethodDefinition method in Campy.Types.Utils.ReflectionCecilInterop.GetMethods(module))
+            {
+                if (method.Body == null)
+                    return;
+                foreach (Mono.Cecil.Cil.Instruction i in method.Body.Instructions)
+                {
+                    Mono.Cecil.Cil.OpCode op = i.OpCode;
+                    Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
+                    object operand = i.Operand;
+                    Mono.Cecil.MethodReference call_to = operand as Mono.Cecil.MethodReference;
+                    if (fc == Mono.Cecil.Cil.FlowControl.Call && call_to.Name.Equals("Parallel_For_Each"))
+                    {
+                        Add(method);
+                    }
+                }
+            }
+        }
+
+        // Basic API for adding classes and methods to a control flow graph for
+        // analysis.
+
+        public void Add(Type type)
+        {
+            // Add all methods of type.
+            foreach (System.Reflection.MethodInfo definition in type.GetMethods())
+                Add(definition);
+        }
+
+        public void Add(Mono.Cecil.TypeReference type)
+        {
+            // Add all methods of type.
+            Mono.Cecil.TypeDefinition type_defintion = type.Resolve();
+            foreach (Mono.Cecil.MethodDefinition definition in type_defintion.Methods)
+                Add(definition);
+        }
+
+        public void Add(System.Reflection.MethodInfo reference)
+        {
+            Mono.Cecil.MethodDefinition definition = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(reference);
+            if (_done.Contains(definition))
+                return;
+            System.Console.WriteLine("Adding method " + definition);
+            _to_do.Push(definition);
+        }
+
+        public void Add(Mono.Cecil.MethodReference reference)
+        {
+            Add(reference.Resolve());
+        }
+
+        public void Add(Mono.Cecil.MethodDefinition definition)
+        {
+            if (_done.Contains(definition))
+                return;
+            System.Console.WriteLine("Adding method " + definition);
+            _to_do.Push(definition);
+        }
+
+        // Add all methods of assembly to graph.
+        public void AddAssembly(String assembly_file_name)
+        {
+            String full_name = System.IO.Path.GetFullPath(assembly_file_name);
+            foreach (Mono.Cecil.ModuleDefinition md in this._modules)
+                if (md.FullyQualifiedName.Equals(full_name))
+                    return;
+            Mono.Cecil.ModuleDefinition module = ModuleDefinition.ReadModule(assembly_file_name);
+            _modules.Add(module);
+            StackQueue<Mono.Cecil.TypeDefinition> type_definitions = new StackQueue<Mono.Cecil.TypeDefinition>();
+            StackQueue<Mono.Cecil.TypeDefinition> type_definitions_closure = new StackQueue<Mono.Cecil.TypeDefinition>();
+            foreach (Mono.Cecil.TypeDefinition td in module.Types)
             {
                 type_definitions.Push(td);
             }
             while (type_definitions.Count > 0)
             {
-                TypeDefinition ty = type_definitions.Pop();
+                Mono.Cecil.TypeDefinition ty = type_definitions.Pop();
                 type_definitions_closure.Push(ty);
-                foreach (TypeDefinition ntd in ty.NestedTypes)
+                foreach (Mono.Cecil.TypeDefinition ntd in ty.NestedTypes)
                     type_definitions.Push(ntd);
             }
-            foreach (TypeDefinition td in type_definitions_closure)
-            {
-                foreach (MethodDefinition md2 in td.Methods)
-                {
-                    int count = md2.Body.Instructions.Count;
-                    StackQueue<Mono.Cecil.Cil.Instruction> leader_list = new StackQueue<Mono.Cecil.Cil.Instruction>();
+            foreach (Mono.Cecil.TypeDefinition td in type_definitions_closure)
+                foreach (Mono.Cecil.MethodDefinition definition in td.Methods)
+                    Add(definition);
+        }
 
-                    // Each method is a leader of a block.
-                    CFGVertex v = (CFGVertex)this.AddVertex(_node_number++);
-                    v.Method = md2;
-                    v.HasReturn = md2.IsReuseSlot;
-                    v._entry = v;
-                    v._ordered_list_of_blocks = new List<CFGVertex>();
-                    v._ordered_list_of_blocks.Add(v);
-                    for (int j = 0; j < count; ++j)
-                    {
-                        // accumulate jump to locations since these split blocks.
-                        Mono.Cecil.Cil.Instruction mi = md2.Body.Instructions[j];
-                        Inst i = Inst.Wrap(mi);
-                        Mono.Cecil.Cil.OpCode op = i.OpCode;
-                        Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
-                        v._instructions.Add(i);
-                        if (fc == Mono.Cecil.Cil.FlowControl.Next)
-                            continue;
-                        if (fc == Mono.Cecil.Cil.FlowControl.Branch)
-                        {
-                            // Save leader target of branch.
-                            object o = i.Operand;
-                            leader_list.Push(o as Mono.Cecil.Cil.Instruction);
-                        }
-                    }
-                    StackQueue<int> ordered_leader_list = new StackQueue<int>();
-                    for (int j = 0; j < count; ++j)
-                    {
-                        // Order jump targets. These denote locations
-                        // where to split blocks. However, it's ordered,
-                        // so that splitting is done from last instruction in block
-                        // to first instruction in block.
-                        Mono.Cecil.Cil.Instruction i = md2.Body.Instructions[j];
-                        if (leader_list.Contains(i))
-                            ordered_leader_list.Push(j);
-                    }
-                    // Split block at jump targets in reverse.
-                    while (ordered_leader_list.Count > 0)
-                    {
-                        int i = ordered_leader_list.Pop();
-                        CFG.CFGVertex new_node = v.Split(i);
-                    }
+        public void AddAssembly(Assembly assembly)
+        {
+            String assembly_file_name = assembly.Location;
+            AddAssembly(assembly_file_name);
+        }
+
+        public void ExtractBasicBlocks()
+        {
+            while (_to_do.Count > 0)
+            {
+                while (_to_do.Count > 0)
+                {
+                    Mono.Cecil.MethodDefinition definition = _to_do.Pop();
+                    ProcessMethod(definition);
+                }
+                _cfa.AnalyzeCFG();
+                FindNewBlocks();
+            }
+        }
+
+        private void ProcessMethod(MethodDefinition definition)
+        {
+            _done.Add(definition);
+            if (definition.Body == null)
+                return;
+            int instruction_count = definition.Body.Instructions.Count;
+            StackQueue<Mono.Cecil.Cil.Instruction> leader_list = new StackQueue<Mono.Cecil.Cil.Instruction>();
+
+            // Each method is a leader of a block.
+            CFGVertex v = (CFGVertex)this.AddVertex(_node_number++);
+            v.Method = definition;
+            v.HasReturn = definition.IsReuseSlot;
+            v._entry = v;
+            v._ordered_list_of_blocks = new List<CFGVertex>();
+            v._ordered_list_of_blocks.Add(v);
+            for (int j = 0; j < instruction_count; ++j)
+            {
+                // accumulate jump to locations since these split blocks.
+                Mono.Cecil.Cil.Instruction mi = definition.Body.Instructions[j];
+                Inst i = Inst.Wrap(mi);
+                Mono.Cecil.Cil.OpCode op = i.OpCode;
+                Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
+                v._instructions.Add(i);
+                if (fc == Mono.Cecil.Cil.FlowControl.Next)
+                    continue;
+                if (fc == Mono.Cecil.Cil.FlowControl.Branch)
+                {
+                    // Save leader target of branch.
+                    object o = i.Operand;
+                    leader_list.Push(o as Mono.Cecil.Cil.Instruction);
                 }
             }
+            StackQueue<int> ordered_leader_list = new StackQueue<int>();
+            for (int j = 0; j < instruction_count; ++j)
+            {
+                // Order jump targets. These denote locations
+                // where to split blocks. However, it's ordered,
+                // so that splitting is done from last instruction in block
+                // to first instruction in block.
+                Mono.Cecil.Cil.Instruction i = definition.Body.Instructions[j];
+                if (leader_list.Contains(i))
+                    ordered_leader_list.Push(j);
+            }
+            // Split block at jump targets in reverse.
+            while (ordered_leader_list.Count > 0)
+            {
+                int i = ordered_leader_list.Pop();
+                CFG.CFGVertex new_node = v.Split(i);
+            }
 
-            this.Dump();
+           // this.Dump();
 
             StackQueue<CFG.CFGVertex> stack = new StackQueue<CFG.CFGVertex>();
             foreach (CFG.CFGVertex node in this.VertexNodes) stack.Push(node);
@@ -114,15 +229,15 @@ namespace Campy
                 // Split blocks at branches, including calls, with following
                 // instruction a leader of new block.
                 CFG.CFGVertex node = stack.Pop();
-                int count = node._instructions.Count;
-                for (int j = 0; j < count; ++j)
+                int node_instruction_count = node._instructions.Count;
+                for (int j = 0; j < node_instruction_count; ++j)
                 {
                     Inst i = node._instructions[j];
                     Mono.Cecil.Cil.OpCode op = i.OpCode;
                     Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
                     if (fc == Mono.Cecil.Cil.FlowControl.Next)
                         continue;
-                    if (j + 1 >= count)
+                    if (j + 1 >= node_instruction_count)
                         continue;
                     CFG.CFGVertex new_node = node.Split(j + 1);
                     stack.Push(new_node);
@@ -130,15 +245,15 @@ namespace Campy
                 }
             }
 
-            this.Dump();
+         //   this.Dump();
             stack = new StackQueue<CFG.CFGVertex>();
             foreach (CFG.CFGVertex node in this.VertexNodes) stack.Push(node);
             while (stack.Count > 0)
             {
                 // Add in all final non-fallthrough branch edges.
                 CFG.CFGVertex node = stack.Pop();
-                int count = node._instructions.Count;
-                Inst i = node._instructions[count - 1];
+                int node_instruction_count = node._instructions.Count;
+                Inst i = node._instructions[node_instruction_count - 1];
                 Mono.Cecil.Cil.OpCode op = i.OpCode;
                 Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
                 switch (fc)
@@ -154,7 +269,7 @@ namespace Campy
                                         return false;
                                     return true;
                                 });
-                            System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
+                            //System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
                             this.AddEdge(node, target_node);
                             break;
                         }
@@ -166,6 +281,7 @@ namespace Campy
                             if (o as Mono.Cecil.MethodReference != null)
                             {
                                 Mono.Cecil.MethodReference r = o as Mono.Cecil.MethodReference;
+                                Mono.Cecil.MethodDefinition d = r.Resolve();
                                 IEnumerable<CFGVertex> target_node_list = this.VertexNodes.Where(
                                     (CFGVertex x) =>
                                     {
@@ -173,7 +289,7 @@ namespace Campy
                                             && x._entry == x;
                                     });
                                 int c = target_node_list.Count();
-                                if (c == 1)
+                                if (c >= 1)
                                 {
                                     // target_node is the entry for a method. Also get the exit.
                                     CFGVertex target_node = target_node_list.First();
@@ -211,33 +327,7 @@ namespace Campy
                 }
             }
 
-            this.Dump();
-        }
-
-        bool IsConditional(Mono.Cecil.Cil.Instruction i)
-        {
-            switch (i.OpCode.FlowControl)
-            {
-                case Mono.Cecil.Cil.FlowControl.Branch:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Break:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Call:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Cond_Branch:
-                    return true;
-                case Mono.Cecil.Cil.FlowControl.Meta:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Next:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Phi:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Return:
-                    return false;
-                case Mono.Cecil.Cil.FlowControl.Throw:
-                    return false;
-            }
-            return false;
+     //       this.Dump();
         }
 
         public class CFGVertex
@@ -582,6 +672,42 @@ namespace Campy
                 }
             }
         }
+
+        class CallEnumerator : IEnumerable<CFG.CFGVertex>
+        {
+            CFG.CFGVertex _node;
+
+            public CallEnumerator(CFG.CFGVertex node)
+            {
+                _node = node;
+            }
+
+            public IEnumerator<CFG.CFGVertex> GetEnumerator()
+            {
+                StackQueue<CFG.CFGVertex> stack = new StackQueue<CFG.CFGVertex>();
+                stack.Push(_node);
+                while (stack.Count > 0)
+                {
+                    CFG.CFGVertex current = stack.Pop();
+                    if (current.IsEntry && current != _node)
+                        yield return current;
+                    if (current.Method == _node.Method)
+                        foreach (CFG.CFGVertex child in current._Graph.SuccessorNodes(current))
+                            stack.Push(child);
+                }
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        public IEnumerable<CFG.CFGVertex> AllInterproceduralCalls(CFG.CFGVertex node)
+        {
+            return new CallEnumerator(node);
+        }
+
     }
 
 }

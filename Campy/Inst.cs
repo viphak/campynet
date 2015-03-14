@@ -236,6 +236,10 @@ namespace Campy
                     return new i_conv_u1(i);
                 case Mono.Cecil.Cil.Code.Conv_U2:
                     return new i_conv_u2(i);
+                case Mono.Cecil.Cil.Code.Conv_U4:
+                    return new i_conv_u4(i);
+                case Mono.Cecil.Cil.Code.Conv_U8:
+                    return new i_conv_u8(i);
                 case Mono.Cecil.Cil.Code.Conv_U:
                     return new i_conv_u(i);
                 case Mono.Cecil.Cil.Code.Cpblk:
@@ -378,6 +382,8 @@ namespace Campy
                     return new i_ldloca(i);
                 case Mono.Cecil.Cil.Code.Ldloca_S:
                     return new i_ldloca_s(i);
+                case Mono.Cecil.Cil.Code.Ldnull:
+                    return new i_ldnull(i);
                 case Mono.Cecil.Cil.Code.Ldobj:
                     return new i_ldobj(i);
                 case Mono.Cecil.Cil.Code.Ldsfld:
@@ -1593,6 +1599,30 @@ namespace Campy
     class i_conv_u2 : Inst
     {
         public i_conv_u2(Mono.Cecil.Cil.Instruction i)
+            : base(i)
+        {
+        }
+
+        public override void Execute(ref State state)
+        {
+        }
+    }
+
+    class i_conv_u4 : Inst
+    {
+        public i_conv_u4(Mono.Cecil.Cil.Instruction i)
+            : base(i)
+        {
+        }
+
+        public override void Execute(ref State state)
+        {
+        }
+    }
+
+    class i_conv_u8 : Inst
+    {
+        public i_conv_u8(Mono.Cecil.Cil.Instruction i)
             : base(i)
         {
         }
@@ -3135,7 +3165,7 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
-            ValueBase v = null;
+            ValueBase v = ValueBase.Bottom;
             state._stack.Push(v);
         }
 
@@ -3422,35 +3452,42 @@ namespace Campy
             int ret = 0;
             bool have_delegate = false;
             object method = this.Operand;
+            Type t = null;
+
             if (method as Mono.Cecil.MethodReference != null)
             {
                 Mono.Cecil.MethodReference mr = method as Mono.Cecil.MethodReference;
-                // Magic here. For System.Void Campy.AMP/_Kernel_type::.ctor(System.Object,System.IntPtr),
-                // create an kernel object, stuff the pointers, and return that.
-                if (mr.FullName.Equals("System.Void Campy.AMP/_Kernel_type::.ctor(System.Object,System.IntPtr)"))
-                {
-                    have_delegate = true;
-                }
+
+                // Get owning class.
+                Mono.Cecil.TypeReference tr = (Mono.Cecil.TypeReference)mr.DeclaringType;
+
+                // Count args and return.
+                have_delegate = true;
                 args += mr.Parameters.Count;
                 if (mr.MethodReturnType != null)
                 {
                     Mono.Cecil.MethodReturnType rt = mr.MethodReturnType;
-                    Mono.Cecil.TypeReference tr = rt.ReturnType;
-                    if (!tr.FullName.Equals("System.Void"))
+                    Mono.Cecil.TypeReference trr = rt.ReturnType;
+                    if (!trr.FullName.Equals("System.Void"))
                         ret++;
                 }
                 ret++;
-            }
 
-            if (have_delegate)
-            {
-                object p1 = state._stack.Pop();
-                object p2 = state._stack.Pop();
-                RValue<Mono.Cecil.MethodReference> p3 = (RValue<Mono.Cecil.MethodReference>)p1;
-                Tuple<object, RValue<Mono.Cecil.MethodReference>> de =
-                    new Tuple<object, RValue<Mono.Cecil.MethodReference>>(
-                        p2, p3);
-                state._stack.Push(new RValue<Tuple<object, RValue<Mono.Cecil.MethodReference>>>(de));
+                for (int i = 0; i < args; ++i)
+                    state._stack.Pop();
+
+                // Create it.
+                t = Campy.Types.Utils.Utility.CreateBlittableTypeMono(tr, false);
+
+                if (t != null)
+                {
+                    object obj = Activator.CreateInstance(t);
+                    state._stack.Push(new RValue<object>(obj));
+                }
+                else
+                {
+                    state._stack.Push(ValueBase.Bottom);
+                }
             }
             else
             {

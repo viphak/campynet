@@ -26,67 +26,7 @@ namespace Campy
         Dictionary<System.Object, bool> compiled_targets = new Dictionary<object, bool>();
         Dictionary<String, MulticastDelegate> multicastdelegates = new Dictionary<string, MulticastDelegate>();
 
-        public static Mono.Cecil.ModuleDefinition GetMonoCecilModuleDefinition(System.Delegate del)
-        {
-            SR.MethodInfo mi = del.Method;
 
-            // Get assembly name which encloses code for kernel.
-            String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
-
-            // Decompile entire module.
-            ModuleDefinition md = ModuleDefinition.ReadModule(kernel_assembly_file_name);
-            return md;
-        }
-
-        public static Mono.Cecil.MethodDefinition ConvertToMonoCecilType(System.Reflection.MethodInfo mi)
-        {
-            // Get assembly name which encloses code for kernel.
-            String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
-
-            // Get directory containing the assembly.
-            String full_path = Path.GetFullPath(kernel_assembly_file_name);
-            full_path = Path.GetDirectoryName(full_path);
-
-            String x1 = mi.Name;
-            String x2 = mi.ReflectedType.Name;
-            String x3 = mi.ReflectedType.FullName;
-            String x4 = Campy.Utils.Utility.GetFriendlyTypeName(mi.ReflectedType);
-
-            // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            kernel_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(kernel_full_name);
-
-            // Decompile entire module.
-            ModuleDefinition md = ModuleDefinition.ReadModule(kernel_assembly_file_name);
-
-            // Examine all types, and all methods of types in order to find the lambda in Mono.Cecil.
-            List<Type> types = new List<Type>();
-            StackQueue<TypeDefinition> type_definitions = new StackQueue<TypeDefinition>();
-            StackQueue<TypeDefinition> type_definitions_closure = new StackQueue<TypeDefinition>();
-            foreach (TypeDefinition td in md.Types)
-            {
-                type_definitions.Push(td);
-            }
-            while (type_definitions.Count > 0)
-            {
-                TypeDefinition ty = type_definitions.Pop();
-                type_definitions_closure.Push(ty);
-                foreach (TypeDefinition ntd in ty.NestedTypes)
-                    type_definitions.Push(ntd);
-            }
-            Mono.Cecil.MethodDefinition lambda_method = null;
-            foreach (TypeDefinition td in type_definitions_closure)
-            {
-                foreach (MethodDefinition md2 in td.Methods)
-                {
-                    String md2_name = Campy.Utils.Utility.NormalizeMonoCecilName(md2.FullName);
-                    if (md2_name.Contains(kernel_full_name))
-                        lambda_method = md2;
-                }
-            }
-
-            return lambda_method;
-        }
 
         String EmitManagedStruct(Structure structure)
         {
@@ -201,7 +141,7 @@ namespace Campy
                     Type b = fi.FieldType;
                     foreach (Type p in b.GenericTypeArguments)
                     {
-                        if (p.IsClass || Campy.Types.Utils.Utility.IsStruct(p))
+                        if (p.IsClass || Campy.Types.Utils.ReflectionCecilInterop.IsStruct(p))
                         {
                             // Output using for class/struct.
                             String target_type_name = "Native_Array_View<"
@@ -252,7 +192,7 @@ namespace Campy
                     Type b = fi.FieldType;
                     foreach (Type p in b.GenericTypeArguments)
                     {
-                        if (p.IsClass || Campy.Types.Utils.Utility.IsStruct(p))
+                        if (p.IsClass || Campy.Types.Utils.ReflectionCecilInterop.IsStruct(p))
                         {
                             result += @"
 #include """ + Campy.Utils.Utility.NormalizeSystemReflectionName(p.FullName) + @"_unmanaged.h""
@@ -515,7 +455,7 @@ public:
                 tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                 result += tys + " " + na;
                 // Find method of delegate.
-                MethodDefinition md = ConvertToMonoCecilType(dd);
+                MethodDefinition md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(dd);
                 {
                     Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
                         new ICSharpCode.Decompiler.DecompilerContext(
@@ -528,27 +468,8 @@ public:
                     output.Dispose();
                 }
                 result += " const restrict(amp) ";
-                {
-                    Campy.TreeWalker.MethodBodyAstBuilder astBuilder = new Campy.TreeWalker.MethodBodyAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = md.DeclaringType });
-                    astBuilder.AddMethod(md);
-                    Type z = dd.DeclaringType;
-                    while (z != null)
-                    {
-                        if (z.IsGenericType)
-                        {
-                            Type[] z2 = z.GetGenericArguments();
-                        }
-                        z = z.DeclaringType;
-                    }
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String field_result = output.ToString();
-                    field_result = field_result.Replace("this.", "");
-                    result += field_result;
-                    output.Dispose();
-                }
+                result += ConvertMethodBody(structure, mod_def, md);
+                result = ModifyMethodBody(structure, result);
                 result += ";" + eol;
                 result += eol;
             }
@@ -760,12 +681,12 @@ public:
 
                 result += eol;
                 result += "parallel_for_each(_extent, [=]";
-                object ob2 = del;
-                MethodDefinition main_md = ConvertToMonoCecilType(del.Method);
+
+                MethodDefinition main_md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(structure._main_method);
                 {
                     Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
                         new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = td });
+                            mod_def) { CurrentType = main_md.DeclaringType });
                     astBuilder.AddMethod(main_md);
                     StringWriter output = new StringWriter();
                     astBuilder.GenerateCode(new PlainTextOutput(output));
@@ -782,137 +703,170 @@ public:
                 }
                 result += " restrict(amp)";
                 {
-                    Campy.TreeWalker.MethodBodyAstBuilder astBuilder = new Campy.TreeWalker.MethodBodyAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = td });
-                    astBuilder.AddMethod(main_md);
-                    // Go up the type decls and collect generic parameters.
-                    Dictionary<String, String> rew = new Dictionary<string,string>();
-                    Type z = del.Method.DeclaringType;
-                    while (z != null)
-                    {
-                        if (z.IsGenericType)
-                        {
-                            Type z3 = z.GetGenericTypeDefinition();
-                            Type[] z4 = z3.GetGenericArguments();
-                            Type[] z2 = z.GetGenericArguments();
-                            for (int z5 = 0; z5 < z4.Length; ++z5)
-                                rew.Add(z4[z5].Name, Campy.Utils.Utility.GetFriendlyTypeName(z2[z5]));
-                        }
-                        z = z.DeclaringType;
-                    }
-                    if (rew.Count > 0)
-                        astBuilder.SetUpGenericSubstitition(rew);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String xxx = output.ToString();
-
-                    // Here's where magic happens. Delegate calls set up the
-                    // environment so that the function called is correct.
-                    // To do that, "this.function_call(...)" needs to be
-                    // replaced with the correct location of the function,
-                    // not "this." but off of the a1 nested struct. Search
-                    // through the entire nested structures for the function
-                    // with the correct method.
-                    // Get target of delegate
-                    object tar = del.Target;
-                    // Get all methods of target.
-                    foreach (SR.FieldInfo fi in tar.GetType().GetFields())
-                    {
-                        object v = fi.GetValue(tar);
-                        Delegate d = v as Delegate;
-                        if (d == null) continue;
-                        String true_method_name = FindMethodName(d.Method, structure);
-                        if (true_method_name != null)
-                        {
-                            String prefix = FindMethodPrefix(d.Method, structure);
-                            prefix = prefix.Replace("s", "a");
-                            String find = "this." + true_method_name;
-                            // Find method name in nested structure.
-                            String repl = prefix + "." + true_method_name;
-                            // Replace!
-                            xxx = xxx.Replace(find, repl);
-                        }
-                    }
-
-                    // Sometimes data is contained in a class. That
-                    // information needs to be passed to the delegate.
-                    // Substitute references for class structures.
-                    foreach (Structure child in structure.AllChildren)
-                    {
-                        String prefix = structure.FullName;
-                        foreach (String rewrite in child.rewrite_names)
-                        {
-                            String find = "this." + rewrite + ".";
-                            String repl = child.FullName.Replace("s", "a") +".";
-                            xxx = xxx.Replace(find, repl);
-                        }
-                    }
-
-                    xxx = xxx.Replace("Math.Sqrt", "concurrency::precise_math::sqrt");
-                    xxx = xxx.Replace("AMP.Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
-                    xxx = xxx.Replace("Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
-                    xxx = xxx.Replace(".Tile[", ".tile[");
-                    xxx = xxx.Replace(".Local[", ".local[");
-                    xxx = xxx.Replace(".global[", ".global[");
-                    xxx = xxx.Replace(".Barrier.", ".barrier.");
-                    xxx = xxx.Replace(".Wait()", ".wait()");
-                    xxx = xxx.Replace("AMP.", "AMP::");
-                    xxx = xxx.Replace("(ref", "(");
-
-                    // Replace "default(int)" to 0, etc.
-                    Regex regex = new Regex("default\\s?[(][a-zA-Z_]+[)]");
-                    var arr = regex.Matches(xxx)
-                        .Cast<Match>()
-                        .Select(m => m.Value)
-                        .ToArray();
-                    if (arr.Count() > 0)
-                    {
-                        List<String> subs = new List<string>();
-                        for (int i = 0; i < arr.Count(); ++i)
-                        {
-                            String su = arr[i];
-                            su = su.Replace("default", "");
-                            su = su.Replace("(", "");
-                            su = su.Replace(")", "");
-                            su = su.Replace(" ", "");
-                            su = su.Replace("\t", "");
-                            if (su.Equals("int"))
-                                subs.Add("0");
-                            else if (su.Equals("float"))
-                                subs.Add("0.0");
-                            else if (su.Equals("uint"))
-                                subs.Add("0");
-                            else if (su.Equals("double"))
-                                subs.Add("0.0");
-                            else
-                                subs.Add(arr[i]);
-                        }
-                        for (int i = 0; i < arr.Count(); ++i)
-                        {
-                            xxx = regex.Replace(xxx, subs[i], 1);
-                        }
-                    }
-
-                    // Severe magic (hacking) here. There are no static variables within a method,
-                    // so here we opt for tile_statics to be declared in C# outside the parallel_for_each
-                    // then captured. Here, we add in all tile_statics into the body of the declaration.
-                    // Go through all structures and emit tile_static declarations, to be inserted
-                    // into the code block!!
-                    xxx = DeclareTileStatics(xxx, structure);
-
-                    // All remaining "this." assume at top level.
-                    xxx = xxx.Replace("this.", "a1.");
-
-
-
+                    String xxx = ConvertMethodBody(structure, mod_def, main_md);
+                    xxx = ModifyMethodBody(structure, xxx);
                     result += xxx;
-                    output.Dispose();
                 }
                 result += ");" + eol;
                 result += "}" + eol;
                 _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_file_name, result);
             }
+        }
+
+        private string ModifyMethodBody(Structure structure, String xxx)
+        {
+            // Here's where magic happens. Delegate calls set up the
+            // environment so that the function called is correct.
+            // To do that, "this.function_call(...)" needs to be
+            // replaced with the correct location of the function,
+            // not "this." but relative to the nested struct. Search
+            // through the entire nested structures for the function
+            // with the correct method.
+            // Get target of delegate
+
+            // Convert method calls that use "this." or static prefix.
+            foreach (Tuple<string,SR.MethodInfo> pair in structure.methods)
+            {
+                String name = pair.Item1;
+                SR.MethodInfo method = pair.Item2;
+                if (method.IsStatic)
+                {
+                    String declaring_type_name = method.DeclaringType.FullName;
+                    String prefix = FindMethodPrefix(method, structure);
+                    prefix = prefix.Replace("s", "a");
+                    xxx = xxx.Replace(declaring_type_name, prefix);
+                    // Peel off qualifiers one at a time in order to continue substitution.
+                    int i = 0;
+                    i = declaring_type_name.IndexOf('.', i);
+                    while (i > 0)
+                    {
+                        String subst = declaring_type_name.Substring(i + 1);
+                        xxx = xxx.Replace(subst, prefix);
+                        i = declaring_type_name.IndexOf('.', i + 1);
+                    }
+                }
+            }
+
+            // Get all methods of target.
+            foreach (SR.FieldInfo fi in structure._main_method.DeclaringType.GetFields())
+            {
+                object v = fi.GetValue(structure._class_instance);
+                Delegate d = v as Delegate;
+                if (d == null) continue;
+                String true_method_name = FindMethodName(d.Method, structure);
+                if (true_method_name != null)
+                {
+                    String prefix = FindMethodPrefix(d.Method, structure);
+                    prefix = prefix.Replace("s", "a");
+                    String find = "this." + true_method_name;
+                    // Find method name in nested structure.
+                    String repl = prefix + "." + true_method_name;
+                    // Replace!
+                    xxx = xxx.Replace(find, repl);
+                }
+            }
+
+            // Sometimes data is contained in a class. That
+            // information needs to be passed to the delegate.
+            // Substitute references for class structures.
+            foreach (Structure child in structure.AllChildren)
+            {
+                String prefix = structure.FullName;
+                foreach (String rewrite in child.rewrite_names)
+                {
+                    String find = "this." + rewrite + ".";
+                    String repl = child.FullName.Replace("s", "a") + ".";
+                    xxx = xxx.Replace(find, repl);
+                }
+            }
+
+            xxx = xxx.Replace("Math.Sqrt", "concurrency::precise_math::sqrt");
+            xxx = xxx.Replace("AMP.Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
+            xxx = xxx.Replace("Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
+            xxx = xxx.Replace(".Tile[", ".tile[");
+            xxx = xxx.Replace(".Local[", ".local[");
+            xxx = xxx.Replace(".global[", ".global[");
+            xxx = xxx.Replace(".Barrier.", ".barrier.");
+            xxx = xxx.Replace(".Wait()", ".wait()");
+            xxx = xxx.Replace("AMP.", "AMP::");
+            xxx = xxx.Replace("(ref", "(");
+
+            // Replace "default(int)" to 0, etc.
+            Regex regex = new Regex("default\\s?[(][a-zA-Z_]+[)]");
+            var arr = regex.Matches(xxx)
+                .Cast<Match>()
+                .Select(m => m.Value)
+                .ToArray();
+            if (arr.Count() > 0)
+            {
+                List<String> subs = new List<string>();
+                for (int i = 0; i < arr.Count(); ++i)
+                {
+                    String su = arr[i];
+                    su = su.Replace("default", "");
+                    su = su.Replace("(", "");
+                    su = su.Replace(")", "");
+                    su = su.Replace(" ", "");
+                    su = su.Replace("\t", "");
+                    if (su.Equals("int"))
+                        subs.Add("0");
+                    else if (su.Equals("float"))
+                        subs.Add("0.0");
+                    else if (su.Equals("uint"))
+                        subs.Add("0");
+                    else if (su.Equals("double"))
+                        subs.Add("0.0");
+                    else
+                        subs.Add(arr[i]);
+                }
+                for (int i = 0; i < arr.Count(); ++i)
+                {
+                    xxx = regex.Replace(xxx, subs[i], 1);
+                }
+            }
+
+            // Severe magic (hacking) here. There are no static variables within a method,
+            // so here we opt for tile_statics to be declared in C# outside the parallel_for_each
+            // then captured. Here, we add in all tile_statics into the body of the declaration.
+            // Go through all structures and emit tile_static declarations, to be inserted
+            // into the code block!!
+            xxx = DeclareTileStatics(xxx, structure);
+
+            // All remaining "this." assume at top level.
+            xxx = xxx.Replace("this.", "a1.");
+            return xxx;
+        }
+
+        private static String ConvertMethodBody(Structure structure, ModuleDefinition mod_def, MethodDefinition md)
+        {
+            String xxx;
+            StringWriter output;
+            Campy.TreeWalker.MethodBodyAstBuilder astBuilder = new Campy.TreeWalker.MethodBodyAstBuilder(
+                new ICSharpCode.Decompiler.DecompilerContext(
+                    mod_def) { CurrentType = md.DeclaringType });
+            astBuilder.AddMethod(md);
+            // Go up the type decls and collect generic parameters.
+            Dictionary<String, String> rew = new Dictionary<string, string>();
+            Type z = structure._main_method.DeclaringType;
+            while (z != null)
+            {
+                if (z.IsGenericType)
+                {
+                    Type z3 = z.GetGenericTypeDefinition();
+                    Type[] z4 = z3.GetGenericArguments();
+                    Type[] z2 = z.GetGenericArguments();
+                    for (int z5 = 0; z5 < z4.Length; ++z5)
+                        rew.Add(z4[z5].Name, Campy.Utils.Utility.GetFriendlyTypeName(z2[z5]));
+                }
+                z = z.DeclaringType;
+            }
+            if (rew.Count > 0)
+                astBuilder.SetUpGenericSubstitition(rew);
+            output = new StringWriter();
+            astBuilder.GenerateCode(new PlainTextOutput(output));
+            xxx = output.ToString();
+            output.Dispose();
+            return xxx;
         }
 
         String FindMethodName(SR.MethodInfo mi, Structure structure)
@@ -966,7 +920,7 @@ public:
             // delegate.
 
             // Convert multidelegate type to Mono.Cecil type, required to convert to C++ AMP.
-            MethodDefinition xxxxx = ConvertToMonoCecilType(del.Method);
+            MethodDefinition xxxxx = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(del.Method);
             TypeDefinition multidelegate_mc = xxxxx.DeclaringType;
             ModuleDefinition mod_def = multidelegate_mc.Module;
 
