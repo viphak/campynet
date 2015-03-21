@@ -150,6 +150,8 @@ namespace Campy
                     return new i_brfalse(i);
                 case Mono.Cecil.Cil.Code.Brfalse_S:
                     return new i_brfalse_s(i);
+                // Missing brnull
+                // Missing brzero
                 case Mono.Cecil.Cil.Code.Brtrue:
                     return new i_brtrue(i);
                 case Mono.Cecil.Cil.Code.Brtrue_S:
@@ -641,6 +643,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -653,6 +662,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -665,6 +681,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -677,6 +700,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -689,6 +719,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -701,6 +738,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -713,6 +757,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -725,6 +776,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -737,6 +795,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -749,6 +814,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -761,6 +833,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -773,6 +852,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -785,6 +871,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -797,6 +890,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -809,6 +909,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 
@@ -821,6 +928,13 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            ValueBase v1 = state._stack.Pop();
+            ValueBase v2 = state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 2;
         }
     }
 

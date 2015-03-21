@@ -195,7 +195,8 @@ namespace Campy
                 v._instructions.Add(i);
                 if (fc == Mono.Cecil.Cil.FlowControl.Next)
                     continue;
-                if (fc == Mono.Cecil.Cil.FlowControl.Branch)
+                if (fc == Mono.Cecil.Cil.FlowControl.Branch
+                    || fc == Mono.Cecil.Cil.FlowControl.Cond_Branch)
                 {
                     // Save leader target of branch.
                     object o = i.Operand;
@@ -220,7 +221,7 @@ namespace Campy
                 CFG.CFGVertex new_node = v.Split(i);
             }
 
-           // this.Dump();
+            this.Dump();
 
             StackQueue<CFG.CFGVertex> stack = new StackQueue<CFG.CFGVertex>();
             foreach (CFG.CFGVertex node in this.VertexNodes) stack.Push(node);
@@ -245,7 +246,7 @@ namespace Campy
                 }
             }
 
-         //   this.Dump();
+            this.Dump();
             stack = new StackQueue<CFG.CFGVertex>();
             foreach (CFG.CFGVertex node in this.VertexNodes) stack.Push(node);
             while (stack.Count > 0)
@@ -269,7 +270,7 @@ namespace Campy
                                         return false;
                                     return true;
                                 });
-                            //System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
+                            System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
                             this.AddEdge(node, target_node);
                             break;
                         }
@@ -327,7 +328,7 @@ namespace Campy
                 }
             }
 
-     //       this.Dump();
+            this.Dump();
         }
 
         public class CFGVertex
@@ -568,6 +569,7 @@ namespace Campy
 
             public CFGVertex Split(int i)
             {
+                System.Console.WriteLine("Split at " + i + " " + _instructions[i]);
                 Debug.Assert(_instructions.Count != 0);
                 // Split this node into two nodes, with all instructions after "i" in new node.
                 CFG cfg = (CFG)this._Graph;
@@ -575,19 +577,38 @@ namespace Campy
                 result.Method = this.Method;
                 result.HasReturn = this.HasReturn;
                 result._entry = this._entry;
+
+                // Insert new block after this block.
                 this._entry._ordered_list_of_blocks.Insert(
                     this._entry._ordered_list_of_blocks.IndexOf(this) + 1,
                     result);
 
-                for (int j = i; j < _instructions.Count; ++j)
+                int count = _instructions.Count;
+
+                // Add instructions from split point to new block.
+                for (int j = i; j < count; ++j)
                     result._instructions.Add(_instructions[j]);
-                for (int j = _instructions.Count - 1; j >= i; --j)
-                    this._instructions.RemoveAt(j);
+
+                // Remove instructions from previous block.
+                for (int j = i; j < count; ++j)
+                    this._instructions.RemoveAt(i);
+
                 Debug.Assert(this._instructions.Count != 0);
                 Debug.Assert(result._instructions.Count != 0);
+                Debug.Assert(this._instructions.Count + result._instructions.Count == count);
+
                 Inst last_instruction = this._instructions[
                     this._instructions.Count - 1];
-                // Add fall-through branch.
+ 
+                // Transfer any out edges to pred block to new block.
+                while (cfg.SuccessorNodes(this).Count() > 0)
+                {
+                    CFG.CFGVertex succ = cfg.SuccessorNodes(this).First();
+                    cfg.DeleteEdge(this, succ);
+                    cfg.AddEdge(result, succ);
+                }
+
+                // Add fall-through branch from pred to succ block.
                 switch (last_instruction.OpCode.FlowControl)
                 {
                     case Mono.Cecil.Cil.FlowControl.Branch:
@@ -612,6 +633,10 @@ namespace Campy
                     case Mono.Cecil.Cil.FlowControl.Throw:
                         break;
                 }
+
+                System.Console.WriteLine("After split");
+                cfg.Dump();
+                System.Console.WriteLine("-----------");
                 return result;
             }
 

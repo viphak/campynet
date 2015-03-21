@@ -26,8 +26,6 @@ namespace Campy
         Dictionary<System.Object, bool> compiled_targets = new Dictionary<object, bool>();
         Dictionary<String, MulticastDelegate> multicastdelegates = new Dictionary<string, MulticastDelegate>();
 
-
-
         String EmitManagedStruct(Structure structure)
         {
             String result = "";
@@ -74,7 +72,7 @@ namespace Campy
             }
             // Add in function declarations.
             // Actually, for this function, don't emit functions.
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             result += "} " + structure.Name + ";" + eol;
@@ -118,7 +116,7 @@ namespace Campy
             }
             // Add in function declarations.
             // Actually, for this function, don't emit functions.
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             result += "}" + eol;
@@ -170,7 +168,7 @@ namespace Campy
             {
                 result += EmitUsingDLLs(child);
             }
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             return result;
@@ -211,7 +209,7 @@ namespace Campy
             {
                 result += EmitUsingDLLs(child);
             }
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             return result;
@@ -240,7 +238,7 @@ namespace Campy
             {
                 result += EmitUsingNamespaces(child);
             }
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             return result;
@@ -375,14 +373,14 @@ public:
             }
             // Add in function declarations.
             // Actually, for this function, don't emit functions.
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
             }
             result += "} " + structure.Name + ";" + eol;
             return result;
         }
 
-        String EmitAssignmentUnmanagedStruct1(Structure structure, ModuleDefinition mod_def)
+        String EmitAssignmentUnmanagedStruct1(Structure structure, ModuleDefinition mod_def, Extent extent)
         {
             String result = "";
             result += "struct " + structure.Name.Replace("s", "a") + eol;
@@ -444,32 +442,20 @@ public:
             // Add in other structures.
             foreach (Structure child in structure.nested_structures)
             {
-                result += EmitAssignmentUnmanagedStruct1(child, mod_def);
+                result += EmitAssignmentUnmanagedStruct1(child, mod_def, extent);
             }
             // Add in function declarations.
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo dd in structure.methods)
             {
-                String na = pair.Item1;
-                SR.MethodInfo dd = pair.Item2;
+                MethodDefinition md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(dd);
                 String tys = Campy.Utils.Utility.GetFriendlyTypeName(dd.ReturnType);
                 tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
-                result += tys + " " + na;
+                result += tys + " " + Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
                 // Find method of delegate.
-                MethodDefinition md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(dd);
-                {
-                    Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = md.DeclaringType });
-                    astBuilder.AddMethod(md);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String field_result = output.ToString();
-                    result += field_result;
-                    output.Dispose();
-                }
+                result += EmitMethodParameters(structure, extent, mod_def, md, dd);
                 result += " const restrict(amp) ";
-                result += ConvertMethodBody(structure, mod_def, md);
-                result = ModifyMethodBody(structure, result);
+                String the_method = ConvertMethodBody(structure, mod_def, md, dd);
+                result += ModifyMethodBody(structure, the_method);
                 result += ";" + eol;
                 result += eol;
             }
@@ -481,7 +467,7 @@ public:
             return result;
         }
 
-        String EmitAssignmentUnmanagedStruct2(Structure structure, ModuleDefinition mod_def)
+        String EmitAssignmentUnmanagedStruct2(Structure structure, ModuleDefinition mod_def, Extent extent)
         {
             String result = "";
             result += "{" + eol;
@@ -545,11 +531,11 @@ public:
             // Add in other structures.
             foreach (Structure child in structure.nested_structures)
             {
-                result += EmitAssignmentUnmanagedStruct2(child, mod_def);
+                result += EmitAssignmentUnmanagedStruct2(child, mod_def, extent);
             }
             // Add in function declarations.
             // Actually, for this function, don't emit functions.
-            foreach (Tuple<String, SR.MethodInfo> pair in structure.methods)
+            foreach (SR.MethodInfo pair in structure.methods)
             {
             }
             result += "}";
@@ -643,24 +629,14 @@ public:
                 result += "#include \"Native_Tiled_Extent.h\"" + eol;
                 result += "#include \"Native_Accelerator_View.h\"" + eol;
                 result += "#include \"Native_Atomics.h\"" + eol;
-
-                // Add in unmanaged headers.
                 result += EmitIncludeHeaders(structure);
-
                 result += "using namespace concurrency;" + eol + eol;
-
-                // Output entry point of unmanaged delegate.
                 result += "void " + kernel_full_name + "_unmanaged::" + method_name + "()" + eol;
                 result += "{" + eol;
-
-                result += EmitAssignmentUnmanagedStruct1(structure, mod_def);
-
+                result += EmitAssignmentUnmanagedStruct1(structure, mod_def, extent);
                 result += "=" + eol;
-
-                result += EmitAssignmentUnmanagedStruct2(structure, mod_def);
-
+                result += EmitAssignmentUnmanagedStruct2(structure, mod_def, extent);
                 result += ";" + eol;
-
                 if (extent as Tiled_Extent == null)
                     result += "extent<1>& _extent"
                         + " = *(extent<1>*)"
@@ -683,86 +659,279 @@ public:
                 result += "parallel_for_each(_extent, [=]";
 
                 MethodDefinition main_md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(structure._main_method);
-                {
-                    Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
-                        new ICSharpCode.Decompiler.DecompilerContext(
-                            mod_def) { CurrentType = main_md.DeclaringType });
-                    astBuilder.AddMethod(main_md);
-                    StringWriter output = new StringWriter();
-                    astBuilder.GenerateCode(new PlainTextOutput(output));
-                    String xxx = output.ToString();
-                    if (extent as Tiled_Extent != null)
-                    {
-                        Tiled_Extent te = extent as Tiled_Extent;
-                        xxx = xxx.Replace("Tiled_Index", "tiled_index<" + +te.Tile_Dims[0] + ">");
-                    }
-                    else
-                        xxx = xxx.Replace("Index", "index<1>");
-                    result += xxx;
-                    output.Dispose();
-                }
+                String method_parameter = EmitMethodParameters(structure, extent, mod_def, main_md, structure._main_method);
+                String p = method_parameter.Replace("(", "");
+                p = p.Replace(")", "");
+                p = p.Replace("tiled_index","");
+                p = p.Replace("index", "");
+                Regex reg = new Regex(@"\<\s?[0123456789]+\s?\>");
+                p = reg.Replace(p, "");
+                p = p.Replace(" ", "");
+                result += method_parameter;
                 result += " restrict(amp)";
-                {
-                    String xxx = ConvertMethodBody(structure, mod_def, main_md);
-                    xxx = ModifyMethodBody(structure, xxx);
-                    result += xxx;
-                }
+                result += "{ a1." + Campy.Utils.Utility.NormalizeSystemReflectionName(main_md.Name) + "(" + p + "); }";
                 result += ");" + eol;
                 result += "}" + eol;
                 _assembly.unmanaged_cpp_files.Add(unmanaged_cpp_file_name, result);
             }
         }
 
+        private static String EmitMethodParameters(Structure structure, Extent extent, ModuleDefinition mod_def, MethodDefinition main_md, SR.MethodInfo dd)
+        {
+            String result = "";
+                Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
+                    new ICSharpCode.Decompiler.DecompilerContext(
+                        mod_def) { CurrentType = main_md.DeclaringType });
+                astBuilder.AddMethod(main_md);
+                StringWriter output = new StringWriter();
+                astBuilder.GenerateCode(new PlainTextOutput(output));
+                String xxx = output.ToString();
+                if (extent as Tiled_Extent != null)
+                {
+                    Tiled_Extent te = extent as Tiled_Extent;
+                    xxx = xxx.Replace("Tiled_Index", "tiled_index<" + +te.Tile_Dims[0] + ">");
+                }
+                else
+                    xxx = xxx.Replace("Index", "index<1>");
+                result += xxx;
+                output.Dispose();
+            return result;
+        }
+
+        private string RecursiveRewriteClassField(Structure structure, String xxx)
+        {
+            // Rewrite class references for this structure.
+            foreach (Tuple<System.Reflection.FieldInfo, object> tuple in structure._class_fields)
+            {
+                Structure nested_struct;
+                if (Structure.map_target_to_structure.TryGetValue(tuple.Item2, out nested_struct))
+                {
+                    String cur_struct = structure.FullName;
+                    String ne_struct = nested_struct.FullName;
+                    String pre = "";
+                    if (!cur_struct.Equals(ne_struct))
+                        pre = ne_struct.Replace(cur_struct + ".", "").Replace("s", "a");
+                    bool is_static = tuple.Item1.IsStatic;
+                    if (is_static)
+                    {
+                        Regex reg = new Regex(
+                            @"([\s\.\!])"
+                            + (tuple.Item1.Name
+                                .Replace("$", @"\$")
+                                .Replace("<", @"\<")
+                                .Replace(">", @"\>")
+                                )
+                            + @"([^a-zA-Z_]+)");
+                        xxx = reg.Replace(xxx,
+                            @"$1"
+                            + pre
+                            + @"$2");
+                    }
+                    else
+                    {
+                        Regex reg = new Regex(
+                            @"this\s?\.\s?"
+                            + (tuple.Item1.Name
+                                .Replace("$", @"\$")
+                                .Replace("<", @"\<")
+                                .Replace(">", @"\>")
+                                )
+                            + @"([^a-zA-Z_]+)");
+                        xxx = reg.Replace(xxx,
+                            pre
+                            + @"$1");
+                    }
+                }
+            }
+            // Apply recursively with children structures.
+            foreach (Structure child in structure.nested_structures)
+            {
+                xxx = RecursiveRewriteClassField(child, xxx);
+            }
+            return xxx;
+        }
+
+        private string RecursiveRewriteDelegateField(Structure structure, String xxx)
+        {
+            // Rewrite delegate fields.
+            foreach (Tuple<System.Reflection.FieldInfo, Delegate> tuple in structure._delegate_fields)
+            {
+                Structure nested_struct = null;
+                if (tuple.Item2.Target == null)
+                {
+                    bool found = false;
+                    // Delegate target null. Look for child structure.
+                    foreach (Structure child in structure.nested_structures)
+                    {
+                        if (child._class_instance.GetType() == tuple.Item2.Method.DeclaringType)
+                        {
+                            found = true;
+                            nested_struct = child;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        if (structure._class_instance.GetType() == tuple.Item2.Method.DeclaringType)
+                        {
+                            found = true;
+                            nested_struct = structure;
+                        }
+                    }
+                    Debug.Assert(found);
+                }
+                else
+                {
+                    Structure.map_target_to_structure.TryGetValue(tuple.Item2.Target, out nested_struct);
+                }
+                Debug.Assert(nested_struct != null);
+                // Get prefix of current structure.
+                String cur_struct = structure.FullName;
+                String ne_struct = nested_struct.FullName;
+                String pre = "";
+                if (!cur_struct.Equals(ne_struct))
+                    pre = ne_struct.Replace(cur_struct + ".", "").Replace("s", "a") + ".";
+                bool is_static = tuple.Item1.IsStatic;
+                if (is_static)
+                {
+                    Regex reg = new Regex(
+                        @"([\s\.\!])"
+                        + (tuple.Item1.Name
+                                .Replace("$", @"\$")
+                                .Replace("<", @"\<")
+                                .Replace(">", @"\>")
+                                )
+                        + @"([^a-zA-Z_]+)");
+                    xxx = reg.Replace(xxx,
+                        @"$1"
+                        + pre
+                        + Campy.Utils.Utility.NormalizeSystemReflectionName(tuple.Item2.Method.Name)
+                        + @"$2");
+                }
+                else
+                {
+                    // With "this"
+                    Regex reg = new Regex(
+                        @"this\s?\.\s?"
+                        + tuple.Item1.Name
+                        + @"([^a-zA-Z_]+)");
+                    xxx = reg.Replace(xxx,
+                        pre
+                        + Campy.Utils.Utility.NormalizeSystemReflectionName(tuple.Item2.Method.Name)
+                        + @"$1");
+                    // Or, without "this"
+                    Regex reg2 = new Regex(
+                        @"([\s\.\!])"
+                        + tuple.Item1.Name
+                        + @"([^a-zA-Z_]+)");
+                    xxx = reg2.Replace(xxx,
+                        @"$1"
+                        + pre
+                        + Campy.Utils.Utility.NormalizeSystemReflectionName(tuple.Item2.Method.Name)
+                        + @"$2");
+                }
+            }
+            // Apply recursively with children structures.
+            foreach (Structure child in structure.nested_structures)
+            {
+                xxx = RecursiveRewriteDelegateField(child, xxx);
+            }
+            return xxx;
+        }
+
         private string ModifyMethodBody(Structure structure, String xxx)
         {
-            // Here's where magic happens. Delegate calls set up the
-            // environment so that the function called is correct.
-            // To do that, "this.function_call(...)" needs to be
-            // replaced with the correct location of the function,
-            // not "this." but relative to the nested struct. Search
-            // through the entire nested structures for the function
-            // with the correct method.
-            // Get target of delegate
+            // Here's where magic happens. Rewrite references to fields that are
+            // classes or method calls.
+            xxx = RecursiveRewriteClassField(structure, xxx);
+            xxx = RecursiveRewriteDelegateField(structure, xxx);
 
-            // Convert method calls that use "this." or static prefix.
-            foreach (Tuple<string,SR.MethodInfo> pair in structure.methods)
+            // Convert method calls that use "this.", or static prefix, into calls
+            // referencing nested struct instead.
+            foreach (SR.MethodInfo method in structure.methods)
             {
-                String name = pair.Item1;
-                SR.MethodInfo method = pair.Item2;
                 if (method.IsStatic)
                 {
                     String declaring_type_name = method.DeclaringType.FullName;
                     String prefix = FindMethodPrefix(method, structure);
+                    prefix = prefix.Replace(structure.FullName, "");
+                    prefix = prefix.Replace(structure.Name, "");
                     prefix = prefix.Replace("s", "a");
-                    xxx = xxx.Replace(declaring_type_name, prefix);
-                    // Peel off qualifiers one at a time in order to continue substitution.
-                    int i = 0;
-                    i = declaring_type_name.IndexOf('.', i);
-                    while (i > 0)
-                    {
-                        String subst = declaring_type_name.Substring(i + 1);
-                        xxx = xxx.Replace(subst, prefix);
-                        i = declaring_type_name.IndexOf('.', i + 1);
-                    }
+                    if (prefix != "")
+                        xxx = xxx.Replace(declaring_type_name, prefix);
+                    else
+                        xxx = xxx.Replace(declaring_type_name + ".", "");
+                }
+                else
+                {
+                    String declaring_type_name = method.DeclaringType.FullName;
+                    String prefix = FindMethodPrefix(method, structure);
+                    prefix = prefix.Replace(structure.FullName, "");
+                    prefix = prefix.Replace(structure.Name, "");
+                    prefix = prefix.Replace("s", "a");
+                    if (prefix != "")
+                        xxx = xxx.Replace(declaring_type_name, prefix);
+                    else
+                        xxx = xxx.Replace("this." + method.Name, "" + method.Name);
+                }
+            }
+
+            // Get all fields of structure and patch path.
+            foreach (SR.FieldInfo field in structure.simple_fields)
+            {
+                if (field.IsStatic)
+                {
+                    String name = field.Name;
+                    String declaring_type_name = field.DeclaringType.FullName;
+                    String prefix = FindFieldPrefix(field, structure);
+                    prefix = prefix.Replace(structure.FullName, "");
+                    prefix = prefix.Replace(structure.Name, "");
+                    prefix = prefix.Replace("s", "a");
+                    if (prefix != "")
+                        xxx = xxx.Replace(declaring_type_name, prefix);
+                    else
+                        xxx = xxx.Replace(declaring_type_name + ".", "");
+                }
+                else
+                {
+                    String name = field.Name;
+                    String declaring_type_name = field.DeclaringType.FullName;
+                    String prefix = FindFieldPrefix(field, structure);
+                    prefix = prefix.Replace(structure.FullName, "");
+                    prefix = prefix.Replace(structure.Name, "");
+                    prefix = prefix.Replace("s", "a");
+                    if (prefix != "")
+                        xxx = xxx.Replace(declaring_type_name, prefix);
+                    else
+                        xxx = xxx.Replace("this." + name, "" + name);
                 }
             }
 
             // Get all methods of target.
-            foreach (SR.FieldInfo fi in structure._main_method.DeclaringType.GetFields())
+            Type owner = null;
+            if (structure._class_instance != null)
+                owner = structure._class_instance.GetType();
+            else if (structure._main_method != null)
+                owner = structure._main_method.DeclaringType;
+            
+            if (owner != null)
             {
-                object v = fi.GetValue(structure._class_instance);
-                Delegate d = v as Delegate;
-                if (d == null) continue;
-                String true_method_name = FindMethodName(d.Method, structure);
-                if (true_method_name != null)
+                foreach (SR.FieldInfo fi in owner.GetFields())
                 {
-                    String prefix = FindMethodPrefix(d.Method, structure);
-                    prefix = prefix.Replace("s", "a");
-                    String find = "this." + true_method_name;
-                    // Find method name in nested structure.
-                    String repl = prefix + "." + true_method_name;
-                    // Replace!
-                    xxx = xxx.Replace(find, repl);
+                    object v = fi.GetValue(structure._class_instance);
+                    Delegate d = v as Delegate;
+                    if (d == null) continue;
+                    String true_method_name = FindMethodName(d.Method, structure);
+                    if (true_method_name != null)
+                    {
+                        String prefix = FindMethodPrefix(d.Method, structure);
+                        prefix = prefix.Replace("s", "a");
+                        String find = "this." + true_method_name;
+                        // Find method name in nested structure.
+                        String repl = prefix + "." + true_method_name;
+                        // Replace!
+                        xxx = xxx.Replace(find, repl);
+                    }
                 }
             }
 
@@ -837,7 +1006,7 @@ public:
             return xxx;
         }
 
-        private static String ConvertMethodBody(Structure structure, ModuleDefinition mod_def, MethodDefinition md)
+        private static String ConvertMethodBody(Structure structure, ModuleDefinition mod_def, MethodDefinition md, SR.MethodInfo dd)
         {
             String xxx;
             StringWriter output;
@@ -847,7 +1016,8 @@ public:
             astBuilder.AddMethod(md);
             // Go up the type decls and collect generic parameters.
             Dictionary<String, String> rew = new Dictionary<string, string>();
-            Type z = structure._main_method.DeclaringType;
+            //Type z = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionType(md.DeclaringType);
+            Type z = dd.DeclaringType;
             while (z != null)
             {
                 if (z.IsGenericType)
@@ -872,10 +1042,10 @@ public:
         String FindMethodName(SR.MethodInfo mi, Structure structure)
         {
             String result = null;
-            foreach (Tuple<String, SR.MethodInfo> tuple in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
-                if (mi == tuple.Item2)
-                    return tuple.Item1;
+                if (mi == met)
+                    return met.Name;
             }
             foreach (Structure child in structure.nested_structures)
             {
@@ -889,9 +1059,9 @@ public:
         String FindMethodPrefix(SR.MethodInfo mi, Structure structure)
         {
             String result = null;
-            foreach (Tuple<String, SR.MethodInfo> tuple in structure.methods)
+            foreach (SR.MethodInfo met in structure.methods)
             {
-                if (mi == tuple.Item2)
+                if (mi == met)
                     return structure.FullName;
             }
             foreach (Structure child in structure.nested_structures)
@@ -899,6 +1069,23 @@ public:
                 String child_result = FindMethodPrefix(mi, child);
                 if (child_result != null)
                     return child_result;
+            }
+            return result;
+        }
+
+        String FindFieldPrefix(SR.FieldInfo fi, Structure structure)
+        {
+            String result = null;
+            foreach (SR.FieldInfo field in structure.simple_fields)
+            {
+                if (fi == field)
+                    return structure.Name;
+            }
+            foreach (Structure child in structure.nested_structures)
+            {
+                String child_result = FindFieldPrefix(fi, child);
+                if (child_result != null)
+                    return structure.Name + "." + child_result;
             }
             return result;
         }

@@ -67,6 +67,9 @@ namespace Campy.Utils
                 return "ulong";
             if (str.Equals("System.UInt16"))
                 return "ushort";
+            if (str.Equals("System.Void"))
+                return "void";
+
 //            if (str.IndexOf("System.") == 0)
  //               return str.Substring(1 + str.LastIndexOf("."));
  //           if (str.IndexOf("Campy.Types.") == 0)

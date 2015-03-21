@@ -47,6 +47,11 @@ namespace Campy.Utils
 
         public T Pop()
         {
+            if (_top >= _size)
+            {
+                _size *= 2;
+                System.Array.Resize(ref _items, _size);
+            }
             if (_top > 0)
             {
                 int index = _top - 1;
@@ -75,6 +80,11 @@ namespace Campy.Utils
 
         public T PeekTop(int n = 0)
         {
+            if (_top >= _size)
+            {
+                _size *= 2;
+                System.Array.Resize(ref _items, _size);
+            }
             if (_top > 0)
             {
                 int index = _top - 1;
@@ -89,6 +99,11 @@ namespace Campy.Utils
 
         public T PeekBottom(int n)
         {
+            if (_top >= _size)
+            {
+                _size *= 2;
+                System.Array.Resize(ref _items, _size);
+            }
             if (n >= _top)
                 return default(T);
             T cur = _items[n];
@@ -155,6 +170,11 @@ namespace Campy.Utils
 
         public T DequeueBottom()
         {
+            if (_top >= _size)
+            {
+                _size *= 2;
+                System.Array.Resize(ref _items, _size);
+            }
             // Remove item from bottom of stack.
             if (_top > 0)
             {

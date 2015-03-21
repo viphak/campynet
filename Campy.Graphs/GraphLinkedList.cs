@@ -193,8 +193,19 @@ namespace Campy.Graphs
         {
         }
 
-        virtual public void DeleteEdge(Vertex f, Vertex t)
+        virtual public void DeleteEdge(Vertex vf, Vertex vt)
         {
+            foreach (Edge search in vf._Successors)
+            {
+                if (search.to == vt)
+                {
+                    vf._Successors.Remove(search);
+                    vt._Predecessors.Remove(search);
+                    search.from = null;
+                    search.to = null;
+                    return;
+                }
+            }
         }
 
         public void SetNameSpace(IEnumerable<NAME> ns)
