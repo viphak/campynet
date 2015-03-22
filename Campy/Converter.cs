@@ -453,6 +453,10 @@ public:
                 result += tys + " " + Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
                 // Find method of delegate.
                 result += EmitMethodParameters(structure, extent, mod_def, md, dd);
+                // Panic correction, if these types still exist.
+                // This can happen if a method is added, eventhough it is not used.
+                result = result.Replace("Tiled_Index", "tiled_index<16>");
+                result = result.Replace("Index", "index<1>");
                 result += " const restrict(amp) ";
                 String the_method = ConvertMethodBody(structure, mod_def, md, dd);
                 result += ModifyMethodBody(structure, the_method);
@@ -660,6 +664,10 @@ public:
 
                 MethodDefinition main_md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(structure._main_method);
                 String method_parameter = EmitMethodParameters(structure, extent, mod_def, main_md, structure._main_method);
+                // Panic correction, if these types still exist.
+                // This can happen if a method is added, eventhough it is not used.
+                method_parameter = method_parameter.Replace("Tiled_Index", "tiled_index<16>");
+                method_parameter = method_parameter.Replace("Index", "index<1>");
                 String p = method_parameter.Replace("(", "");
                 p = p.Replace(")", "");
                 p = p.Replace("tiled_index","");
@@ -894,15 +902,9 @@ public:
             return xxx;
         }
 
-        private string ModifyMethodBody(Structure structure, String xxx)
+        private String RecursiveRewriteSimpleField(Structure structure, String xxx)
         {
-            // Here's where magic happens. Rewrite references to fields that are
-            // classes or method calls.
-            xxx = RecursiveRewriteClassField(structure, xxx);
-            xxx = RecursiveRewriteDelegateField(structure, xxx);
-            xxx = RecursiveRewriteMethods(structure, xxx);
-
-            // Get all fields of structure and patch path.
+            // Get all simple fields of structure and patch path.
             foreach (SR.FieldInfo field in structure.simple_fields)
             {
                 if (field.IsStatic)
@@ -932,52 +934,36 @@ public:
                         xxx = xxx.Replace("this." + name, "" + name);
                 }
             }
-
-            // Get all methods of target.
-            Type owner = null;
-            if (structure._class_instance != null)
-                owner = structure._class_instance.GetType();
-            else if (structure._main_method != null)
-                owner = structure._main_method.DeclaringType;
-            
-            if (owner != null)
+            // Apply recursively with children structures.
+            foreach (Structure child in structure.nested_structures)
             {
-                foreach (SR.FieldInfo fi in owner.GetFields())
-                {
-                    object v = fi.GetValue(structure._class_instance);
-                    Delegate d = v as Delegate;
-                    if (d == null) continue;
-                    String true_method_name = FindMethodName(d.Method, structure);
-                    if (true_method_name != null)
-                    {
-                        String prefix = FindMethodPrefix(d.Method, structure);
-                        prefix = prefix.Replace("s", "a");
-                        String find = "this." + true_method_name;
-                        // Find method name in nested structure.
-                        String repl = prefix + "." + true_method_name;
-                        // Replace!
-                        xxx = xxx.Replace(find, repl);
-                    }
-                }
+                xxx = RecursiveRewriteDelegateField(child, xxx);
             }
+            return xxx;
+        }
 
-            // Sometimes data is contained in a class. That
-            // information needs to be passed to the delegate.
-            // Substitute references for class structures.
-            foreach (Structure child in structure.AllChildren)
+        private string ModifyMethodBody(Structure structure, String xxx)
+        {
+            // Here's where magic happens. Rewrite references to fields that are
+            // classes or method calls.
+            xxx = RecursiveRewriteClassField(structure, xxx);
+            xxx = RecursiveRewriteDelegateField(structure, xxx);
+            xxx = RecursiveRewriteMethods(structure, xxx);
+            xxx = RecursiveRewriteSimpleField(structure, xxx);
+
+            // Rewrite atomic ops.
             {
-                String prefix = structure.FullName;
-                foreach (String rewrite in child.rewrite_names)
-                {
-                    String find = "this." + rewrite + ".";
-                    String repl = child.FullName.Replace("s", "a") + ".";
-                    xxx = xxx.Replace(find, repl);
-                }
+                Regex r1 = new Regex(
+                    @"(AMP\s?\.\s?)?"
+                    + @"Atomic_Fetch_Add\s?\("
+                    + @"\s?(ref)\s?(?<p1>[^\s,]+)\s?,"
+                    + @"\s?(?<p2>[^\s,]+)\s?,"
+                    + @"\s?(?<p3>[^\s\)]+)\s?\)");
+                xxx = r1.Replace(xxx,
+                    @"atomic_fetch_add(&${p1}[${p2}], ${p3})");
             }
 
             xxx = xxx.Replace("Math.Sqrt", "concurrency::precise_math::sqrt");
-            xxx = xxx.Replace("AMP.Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
-            xxx = xxx.Replace("Atomic_Fetch_Add", "concurrency::atomic_fetch_add");
             xxx = xxx.Replace(".Tile[", ".tile[");
             xxx = xxx.Replace(".Local[", ".local[");
             xxx = xxx.Replace(".global[", ".global[");
