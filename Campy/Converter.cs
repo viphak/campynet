@@ -839,42 +839,68 @@ public:
             return xxx;
         }
 
+        private String RecursiveRewriteMethods(Structure structure, String xxx)
+        {
+            // Convert method calls that use "this.", or static prefix, into calls
+            // referencing nested struct instead.
+            foreach (SR.MethodInfo method in structure.methods)
+            {
+                String pre = "";
+                bool is_static = method.IsStatic;
+                if (is_static)
+                {
+                    String declaring_type_name = method.DeclaringType.FullName;
+                    while (!declaring_type_name.Equals(""))
+                    {
+                        Regex reg = new Regex(
+                            @"([\s\.\!])"
+                            + (declaring_type_name
+                                .Replace("$", @"\$")
+                                .Replace("<", @"\<")
+                                .Replace(">", @"\>")
+                                )
+                            + "."
+                            + Campy.Utils.Utility.NormalizeSystemReflectionName(method.Name)
+                            + @"([^a-zA-Z_]+)");
+                        xxx = reg.Replace(xxx,
+                            @"$1"
+                            + pre
+                            + Campy.Utils.Utility.NormalizeSystemReflectionName(method.Name)
+                            + @"$2");
+                        int next = declaring_type_name.IndexOf('.');
+                        if (next >= 0)
+                            declaring_type_name = declaring_type_name.Substring(next + 1);
+                        else
+                            declaring_type_name = "";
+                    }
+                }
+                else
+                {
+                    Regex reg = new Regex(
+                        @"this\s?\.\s?"
+                        + Campy.Utils.Utility.NormalizeSystemReflectionName(method.Name)
+                        + @"([^a-zA-Z_]+)");
+                    xxx = reg.Replace(xxx,
+                        pre
+                        + Campy.Utils.Utility.NormalizeSystemReflectionName(method.Name)
+                        + @"$1");
+                }
+            }
+            // Apply recursively with children structures.
+            foreach (Structure child in structure.nested_structures)
+            {
+                xxx = RecursiveRewriteDelegateField(child, xxx);
+            }
+            return xxx;
+        }
+
         private string ModifyMethodBody(Structure structure, String xxx)
         {
             // Here's where magic happens. Rewrite references to fields that are
             // classes or method calls.
             xxx = RecursiveRewriteClassField(structure, xxx);
             xxx = RecursiveRewriteDelegateField(structure, xxx);
-
-            // Convert method calls that use "this.", or static prefix, into calls
-            // referencing nested struct instead.
-            foreach (SR.MethodInfo method in structure.methods)
-            {
-                if (method.IsStatic)
-                {
-                    String declaring_type_name = method.DeclaringType.FullName;
-                    String prefix = FindMethodPrefix(method, structure);
-                    prefix = prefix.Replace(structure.FullName, "");
-                    prefix = prefix.Replace(structure.Name, "");
-                    prefix = prefix.Replace("s", "a");
-                    if (prefix != "")
-                        xxx = xxx.Replace(declaring_type_name, prefix);
-                    else
-                        xxx = xxx.Replace(declaring_type_name + ".", "");
-                }
-                else
-                {
-                    String declaring_type_name = method.DeclaringType.FullName;
-                    String prefix = FindMethodPrefix(method, structure);
-                    prefix = prefix.Replace(structure.FullName, "");
-                    prefix = prefix.Replace(structure.Name, "");
-                    prefix = prefix.Replace("s", "a");
-                    if (prefix != "")
-                        xxx = xxx.Replace(declaring_type_name, prefix);
-                    else
-                        xxx = xxx.Replace("this." + method.Name, "" + method.Name);
-                }
-            }
+            xxx = RecursiveRewriteMethods(structure, xxx);
 
             // Get all fields of structure and patch path.
             foreach (SR.FieldInfo field in structure.simple_fields)

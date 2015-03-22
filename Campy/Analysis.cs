@@ -365,8 +365,8 @@ namespace Campy
             // Construct control flow graph from lambda delegate method.
             CFG control_flow_graph = CFG.Singleton();
             Delegate lambda_delegate = (Delegate)obj;
-            //control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(lambda_delegate.Method));
-            //control_flow_graph.ExtractBasicBlocks();
+            control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(lambda_delegate.Method));
+            control_flow_graph.ExtractBasicBlocks();
 
             // Construct graph containing all objects used in lambda.
             StackQueue<object> stack = new StackQueue<object>();

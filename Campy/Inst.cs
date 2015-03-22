@@ -1854,6 +1854,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -1878,6 +1884,14 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+            state._stack.Pop();
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after -= 3;
         }
     }
 
@@ -1890,6 +1904,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2738,6 +2758,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2750,6 +2776,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2762,6 +2794,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2774,6 +2812,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2786,6 +2830,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2798,6 +2848,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2810,6 +2866,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2822,6 +2884,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2834,6 +2902,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2858,6 +2932,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2870,6 +2950,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2882,6 +2968,12 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            state._stack.Pop();
+        }
+
+        public override void ComputeStackLevel(ref int level_after)
+        {
+            level_after--;
         }
     }
 
@@ -2939,6 +3031,7 @@ namespace Campy
 
         public override void Execute(ref State state)
         {
+            // No changes.
         }
     }
 
