@@ -8,6 +8,7 @@ using Campy.Utils;
 
 namespace Campy
 {
+   
     public class ValueBase
     {
         static Top _top = new Top();
@@ -77,6 +78,8 @@ namespace Campy
         virtual public void Dump()
         {
         }
+
+
     }
 
     public class Top : ValueBase

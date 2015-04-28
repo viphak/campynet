@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.IO;
 using System.Diagnostics;
@@ -40,13 +41,13 @@ namespace Campy
         public List<Tuple<System.Reflection.FieldInfo, Delegate>> _delegate_fields;
 
         // A list of methods owned by the struct.
-        List<MethodInfo> _methods = new List<MethodInfo>();
+        List<MethodBase> _methods = new List<MethodBase>();
 
         // A list of next instances in the call chain.
         List<Structure> _nested_structures = new List<Structure>();
 
         public List<Structure> nested_structures { get { return _nested_structures; } }
-        public List<MethodInfo> methods { get { return _methods; } }
+        public List<MethodBase> methods { get { return _methods; } }
         public String Name { get; set; }
         public String FullName { get; set; }
         public int level { get; set; }
@@ -236,12 +237,12 @@ namespace Campy
                         if (tdt == t)
                         {
                             // Add method to structure.
-                            MethodInfo mi = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(node.Method);
+                            MethodBase mi = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(node.Method);
                             s.AddMethod(mi);
                             // Get calls.
                             foreach (CFG.CFGVertex c in control_flow_graph.AllInterproceduralCalls(node))
                             {
-                                MethodInfo mic = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(c.Method);
+                                MethodBase mic = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionMethodInfo(c.Method);
                                 s.AddMethod(mic);
                             }
                         }
@@ -293,47 +294,57 @@ namespace Campy
         
         public void AddField(FieldInfo field)
         {
+            Debug.Assert(field != null);
             _simple_fields.Add(field);
         }
 
-        public void AddMethod(MethodInfo method)
+        public void AddMethod(MethodBase method)
         {
+            Debug.Assert(method != null);
             if (!_methods.Contains(method))
                 _methods.Add(method);
         }
 
         public void Dump()
         {
+            System.Console.WriteLine("Dump of structure IR.");
             StackQueue<Structure> stack = new StackQueue<Structure>();
             stack.Push(this);
             while (stack.Count > 0)
             {
                 Structure structure = stack.Pop();
-                System.Console.WriteLine("Struct");
-                System.Console.WriteLine("Name " + structure.Name);
-                System.Console.WriteLine("Fullname " + structure.FullName);
-                System.Console.WriteLine("Rewrite Names " + (rewrite_names.Count() > 0 ? rewrite_names.Aggregate((i, j) => i + " " + j) : ""));
-                System.Console.WriteLine("level " + structure.level);
-                System.Console.WriteLine("instance of " + structure._class_instance);
-                System.Console.WriteLine("Simple Fields:");
+                // Set up string for this structure.
+                String result = "";
+                String eol = "\r\n";
+                result += "Struct" + eol;
+                result += ("Name " + structure.Name + eol);
+                result += ("Fullname " + structure.FullName + eol);
+                result += ("Rewrite Names " + (rewrite_names.Count() > 0 ? rewrite_names.Aggregate((i, j) => i + " " + j) : "")) + eol;
+                result += ("level " + structure.level + eol);
+                result += ("instance of " + structure._class_instance + eol);
+                result += ("Simple Fields:" + eol);
                 foreach (FieldInfo fi in structure._simple_fields)
                 {
-                    System.Console.WriteLine(fi);
+                    result += (fi + eol);
                 }
-                System.Console.WriteLine("Class Fields:");
+                result += ("Class Fields:" + eol);
                 foreach (Tuple<FieldInfo, object> pair in structure._class_fields)
                 {
-                    System.Console.WriteLine(pair.Item1.Name + " " + pair.Item2);
+                    result += (pair.Item1.Name + " " + pair.Item2 + eol);
                 }
-                System.Console.WriteLine("Delegate Fields:");
+                result += ("Delegate Fields:" + eol);
                 foreach (Tuple<FieldInfo, Delegate> pair in structure._delegate_fields)
                 {
-                    System.Console.WriteLine(pair.Item1.Name + " " + pair.Item2);
+                    result += (pair.Item1.Name + " " + pair.Item2 + eol);
                 }
-                foreach (MethodInfo met in structure._methods)
+                result += ("Method Fields:" + eol);
+                foreach (System.Reflection.MethodBase met in structure._methods)
                 {
-                    System.Console.WriteLine(met);
+                    result += (met + eol);
                 }
+                String indent = "";
+                for (int i = 0; i < structure.level; ++i) indent += "   ";
+                System.Console.WriteLine(indent + result.Replace("\n", "\n" + indent));
                 foreach (Structure child in structure._nested_structures)
                 {
                     stack.Push(child);
@@ -342,8 +353,80 @@ namespace Campy
         }
     }
 
-    class Analysis
+    internal class Analysis
     {
+        public Dictionary<String, String> _filter_namespace = new Dictionary<String, String>();
+        public Dictionary<String, String> _filter_assembly = new Dictionary<String, String>();
+
+        CFG _control_flow_graph;
+
+        static Analysis _singleton = null;
+
+        Analysis()
+        {
+            // Construct control flow graph from lambda delegate method.
+            _control_flow_graph = CFG.Singleton(this);
+        }
+
+        internal static Analysis Singleton()
+        {
+            if (_singleton == null)
+            {
+                _singleton = new Analysis();
+                _singleton.LoadOptions();
+            }
+            return _singleton;
+        }
+
+        public void LoadOptions()
+        {
+            // Load "AMP.todo"
+            String file_name = "AMP.opt";
+            if (File.Exists(file_name))
+            {
+                Regex comment = new Regex(@"\s?--");
+                Regex ignore_namespace = new Regex(@"^\s?\-namespace\s?\(\s?([^)\s]+)\s?\)");
+                Regex add_namespace = new Regex(@"^\s?\+namespace\s?\(\s?([^)\s]+)\s?\)");
+                Regex ignore_assembly = new Regex(@"^\s?\-assembly\s?\(\s?([^)\s]+)\s?\)");
+                Regex add_assembly = new Regex(@"^\s?\+assembly\s?\(\s?([^)\s]+)\s?\)");
+                string[] lines = System.IO.File.ReadAllLines(file_name);
+                foreach (string line in lines)
+                {
+                    // If comment, ignore.
+                    Match m0 = comment.Match(line);
+                    int p = m0.Index;
+                    int l = m0.Length;
+                    if (p >= 0 && l > 0)
+                    {
+                        continue;
+                    }
+
+                    String m2n = ignore_namespace.Replace(line, @"$1");
+                    if (!m2n.Equals(line))
+                    {
+                        _filter_namespace.Add(m2n, "-");
+                    }
+
+                    String m2p = add_namespace.Replace(line, @"$1");
+                    if (!m2p.Equals(line))
+                    {
+                        _filter_namespace.Add(m2p, "+");
+                    }
+
+                    String m3n = ignore_assembly.Replace(line, @"$1");
+                    if (!m3n.Equals(line))
+                    {
+                        _filter_assembly.Add(m3n, "-");
+                    }
+
+                    String m3p = ignore_assembly.Replace(line, @"$1");
+                    if (!m3p.Equals(line))
+                    {
+                        _filter_assembly.Add(m3p, "+");
+                    }
+                }
+            }
+        }
 
         public static String MyToString(object obj)
         {
@@ -359,14 +442,13 @@ namespace Campy
                 return obj.ToString();
         }
 
-        public static Structure FindAllTargets(object obj)
+        public Structure FindAllTargets(object obj)
         {
             Dictionary<Delegate, object> delegate_to_instance = new Dictionary<Delegate, object>();
-            // Construct control flow graph from lambda delegate method.
-            CFG control_flow_graph = CFG.Singleton();
             Delegate lambda_delegate = (Delegate)obj;
-            control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(lambda_delegate.Method));
-            control_flow_graph.ExtractBasicBlocks();
+
+            _control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(lambda_delegate.Method));
+            _control_flow_graph.ExtractBasicBlocks();
 
             // Construct graph containing all objects used in lambda.
             StackQueue<object> stack = new StackQueue<object>();
@@ -538,7 +620,6 @@ namespace Campy
 
             if (true)
             {
-                System.Console.WriteLine("Full graph of lambda closure.");
                 foreach (object node in data_graph.Vertices)
                 {
                     System.Console.WriteLine("Node "
@@ -556,7 +637,7 @@ namespace Campy
                 System.Console.WriteLine();
             }
 
-            Structure res = Structure.Initialize(delegate_to_instance, lambda_delegate.Method, data_graph, control_flow_graph);
+            Structure res = Structure.Initialize(delegate_to_instance, lambda_delegate.Method, data_graph, _control_flow_graph);
             res.Dump();
 
             return res;

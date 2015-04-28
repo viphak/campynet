@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,7 +23,7 @@ namespace Campy.Types.Utils
             return md;
         }
 
-        public static Mono.Cecil.MethodDefinition ConvertToMonoCecilMethodDefinition(System.Reflection.MethodInfo mi)
+        public static Mono.Cecil.MethodDefinition ConvertToMonoCecilMethodDefinition(System.Reflection.MethodBase mi)
         {
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
@@ -31,8 +32,16 @@ namespace Campy.Types.Utils
             String full_path = Path.GetFullPath(kernel_assembly_file_name);
             full_path = Path.GetDirectoryName(full_path);
 
+            String kernel_full_name = null;
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            if (mi as System.Reflection.MethodInfo != null)
+            {
+                System.Reflection.MethodInfo mik = mi as System.Reflection.MethodInfo;
+                kernel_full_name = string.Format("{0} {1}.{2}({3})", mik.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            }
+            else
+                kernel_full_name = string.Format("{0}.{1}({2})", Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+
             kernel_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(kernel_full_name);
 
             // Decompile entire module.
@@ -102,18 +111,55 @@ namespace Campy.Types.Utils
             return null;
         }
 
-        public static System.Reflection.MethodInfo ConvertToSystemReflectionMethodInfo(Mono.Cecil.MethodDefinition md)
+        public static System.Reflection.MethodBase ConvertToSystemReflectionMethodInfo(Mono.Cecil.MethodDefinition md)
         {
+            System.Reflection.MethodInfo result = null;
             String md_name = Campy.Utils.Utility.NormalizeMonoCecilName(md.FullName);
             // Get owning type.
             Mono.Cecil.TypeDefinition td = md.DeclaringType;
             Type t = ConvertToSystemReflectionType(td);
-            foreach (System.Reflection.MethodInfo mi in t.GetMethods(System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static))
+            foreach (System.Reflection.MethodInfo mi in t.GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.CreateInstance | System.Reflection.BindingFlags.Default))
             {
                 String full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
                 full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(full_name);
                 if (md_name.Contains(full_name))
                     return mi;
+            }
+            foreach (System.Reflection.ConstructorInfo mi in t.GetConstructors(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.CreateInstance | System.Reflection.BindingFlags.Default))
+            {
+                String full_name = string.Format("{0}.{1}({2})", Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+                full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(full_name);
+                if (md_name.Contains(full_name))
+                    return mi;
+            }
+            Debug.Assert(result != null);
+            return result;
+        }
+
+        public static System.Reflection.MethodInfo FindMethod(String method)
+        {
+            // Split name into its parts, being type, namespace, type, parameters.
+            method = method.Trim();
+            method = method.Replace("  ", " ");
+            method = method.Replace(" (", "(");
+            method = method.Replace(" )", ")");
+            method = method.Replace(" .", ".");
+            method = method.Replace(". ", ".");
+            int space = method.IndexOf(' ');
+            String return_type = method.Substring(0, space);
+            method = method.Substring(space + 1);
+            int parenthesis = method.IndexOf('(');
+            String full_name = method.Substring(0, parenthesis);
+            String parameters = method.Substring(parenthesis);
+            int method_index = full_name.LastIndexOf('.');
+            String name = full_name.Substring(method_index + 1);
+            if (method_index >= 0) full_name = full_name.Substring(0, method_index);
+            Type t = Type.GetType(full_name);
+            System.Reflection.MethodInfo[] mi = t.GetMethods();
+            foreach (System.Reflection.MethodInfo m in mi)
+            {
+                if (m.Name.Equals(name))
+                    return m;
             }
             return null;
         }

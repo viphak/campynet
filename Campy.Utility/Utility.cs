@@ -194,7 +194,10 @@ namespace Campy.Utils
             result = result.Replace("+", "_");
             result = result.Replace("(", "_");
             result = result.Replace(")", "_");
+            result = result.Replace("[", "_");
+            result = result.Replace("]", "_");
             result = result.Replace(".", "_");
+            result = result.Replace(",", "_");
             result = result.Replace("`", "_");
             return result;
         }
@@ -210,7 +213,10 @@ namespace Campy.Utils
             result = result.Replace("+", "_");
             result = result.Replace("(", "_");
             result = result.Replace(")", "_");
+            result = result.Replace("[", "_");
+            result = result.Replace("]", "_");
             result = result.Replace(".", "_");
+            result = result.Replace(",", "_");
             result = result.Replace("`", "_");
             return result;
         }

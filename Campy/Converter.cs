@@ -70,11 +70,6 @@ namespace Campy
             {
                 result += EmitManagedStruct(child);
             }
-            // Add in function declarations.
-            // Actually, for this function, don't emit functions.
-            foreach (SR.MethodInfo met in structure.methods)
-            {
-            }
             result += "} " + structure.Name + ";" + eol;
             return result;
         }
@@ -113,11 +108,6 @@ namespace Campy
             foreach (Structure child in structure.nested_structures)
             {
                 result += EmitAssignmentFromManagedToUnmanagedStruct(child);
-            }
-            // Add in function declarations.
-            // Actually, for this function, don't emit functions.
-            foreach (SR.MethodInfo met in structure.methods)
-            {
             }
             result += "}" + eol;
             return result;
@@ -168,9 +158,6 @@ namespace Campy
             {
                 result += EmitUsingDLLs(child);
             }
-            foreach (SR.MethodInfo met in structure.methods)
-            {
-            }
             return result;
         }
 
@@ -209,9 +196,6 @@ namespace Campy
             {
                 result += EmitUsingDLLs(child);
             }
-            foreach (SR.MethodInfo met in structure.methods)
-            {
-            }
             return result;
         }
 
@@ -237,9 +221,6 @@ namespace Campy
             foreach (Structure child in structure.nested_structures)
             {
                 result += EmitUsingNamespaces(child);
-            }
-            foreach (SR.MethodInfo met in structure.methods)
-            {
             }
             return result;
         }
@@ -371,11 +352,6 @@ public:
             {
                 result += EmitUnmanagedStruct(child);
             }
-            // Add in function declarations.
-            // Actually, for this function, don't emit functions.
-            foreach (SR.MethodInfo met in structure.methods)
-            {
-            }
             result += "} " + structure.Name + ";" + eol;
             return result;
         }
@@ -445,12 +421,20 @@ public:
                 result += EmitAssignmentUnmanagedStruct1(child, mod_def, extent);
             }
             // Add in function declarations.
-            foreach (SR.MethodInfo dd in structure.methods)
+            foreach (SR.MethodBase dd in structure.methods)
             {
                 MethodDefinition md = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(dd);
-                String tys = Campy.Utils.Utility.GetFriendlyTypeName(dd.ReturnType);
-                tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
-                result += tys + " " + Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
+                if (dd as System.Reflection.MethodInfo != null)
+                {
+                    System.Reflection.MethodInfo ddm = dd as System.Reflection.MethodInfo;
+                    String tys = Campy.Utils.Utility.GetFriendlyTypeName(ddm.ReturnType);
+                    tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
+                    result += tys + " " + Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
+                }
+                else
+                {
+                    result += Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
+                }
                 // Find method of delegate.
                 result += EmitMethodParameters(structure, extent, mod_def, md, dd);
                 // Panic correction, if these types still exist.
@@ -536,11 +520,6 @@ public:
             foreach (Structure child in structure.nested_structures)
             {
                 result += EmitAssignmentUnmanagedStruct2(child, mod_def, extent);
-            }
-            // Add in function declarations.
-            // Actually, for this function, don't emit functions.
-            foreach (SR.MethodInfo pair in structure.methods)
-            {
             }
             result += "}";
             if (structure.level > 1)
@@ -684,7 +663,7 @@ public:
             }
         }
 
-        private static String EmitMethodParameters(Structure structure, Extent extent, ModuleDefinition mod_def, MethodDefinition main_md, SR.MethodInfo dd)
+        private static String EmitMethodParameters(Structure structure, Extent extent, ModuleDefinition mod_def, MethodDefinition main_md, SR.MethodBase dd)
         {
             String result = "";
                 Campy.TreeWalker.MethodParametersAstBuilder astBuilder = new Campy.TreeWalker.MethodParametersAstBuilder(
@@ -851,7 +830,7 @@ public:
         {
             // Convert method calls that use "this.", or static prefix, into calls
             // referencing nested struct instead.
-            foreach (SR.MethodInfo method in structure.methods)
+            foreach (SR.MethodBase method in structure.methods)
             {
                 String pre = "";
                 bool is_static = method.IsStatic;
@@ -1018,7 +997,7 @@ public:
             return xxx;
         }
 
-        private static String ConvertMethodBody(Structure structure, ModuleDefinition mod_def, MethodDefinition md, SR.MethodInfo dd)
+        private static String ConvertMethodBody(Structure structure, ModuleDefinition mod_def, MethodDefinition md, SR.MethodBase dd)
         {
             String xxx;
             StringWriter output;
@@ -1054,7 +1033,7 @@ public:
         String FindMethodName(SR.MethodInfo mi, Structure structure)
         {
             String result = null;
-            foreach (SR.MethodInfo met in structure.methods)
+            foreach (SR.MethodBase met in structure.methods)
             {
                 if (mi == met)
                     return met.Name;
@@ -1071,7 +1050,7 @@ public:
         String FindMethodPrefix(SR.MethodInfo mi, Structure structure)
         {
             String result = null;
-            foreach (SR.MethodInfo met in structure.methods)
+            foreach (SR.MethodBase met in structure.methods)
             {
                 if (mi == met)
                     return structure.FullName;

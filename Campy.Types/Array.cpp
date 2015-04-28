@@ -32,7 +32,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
                     IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
@@ -82,7 +82,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
 					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
@@ -132,7 +132,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
 					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
@@ -182,7 +182,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
 					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(this->_data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
@@ -248,7 +248,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
 					IntPtr temp_buffer = Campy::Types::Utils::Utility::CreateNativeArray(data, this->_blittable_element_type);
                     Campy::Types::Utils::NativeArrayGenerator^ gen = gcnew Campy::Types::Utils::NativeArrayGenerator();
@@ -301,7 +301,7 @@ namespace Campy {
                 {
                     // C# array of class is not blittable.
                     // Convert into array of structs and pin that.
-                    this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true);
+					this->_blittable_element_type = Campy::Types::Utils::Utility::CreateBlittableType(this->_element_type, true, false);
                     this->_blittable_element_size = Marshal::SizeOf(this->_blittable_element_type);
                 }
                 else

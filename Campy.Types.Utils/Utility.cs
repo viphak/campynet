@@ -35,31 +35,30 @@ namespace Campy.Types.Utils
             }
         }
 
-        public static Type CreateBlittableType(Type hostType, bool declare_parent_chain)
+        public static Type CreateBlittableType(Type hostType, bool declare_parent_chain, bool declare_flatten_structure)
         {
             try
             {
                 String name;
                 SR.TypeFilter tf;
+                Type bbt = null;
 
-                // Declare parent chain since TypeBuilder works top down not bottom up.
+                // Declare inheritance types.
                 if (declare_parent_chain)
                 {
-                    name = hostType.FullName;
-                    name = name.Replace('+', '.');
-                    tf = new SR.TypeFilter((Type t, object o) =>
+                    // First, declare base type
+                    Type bt = hostType.BaseType;
+                    if (bt != null && !bt.FullName.Equals("System.Object"))
                     {
-                        return t.FullName == name;
-                    });
+                        bbt = CreateBlittableType(bt, declare_parent_chain, declare_flatten_structure);
+                    }
                 }
-                else
+
+                name = hostType.FullName;
+                tf = new SR.TypeFilter((Type t, object o) =>
                 {
-                    name = hostType.Name;
-                    tf = new SR.TypeFilter((Type t, object o) =>
-                    {
-                        return t.Name == name;
-                    });
-                }
+                    return t.FullName == name;
+                });
 
                 // Find if blittable type for hostType was already performed.
                 Data data = new Data();
@@ -72,39 +71,73 @@ namespace Campy.Types.Utils
                     if (hostType.IsArray)
                     {
                         // Recurse
-                        Type elementType = CreateBlittableType(hostType.GetElementType(), true);
+                        Type elementType = CreateBlittableType(hostType.GetElementType(), declare_parent_chain, declare_flatten_structure);
                         object array_obj = Array.CreateInstance(elementType, 0);
                         Type array_type = array_obj.GetType();
                         TypeBuilder tb = null;
-                        tb = data.mb.DefineType(
-                            array_type.Name,
-                            SR.TypeAttributes.Public | SR.TypeAttributes.Sealed | SR.TypeAttributes.SequentialLayout
-                                | SR.TypeAttributes.Serializable, typeof(ValueType));
+                        if (bbt != null)
+                        {
+                            tb = data.mb.DefineType(
+                                array_type.Name,
+                                SR.TypeAttributes.Public | SR.TypeAttributes.SequentialLayout
+                                    | SR.TypeAttributes.Serializable, bbt);
+                        }
+                        else
+                        {
+                            tb = data.mb.DefineType(
+                                array_type.Name,
+                                SR.TypeAttributes.Public | SR.TypeAttributes.SequentialLayout
+                                    | SR.TypeAttributes.Serializable);
+                        }
                         return tb.CreateType();
                     }
                     else if (Campy.Types.Utils.ReflectionCecilInterop.IsStruct(hostType) || hostType.IsClass)
                     {
                         TypeBuilder tb = null;
-                        tb = data.mb.DefineType(
-                            name,
-                            SR.TypeAttributes.Public | SR.TypeAttributes.Sealed | SR.TypeAttributes.SequentialLayout
-                                | SR.TypeAttributes.Serializable, typeof(ValueType));
-                        var fields = hostType.GetFields();
-                        foreach (var field in fields)
+                        if (bbt != null)
                         {
-                            if (field.FieldType.IsArray)
-                            {
-                                // Convert byte, int, etc., in host type to pointer in blittable type.
-                                // With array, we need to also encode the length.
-                                tb.DefineField(field.Name, typeof(IntPtr), SR.FieldAttributes.Public);
-                                tb.DefineField(field.Name + "Len0", typeof(Int32), SR.FieldAttributes.Public);
-                            }
-                            else
-                            {
-                                // For non-array type fields, just define the field as is.
-                                tb.DefineField(field.Name, field.FieldType, SR.FieldAttributes.Public);
-                            }
+                            tb = data.mb.DefineType(
+                                name,
+                                SR.TypeAttributes.Public | SR.TypeAttributes.SequentialLayout
+                                    | SR.TypeAttributes.Serializable, bbt);
                         }
+                        else
+                        {
+                            tb = data.mb.DefineType(
+                                name,
+                                SR.TypeAttributes.Public | SR.TypeAttributes.SequentialLayout
+                                    | SR.TypeAttributes.Serializable);
+                        }
+                        Type ht = hostType;
+                        while (ht != null)
+                        {
+                            var fields = ht.GetFields(
+                                SR.BindingFlags.Instance
+                                | SR.BindingFlags.NonPublic
+                                | SR.BindingFlags.Public
+                                | SR.BindingFlags.Static);
+                            var fields2 = ht.GetFields();
+                            foreach (var field in fields)
+                            {
+                                if (field.FieldType.IsArray)
+                                {
+                                    // Convert byte, int, etc., in host type to pointer in blittable type.
+                                    // With array, we need to also encode the length.
+                                    tb.DefineField(field.Name, typeof(IntPtr), SR.FieldAttributes.Public);
+                                    tb.DefineField(field.Name + "Len0", typeof(Int32), SR.FieldAttributes.Public);
+                                }
+                                else
+                                {
+                                    // For non-array type fields, just define the field as is.
+                                    tb.DefineField(field.Name, field.FieldType, SR.FieldAttributes.Public);
+                                }
+                            }
+                            if (declare_flatten_structure)
+                                ht = ht.BaseType;
+                            else
+                                ht = null;
+                        }
+                        // Base type will be used.
                         return tb.CreateType();
                     }
                     else return null;

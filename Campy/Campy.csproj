@@ -70,6 +70,7 @@
     <Compile Include="Converter.cs" />
     <Compile Include="Inst.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SSA.cs" />
     <Compile Include="State.cs" />
     <Compile Include="Value.cs" />
   </ItemGroup>

@@ -75,6 +75,16 @@ namespace Campy
                 dest[i] = from[i];
         }
 
+        static public void AnalyzeThisAssembly()
+        {
+            System.Diagnostics.StackTrace stack_trace = new System.Diagnostics.StackTrace(true);
+            System.Diagnostics.StackFrame stack_frame = stack_trace.GetFrame(1);
+            System.Reflection.Assembly assembly = stack_frame.GetMethod().DeclaringType.Assembly;
+            CFG control_flow_graph = CFG.Singleton(Analysis.Singleton());
+            control_flow_graph.AddAssembly(assembly);
+            control_flow_graph.ExtractBasicBlocks();
+        }
+
         static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
         {
             Accelerator_View view = new Accelerator_View();
@@ -86,7 +96,7 @@ namespace Campy
             // Compile and link any "to do" work before any DLL loading.
             builder.Make();
 
-            Structure structure = Analysis.FindAllTargets(_kernel);
+            Structure structure = Analysis.Singleton().FindAllTargets(_kernel);
 
             // Get corresponding Campy code for C# kernel.
             Type thunk = GetThunk(_kernel, extent, structure);
@@ -121,7 +131,7 @@ namespace Campy
             // Compile and link any "to do" work before any DLL loading.
             builder.Make();
 
-            Structure structure = Analysis.FindAllTargets(_kernel);
+            Structure structure = Analysis.Singleton().FindAllTargets(_kernel);
 
             // Get corresponding Campy code for C# kernel.
             Type thunk = GetThunk(_kernel, extent, structure);
