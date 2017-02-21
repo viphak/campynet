@@ -48,8 +48,21 @@
     <Reference Include="ICSharpCode.NRefactory.CSharp">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.NRefactory.CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Cecil">
-      <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\Mono.Cecil.dll</HintPath>
+    <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Mdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Mdb.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Pdb, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Pdb.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Mono.Cecil.Rocks, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.Rocks.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\nunit.framework.dll</HintPath>
