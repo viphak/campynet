@@ -1,0 +1,11 @@
+Campy.Builder/obj/
+Campy.GraphAlgorithms/obj/
+Campy.Graphs/obj/
+Campy.Types.Utils/obj/
+Campy.TreeWalker/obj/
+Campy.Types/Debug/
+Campy.Utility/obj/
+Campy/obj/
+packages/
+Test/obj/
+Campy.Net.VC.db
