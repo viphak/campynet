@@ -31,16 +31,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.Decompiler">
-      <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.Decompiler.dll</HintPath>
+      <HintPath>..\..\ILSpy\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.Decompiler.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.NRefactory">
-      <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.NRefactory.dll</HintPath>
+      <HintPath>..\..\ILSpy\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.NRefactory.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.NRefactory.CSharp">
-      <HintPath>..\ILSpy-master\ILSpy-master\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.NRefactory.CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.TreeView">
-      <HintPath>..\ILSpy-master\ILSpy-master\ILSpy.BamlDecompiler\bin\Debug\ICSharpCode.TreeView.dll</HintPath>
+      <HintPath>..\..\ILSpy\ICSharpCode.Decompiler\bin\Debug\ICSharpCode.NRefactory.CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
       <HintPath>..\packages\Mono.Cecil.0.9.6.4\lib\net45\Mono.Cecil.dll</HintPath>
@@ -67,6 +64,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class1.cs" />
     <Compile Include="ClassFields.cs" />
     <Compile Include="CPlusPlusCLIOutputVisitor.cs" />
     <Compile Include="CSharpOutputVisitor.cs" />
@@ -85,6 +83,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

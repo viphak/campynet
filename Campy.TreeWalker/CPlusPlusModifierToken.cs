@@ -26,13 +26,13 @@ namespace Campy.TreeWalker
 			}
 		}
 		
-		protected override int TokenLength {
+		protected int TokenLength {
 			get {
 				return GetModifierName (modifier).Length;
 			}
 		}
 		
-		public override string GetText (CSharpFormattingOptions formattingOptions = null)
+		public string GetText (CSharpFormattingOptions formattingOptions = null)
 		{
 			return GetModifierName (Modifier);
 		}
@@ -59,11 +59,10 @@ namespace Campy.TreeWalker
 		public static IEnumerable<Modifiers> AllModifiers {
 			get { return allModifiers; }
 		}
-		
-		public CPlusPlusModifierToken (TextLocation location, Modifiers modifier) : base (location)
-		{
-			this.Modifier = modifier;
-		}
+
+        public CPlusPlusModifierToken(TextLocation location, TokenRole role) : base(location, role)
+        {
+        }
 		
 		public static string GetModifierName(Modifiers modifier)
 		{
@@ -124,7 +123,7 @@ namespace Campy.TreeWalker
             }
         }
 
-        protected override int TokenLength
+        protected int TokenLength
         {
             get
             {
@@ -132,7 +131,7 @@ namespace Campy.TreeWalker
             }
         }
 
-        public override string GetText(CSharpFormattingOptions formattingOptions = null)
+        public string GetText(CSharpFormattingOptions formattingOptions = null)
         {
             return GetModifierName(Modifier);
         }
@@ -161,10 +160,8 @@ namespace Campy.TreeWalker
             get { return allModifiers; }
         }
 
-        public CPlusPlusCLIModifierToken(TextLocation location, Modifiers modifier)
-            : base(location)
+        public CPlusPlusCLIModifierToken(TextLocation location, TokenRole role) : base(location, role)
         {
-            this.Modifier = modifier;
         }
 
         public static string GetModifierName(Modifiers modifier)
@@ -227,7 +224,7 @@ namespace Campy.TreeWalker
             }
         }
 
-        protected override int TokenLength
+        protected int TokenLength
         {
             get
             {
@@ -235,7 +232,7 @@ namespace Campy.TreeWalker
             }
         }
 
-        public override string GetText(CSharpFormattingOptions formattingOptions = null)
+        public string GetText(CSharpFormattingOptions formattingOptions = null)
         {
             return GetModifierName(Modifier);
         }
@@ -259,15 +256,13 @@ namespace Campy.TreeWalker
 			Modifiers.Any
 		};
 
+        public CPlusPlusCLIFieldModifierToken(TextLocation location, TokenRole role) : base(location, role)
+        {
+        }
+
         public static IEnumerable<Modifiers> AllModifiers
         {
             get { return allModifiers; }
-        }
-
-        public CPlusPlusCLIFieldModifierToken(TextLocation location, Modifiers modifier)
-            : base(location)
-        {
-            this.Modifier = modifier;
         }
 
         public static string GetModifierName(Modifiers modifier)

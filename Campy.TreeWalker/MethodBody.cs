@@ -42,8 +42,8 @@ namespace Campy.TreeWalker
         public override void GenerateCode(ITextOutput output)
         {
             syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
-            var outputFormatter = new TextOutputFormatter(output) { FoldBraces = context.Settings.FoldBraces };
-            var formattingPolicy = context.Settings.CSharpFormattingOptions;
+            TextTokenWriter outputFormatter = new TextTokenWriter(output, context) { FoldBraces = context.Settings.FoldBraces };
+            CSharpFormattingOptions formattingPolicy = context.Settings.CSharpFormattingOptions;
             MethodBodyOutputVisitor vis = new MethodBodyOutputVisitor(outputFormatter, formattingPolicy);
             vis.SetUpGenericSubstitition(this._rewrite);
             syntaxTree.AcceptVisitor(vis);
@@ -55,7 +55,7 @@ namespace Campy.TreeWalker
     /// </summary>
     public class MethodBodyOutputVisitor : CPlusPlusCLIOutputVisitor
     {
-        public MethodBodyOutputVisitor(IOutputFormatter formatter, CSharpFormattingOptions formattingPolicy)
+        public MethodBodyOutputVisitor(TextTokenWriter formatter, CSharpFormattingOptions formattingPolicy)
             : base(formatter, formattingPolicy)
         {
         }

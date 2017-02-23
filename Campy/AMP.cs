@@ -30,7 +30,7 @@ namespace Campy
         static Build builder = new Build();
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
 
-        public delegate void _Kernel_type(Index idx);
+        public delegate void _Kernel_type(Campy.Types.Index idx);
         public delegate void _Kernel_tiled_type(Tiled_Index idx);
 
 

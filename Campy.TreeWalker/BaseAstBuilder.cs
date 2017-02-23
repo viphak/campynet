@@ -46,12 +46,11 @@ namespace Campy.TreeWalker
             this.context = context;
             this.DecompileMethodBodies = true;
         }
-
+        
         public static bool MemberIsHidden(MemberReference member, DecompilerSettings settings)
         {
             MethodDefinition method = member as MethodDefinition;
-            if (method != null)
-            {
+            if (method != null) {
                 if (method.IsGetter || method.IsSetter || method.IsAddOn || method.IsRemoveOn)
                     return true;
                 if (settings.AnonymousMethods && method.HasGeneratedName() && method.IsCompilerGenerated())
@@ -59,10 +58,8 @@ namespace Campy.TreeWalker
             }
 
             TypeDefinition type = member as TypeDefinition;
-            if (type != null)
-            {
-                if (type.DeclaringType != null)
-                {
+            if (type != null) {
+                if (type.DeclaringType != null) {
                     if (settings.AnonymousMethods && IsClosureType(type))
                         return true;
                     // KED
@@ -81,12 +78,10 @@ namespace Campy.TreeWalker
                         return true;
                 }
             }
-
+            
             FieldDefinition field = member as FieldDefinition;
-            if (field != null)
-            {
-                if (field.IsCompilerGenerated())
-                {
+            if (field != null) {
+                if (field.IsCompilerGenerated()) {
                     if (settings.AnonymousMethods && IsAnonymousMethodCacheField(field))
                         return true;
                     if (settings.AutomaticProperties && IsAutomaticPropertyBackingField(field))
@@ -98,7 +93,7 @@ namespace Campy.TreeWalker
                 if (settings.AutomaticEvents && field.DeclaringType.Events.Any(ev => ev.Name == field.Name))
                     return true;
             }
-
+            
             return false;
         }
 
@@ -121,7 +116,7 @@ namespace Campy.TreeWalker
         {
             return type.HasGeneratedName() && type.IsCompilerGenerated() && (type.Name.Contains("DisplayClass") || type.Name.Contains("AnonStorey"));
         }
-
+        
         /// <summary>
         /// Runs the C# transformations on the compilation unit.
         /// </summary>
@@ -129,21 +124,20 @@ namespace Campy.TreeWalker
         {
             RunTransformations(null);
         }
-
+        
         public void RunTransformations(Predicate<IAstTransform> transformAbortCondition)
         {
             TransformationPipeline.RunTransformationsUntil(syntaxTree, transformAbortCondition, context);
             transformationsHaveRun = true;
         }
-
+        
         /// <summary>
         /// Gets the abstract source tree.
         /// </summary>
-        public SyntaxTree SyntaxTree
-        {
+        public SyntaxTree SyntaxTree {
             get { return syntaxTree; }
         }
-
+        
         /// <summary>
         /// Generates C# code from the abstract source tree.
         /// </summary>
@@ -154,50 +148,45 @@ namespace Campy.TreeWalker
            //     RunTransformations();
 
             syntaxTree.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true });
-            var outputFormatter = new TextOutputFormatter(output) { FoldBraces = context.Settings.FoldBraces };
+            var outputFormatter = new TextTokenWriter(output, context) { FoldBraces = context.Settings.FoldBraces };
             var formattingPolicy = context.Settings.CSharpFormattingOptions;
             syntaxTree.AcceptVisitor(new CSharpOutputVisitor(outputFormatter, formattingPolicy));
         }
-
+        
         public void AddAssembly(AssemblyDefinition assemblyDefinition, bool onlyAssemblyLevel = false)
         {
             AddAssembly(assemblyDefinition.MainModule, onlyAssemblyLevel);
         }
-
+        
         public void AddAssembly(ModuleDefinition moduleDefinition, bool onlyAssemblyLevel = false)
         {
-            if (moduleDefinition.Assembly != null && moduleDefinition.Assembly.Name.Version != null)
-            {
+            if (moduleDefinition.Assembly != null && moduleDefinition.Assembly.Name.Version != null) {
                 syntaxTree.AddChild(
-                    new AttributeSection
-                    {
+                    new AttributeSection {
                         AttributeTarget = "assembly",
                         Attributes = {
-							new ICSharpCode.NRefactory.CSharp.Attribute {
-								Type = new SimpleType("AssemblyVersion")
-									.WithAnnotation(new TypeReference(
-										"System.Reflection", "AssemblyVersionAttribute",
-										moduleDefinition, moduleDefinition.TypeSystem.Corlib)),
-								Arguments = {
-									new PrimitiveExpression(moduleDefinition.Assembly.Name.Version.ToString())
-								}
-							}
-						}
+                            new ICSharpCode.NRefactory.CSharp.Attribute {
+                                Type = new SimpleType("AssemblyVersion")
+                                    .WithAnnotation(new TypeReference(
+                                        "System.Reflection", "AssemblyVersionAttribute",
+                                        moduleDefinition, moduleDefinition.TypeSystem.Corlib)),
+                                Arguments = {
+                                    new PrimitiveExpression(moduleDefinition.Assembly.Name.Version.ToString())
+                                }
+                            }
+                        }
                     }, EntityDeclaration.AttributeRole);
             }
-
-            if (moduleDefinition.Assembly != null)
-            {
+            
+            if (moduleDefinition.Assembly != null) {
                 ConvertCustomAttributes(syntaxTree, moduleDefinition.Assembly, "assembly");
                 ConvertSecurityAttributes(syntaxTree, moduleDefinition.Assembly, "assembly");
             }
             ConvertCustomAttributes(syntaxTree, moduleDefinition, "module");
             AddTypeForwarderAttributes(syntaxTree, moduleDefinition, "assembly");
-
-            if (!onlyAssemblyLevel)
-            {
-                foreach (TypeDefinition typeDef in moduleDefinition.Types)
-                {
+            
+            if (!onlyAssemblyLevel) {
+                foreach (TypeDefinition typeDef in moduleDefinition.Types) {
                     // Skip the <Module> class
                     if (typeDef.Name == "<Module>") continue;
                     // Skip any hidden types
@@ -208,46 +197,39 @@ namespace Campy.TreeWalker
                 }
             }
         }
-
+        
         void AddTypeForwarderAttributes(SyntaxTree astCompileUnit, ModuleDefinition module, string target)
         {
             if (!module.HasExportedTypes)
                 return;
-            foreach (ExportedType type in module.ExportedTypes)
-            {
-                if (type.IsForwarder)
-                {
+            foreach (ExportedType type in module.ExportedTypes) {
+                if (type.IsForwarder) {
                     var forwardedType = CreateTypeOfExpression(new TypeReference(type.Namespace, type.Name, module, type.Scope));
                     astCompileUnit.AddChild(
-                        new AttributeSection
-                        {
+                        new AttributeSection {
                             AttributeTarget = target,
                             Attributes = {
-								new ICSharpCode.NRefactory.CSharp.Attribute {
-									Type = new SimpleType("TypeForwardedTo")
-										.WithAnnotation(new TypeReference(
-											"System.Runtime.CompilerServices", "TypeForwardedToAttribute",
-											module, module.TypeSystem.Corlib)),
-									Arguments = { forwardedType }
-								}
-							}
+                                new ICSharpCode.NRefactory.CSharp.Attribute {
+                                    Type = new SimpleType("TypeForwardedTo")
+                                        .WithAnnotation(new TypeReference(
+                                            "System.Runtime.CompilerServices", "TypeForwardedToAttribute",
+                                            module, module.TypeSystem.Corlib)),
+                                    Arguments = { forwardedType }
+                                }
+                            }
                         }, EntityDeclaration.AttributeRole);
                 }
             }
         }
-
+        
         NamespaceDeclaration GetCodeNamespace(string name)
         {
-            if (string.IsNullOrEmpty(name))
-            {
+            if (string.IsNullOrEmpty(name)) {
                 return null;
             }
-            if (astNamespaces.ContainsKey(name))
-            {
+            if (astNamespaces.ContainsKey(name)) {
                 return astNamespaces[name];
-            }
-            else
-            {
+            } else {
                 // Create the namespace
                 NamespaceDeclaration astNamespace = new NamespaceDeclaration { Name = name };
                 syntaxTree.Members.Add(astNamespace);
@@ -255,21 +237,18 @@ namespace Campy.TreeWalker
                 return astNamespace;
             }
         }
-
+        
         public void AddType(TypeDefinition typeDef)
         {
             var astType = CreateType(typeDef);
             NamespaceDeclaration astNS = GetCodeNamespace(typeDef.Namespace);
-            if (astNS != null)
-            {
+            if (astNS != null) {
                 astNS.Members.Add(astType);
-            }
-            else
-            {
+            } else {
                 syntaxTree.Members.Add(astType);
             }
         }
-
+        
         public void AddMethod(MethodDefinition method)
         {
             AstNode node = method.IsConstructor ? (AstNode)CreateConstructor(method) : CreateMethod(method);
@@ -280,17 +259,17 @@ namespace Campy.TreeWalker
         {
             syntaxTree.Members.Add(CreateProperty(property));
         }
-
+        
         public void AddField(FieldDefinition field)
         {
             syntaxTree.Members.Add(CreateField(field));
         }
-
+        
         public void AddEvent(EventDefinition ev)
         {
             syntaxTree.Members.Add(CreateEvent(ev));
         }
-
+        
         /// <summary>
         /// Creates the AST for a type definition.
         /// </summary>
@@ -306,65 +285,52 @@ namespace Campy.TreeWalker
             astType.AddAnnotation(typeDef);
             astType.Modifiers = ConvertModifiers(typeDef);
             astType.Name = CleanName(typeDef.Name);
-
-            if (typeDef.IsEnum)
-            {  // NB: Enum is value type
+            
+            if (typeDef.IsEnum) {  // NB: Enum is value type
                 astType.ClassType = ClassType.Enum;
                 astType.Modifiers &= ~Modifiers.Sealed;
-            }
-            else if (typeDef.IsValueType)
-            {
+            } else if (typeDef.IsValueType) {
                 astType.ClassType = ClassType.Struct;
                 astType.Modifiers &= ~Modifiers.Sealed;
-            }
-            else if (typeDef.IsInterface)
-            {
+            } else if (typeDef.IsInterface) {
                 astType.ClassType = ClassType.Interface;
                 astType.Modifiers &= ~Modifiers.Abstract;
-            }
-            else
-            {
+            } else {
                 astType.ClassType = ClassType.Class;
             }
-
+            
             IEnumerable<GenericParameter> genericParameters = typeDef.GenericParameters;
             if (typeDef.DeclaringType != null && typeDef.DeclaringType.HasGenericParameters)
                 genericParameters = genericParameters.Skip(typeDef.DeclaringType.GenericParameters.Count);
             astType.TypeParameters.AddRange(MakeTypeParameters(genericParameters));
             astType.Constraints.AddRange(MakeConstraints(genericParameters));
-
+            
             EntityDeclaration result = astType;
-            if (typeDef.IsEnum)
-            {
+            if (typeDef.IsEnum) {
                 long expectedEnumMemberValue = 0;
                 bool forcePrintingInitializers = IsFlagsEnum(typeDef);
-                foreach (FieldDefinition field in typeDef.Fields)
-                {
-                    if (!field.IsStatic)
-                    {
+                TypeCode baseType = TypeCode.Int32;
+                foreach (FieldDefinition field in typeDef.Fields) {
+                    if (!field.IsStatic) {
                         // the value__ field
-                        if (field.FieldType != typeDef.Module.TypeSystem.Int32)
-                        {
+                        if (field.FieldType != typeDef.Module.TypeSystem.Int32) {
                             astType.AddChild(ConvertType(field.FieldType), Roles.BaseType);
+                            baseType = TypeAnalysis.GetTypeCode(field.FieldType);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         EnumMemberDeclaration enumMember = new EnumMemberDeclaration();
+                        ConvertCustomAttributes(enumMember, field);
                         enumMember.AddAnnotation(field);
                         enumMember.Name = CleanName(field.Name);
                         long memberValue = (long)CSharpPrimitiveCast.Cast(TypeCode.Int64, field.Constant, false);
-                        if (forcePrintingInitializers || memberValue != expectedEnumMemberValue)
-                        {
-                            enumMember.AddChild(new PrimitiveExpression(field.Constant), EnumMemberDeclaration.InitializerRole);
+                        if (forcePrintingInitializers || memberValue != expectedEnumMemberValue) {
+                            enumMember.AddChild(new PrimitiveExpression(CSharpPrimitiveCast.Cast(baseType, field.Constant, false)), EnumMemberDeclaration.InitializerRole);
                         }
                         expectedEnumMemberValue = memberValue + 1;
                         astType.AddChild(enumMember, Roles.TypeMemberRole);
                     }
                 }
-            }
-            else if (typeDef.BaseType != null && typeDef.BaseType.FullName == "System.MulticastDelegate")
-            {
+            } else if (typeDef.BaseType != null && typeDef.BaseType.FullName == "System.MulticastDelegate") {
                 DelegateDeclaration dd = new DelegateDeclaration();
                 dd.Modifiers = astType.Modifiers & ~Modifiers.Sealed;
                 dd.Name = astType.Name;
@@ -372,39 +338,30 @@ namespace Campy.TreeWalker
                 astType.Attributes.MoveTo(dd.Attributes);
                 astType.TypeParameters.MoveTo(dd.TypeParameters);
                 astType.Constraints.MoveTo(dd.Constraints);
-                foreach (var m in typeDef.Methods)
-                {
-                    if (m.Name == "Invoke")
-                    {
+                foreach (var m in typeDef.Methods) {
+                    if (m.Name == "Invoke") {
                         dd.ReturnType = ConvertType(m.ReturnType, m.MethodReturnType);
                         dd.Parameters.AddRange(MakeParameters(m));
                         ConvertAttributes(dd, m.MethodReturnType, m.Module);
                     }
                 }
                 result = dd;
-            }
-            else
-            {
+            } else {
                 // Base type
-                if (typeDef.BaseType != null && !typeDef.IsValueType && typeDef.BaseType.FullName != "System.Object")
-                {
+                if (typeDef.BaseType != null && !typeDef.IsValueType && typeDef.BaseType.FullName != "System.Object") {
                     astType.AddChild(ConvertType(typeDef.BaseType), Roles.BaseType);
                 }
                 foreach (var i in typeDef.Interfaces)
                     astType.AddChild(ConvertType(i), Roles.BaseType);
-
+                
                 AddTypeMembers(astType, typeDef);
 
-                if (astType.Members.OfType<IndexerDeclaration>().Any(idx => idx.PrivateImplementationType.IsNull))
-                {
+                if (astType.Members.OfType<IndexerDeclaration>().Any(idx => idx.PrivateImplementationType.IsNull)) {
                     // Remove the [DefaultMember] attribute if the class contains indexers
-                    foreach (AttributeSection section in astType.Attributes)
-                    {
-                        foreach (Ast.Attribute attr in section.Attributes)
-                        {
+                    foreach (AttributeSection section in astType.Attributes) {
+                        foreach (Ast.Attribute attr in section.Attributes) {
                             TypeReference tr = attr.Type.Annotation<TypeReference>();
-                            if (tr != null && tr.Name == "DefaultMemberAttribute" && tr.Namespace == "System.Reflection")
-                            {
+                            if (tr != null && tr.Name == "DefaultMemberAttribute" && tr.Namespace == "System.Reflection") {
                                 attr.Remove();
                             }
                         }
@@ -437,7 +394,7 @@ namespace Campy.TreeWalker
         {
             return new TypeOfExpression(AddEmptyTypeArgumentsForUnboundGenerics(ConvertType(type)));
         }
-
+        
         static AstType AddEmptyTypeArgumentsForUnboundGenerics(AstType type)
         {
             TypeReference typeRef = type.Annotation<TypeReference>();
@@ -448,30 +405,26 @@ namespace Campy.TreeWalker
                 return type;
             SimpleType sType = type as SimpleType;
             MemberType mType = type as MemberType;
-            if (sType != null)
-            {
-                while (typeDef.GenericParameters.Count > sType.TypeArguments.Count)
-                {
+            if (sType != null) {
+                while (typeDef.GenericParameters.Count > sType.TypeArguments.Count) {
                     sType.TypeArguments.Add(new SimpleType(""));
                 }
             }
-
-            if (mType != null)
-            {
+            
+            if (mType != null) {
                 AddEmptyTypeArgumentsForUnboundGenerics(mType.Target);
-
+                
                 int outerTypeParamCount = typeDef.DeclaringType == null ? 0 : typeDef.DeclaringType.GenericParameters.Count;
-
-                while (typeDef.GenericParameters.Count - outerTypeParamCount > mType.TypeArguments.Count)
-                {
+                
+                while (typeDef.GenericParameters.Count - outerTypeParamCount > mType.TypeArguments.Count) {
                     mType.TypeArguments.Add(new SimpleType(""));
                 }
             }
-
+            
             return type;
         }
         #endregion
-
+        
         #region Convert Type Reference
         /// <summary>
         /// Converts a type reference.
@@ -485,95 +438,70 @@ namespace Campy.TreeWalker
             int typeIndex = 0;
             return ConvertType(type, typeAttributes, ref typeIndex, options);
         }
-
+        
         static AstType ConvertType(TypeReference type, ICustomAttributeProvider typeAttributes, ref int typeIndex, ConvertTypeOptions options)
         {
-            while (type is OptionalModifierType || type is RequiredModifierType)
-            {
+            while (type is OptionalModifierType || type is RequiredModifierType) {
                 type = ((TypeSpecification)type).ElementType;
             }
-            if (type == null)
-            {
+            if (type == null) {
                 return AstType.Null;
             }
-
-            if (type is Mono.Cecil.ByReferenceType)
-            {
+            
+            if (type is Mono.Cecil.ByReferenceType) {
                 typeIndex++;
                 // by reference type cannot be represented in C#; so we'll represent it as a pointer instead
                 return ConvertType((type as Mono.Cecil.ByReferenceType).ElementType, typeAttributes, ref typeIndex, options)
                     .MakePointerType();
-            }
-            else if (type is Mono.Cecil.PointerType)
-            {
+            } else if (type is Mono.Cecil.PointerType) {
                 typeIndex++;
                 return ConvertType((type as Mono.Cecil.PointerType).ElementType, typeAttributes, ref typeIndex, options)
                     .MakePointerType();
-            }
-            else if (type is Mono.Cecil.ArrayType)
-            {
+            } else if (type is Mono.Cecil.ArrayType) {
                 typeIndex++;
                 return ConvertType((type as Mono.Cecil.ArrayType).ElementType, typeAttributes, ref typeIndex, options)
                     .MakeArrayType((type as Mono.Cecil.ArrayType).Rank);
-            }
-            else if (type is GenericInstanceType)
-            {
+            } else if (type is GenericInstanceType) {
                 GenericInstanceType gType = (GenericInstanceType)type;
-                if (gType.ElementType.Namespace == "System" && gType.ElementType.Name == "Nullable`1" && gType.GenericArguments.Count == 1)
-                {
+                if (gType.ElementType.Namespace == "System" && gType.ElementType.Name == "Nullable`1" && gType.GenericArguments.Count == 1) {
                     typeIndex++;
-                    return new ComposedType
-                    {
+                    return new ComposedType {
                         BaseType = ConvertType(gType.GenericArguments[0], typeAttributes, ref typeIndex, options),
                         HasNullableSpecifier = true
                     };
                 }
                 AstType baseType = ConvertType(gType.ElementType, typeAttributes, ref typeIndex, options & ~ConvertTypeOptions.IncludeTypeParameterDefinitions);
                 List<AstType> typeArguments = new List<AstType>();
-                foreach (var typeArgument in gType.GenericArguments)
-                {
+                foreach (var typeArgument in gType.GenericArguments) {
                     typeIndex++;
                     typeArguments.Add(ConvertType(typeArgument, typeAttributes, ref typeIndex, options));
                 }
                 ApplyTypeArgumentsTo(baseType, typeArguments);
                 return baseType;
-            }
-            else if (type is GenericParameter)
-            {
+            } else if (type is GenericParameter) {
                 return new SimpleType(type.Name);
-            }
-            else if (type.IsNested)
-            {
+            } else if (type.IsNested) {
                 AstType typeRef = ConvertType(type.DeclaringType, typeAttributes, ref typeIndex, options & ~ConvertTypeOptions.IncludeTypeParameterDefinitions);
                 string namepart = ICSharpCode.NRefactory.TypeSystem.ReflectionHelper.SplitTypeParameterCountFromReflectionName(type.Name);
                 MemberType memberType = new MemberType { Target = typeRef, MemberName = namepart };
                 memberType.AddAnnotation(type);
-                if ((options & ConvertTypeOptions.IncludeTypeParameterDefinitions) == ConvertTypeOptions.IncludeTypeParameterDefinitions)
-                {
+                if ((options & ConvertTypeOptions.IncludeTypeParameterDefinitions) == ConvertTypeOptions.IncludeTypeParameterDefinitions) {
                     AddTypeParameterDefininitionsTo(type, memberType);
                 }
                 return memberType;
-            }
-            else
-            {
+            } else {
                 string ns = type.Namespace ?? string.Empty;
                 string name = type.Name;
                 if (name == null)
                     throw new InvalidOperationException("type.Name returned null. Type: " + type.ToString());
-
-                if (name == "Object" && ns == "System" && HasDynamicAttribute(typeAttributes, typeIndex))
-                {
+                
+                if (name == "Object" && ns == "System" && HasDynamicAttribute(typeAttributes, typeIndex)) {
                     return new PrimitiveType("dynamic");
-                }
-                else
-                {
-                    if (ns == "System")
-                    {
+                } else {
+                    if (ns == "System") {
                         if ((options & ConvertTypeOptions.DoNotUsePrimitiveTypeNames)
-                            != ConvertTypeOptions.DoNotUsePrimitiveTypeNames)
-                        {
-                            switch (name)
-                            {
+                            != ConvertTypeOptions.DoNotUsePrimitiveTypeNames) {
+                            switch (name) {
                                 case "SByte":
                                     return new PrimitiveType("sbyte");
                                 case "Int16":
@@ -609,61 +537,51 @@ namespace Campy.TreeWalker
                             }
                         }
                     }
-
+                    
                     name = ICSharpCode.NRefactory.TypeSystem.ReflectionHelper.SplitTypeParameterCountFromReflectionName(name);
-
+                    
                     AstType astType;
-                    if ((options & ConvertTypeOptions.IncludeNamespace) == ConvertTypeOptions.IncludeNamespace && ns.Length > 0)
-                    {
+                    if ((options & ConvertTypeOptions.IncludeNamespace) == ConvertTypeOptions.IncludeNamespace && ns.Length > 0) {
                         string[] parts = ns.Split('.');
                         AstType nsType = new SimpleType(parts[0]);
-                        for (int i = 1; i < parts.Length; i++)
-                        {
+                        for (int i = 1; i < parts.Length; i++) {
                             nsType = new MemberType { Target = nsType, MemberName = parts[i] };
                         }
                         astType = new MemberType { Target = nsType, MemberName = name };
-                    }
-                    else
-                    {
+                    } else {
                         astType = new SimpleType(name);
                     }
                     astType.AddAnnotation(type);
-
-                    if ((options & ConvertTypeOptions.IncludeTypeParameterDefinitions) == ConvertTypeOptions.IncludeTypeParameterDefinitions)
-                    {
+                    
+                    if ((options & ConvertTypeOptions.IncludeTypeParameterDefinitions) == ConvertTypeOptions.IncludeTypeParameterDefinitions) {
                         AddTypeParameterDefininitionsTo(type, astType);
                     }
                     return astType;
                 }
             }
         }
-
+        
         static void AddTypeParameterDefininitionsTo(TypeReference type, AstType astType)
         {
-            if (type.HasGenericParameters)
-            {
+            if (type.HasGenericParameters) {
                 List<AstType> typeArguments = new List<AstType>();
-                foreach (GenericParameter gp in type.GenericParameters)
-                {
+                foreach (GenericParameter gp in type.GenericParameters) {
                     typeArguments.Add(new SimpleType(gp.Name));
                 }
                 ApplyTypeArgumentsTo(astType, typeArguments);
             }
         }
-
+        
         static void ApplyTypeArgumentsTo(AstType baseType, List<AstType> typeArguments)
         {
             SimpleType st = baseType as SimpleType;
-            if (st != null)
-            {
+            if (st != null) {
                 st.TypeArguments.AddRange(typeArguments);
             }
             MemberType mt = baseType as MemberType;
-            if (mt != null)
-            {
+            if (mt != null) {
                 TypeReference type = mt.Annotation<TypeReference>();
-                if (type != null)
-                {
+                if (type != null) {
                     int typeParameterCount;
                     ICSharpCode.NRefactory.TypeSystem.ReflectionHelper.SplitTypeParameterCountFromReflectionName(type.Name, out typeParameterCount);
                     if (typeParameterCount > typeArguments.Count)
@@ -672,26 +590,21 @@ namespace Campy.TreeWalker
                     typeArguments.RemoveRange(typeArguments.Count - typeParameterCount, typeParameterCount);
                     if (typeArguments.Count > 0)
                         ApplyTypeArgumentsTo(mt.Target, typeArguments);
-                }
-                else
-                {
+                } else {
                     mt.TypeArguments.AddRange(typeArguments);
                 }
             }
         }
-
+        
         const string DynamicAttributeFullName = "System.Runtime.CompilerServices.DynamicAttribute";
-
+        
         static bool HasDynamicAttribute(ICustomAttributeProvider attributeProvider, int typeIndex)
         {
             if (attributeProvider == null || !attributeProvider.HasCustomAttributes)
                 return false;
-            foreach (CustomAttribute a in attributeProvider.CustomAttributes)
-            {
-                if (a.Constructor.DeclaringType.FullName == DynamicAttributeFullName)
-                {
-                    if (a.ConstructorArguments.Count == 1)
-                    {
+            foreach (CustomAttribute a in attributeProvider.CustomAttributes) {
+                if (a.Constructor.DeclaringType.FullName == DynamicAttributeFullName) {
+                    if (a.ConstructorArguments.Count == 1) {
                         CustomAttributeArgument[] values = a.ConstructorArguments[0].Value as CustomAttributeArgument[];
                         if (values != null && typeIndex < values.Length && values[typeIndex].Value is bool)
                             return (bool)values[typeIndex].Value;
@@ -702,7 +615,7 @@ namespace Campy.TreeWalker
             return false;
         }
         #endregion
-
+        
         #region ConvertModifiers
         Modifiers ConvertModifiers(TypeDefinition typeDef)
         {
@@ -717,17 +630,17 @@ namespace Campy.TreeWalker
                 modifiers |= Modifiers.Protected | Modifiers.Internal;
             else if (typeDef.IsPublic || typeDef.IsNestedPublic)
                 modifiers |= Modifiers.Public;
-
+            
             if (typeDef.IsAbstract && typeDef.IsSealed)
                 modifiers |= Modifiers.Static;
             else if (typeDef.IsAbstract)
                 modifiers |= Modifiers.Abstract;
             else if (typeDef.IsSealed)
                 modifiers |= Modifiers.Sealed;
-
+            
             return modifiers;
         }
-
+        
         Modifiers ConvertModifiers(FieldDefinition fieldDef)
         {
             Modifiers modifiers = Modifiers.None;
@@ -741,27 +654,24 @@ namespace Campy.TreeWalker
                 modifiers |= Modifiers.Protected | Modifiers.Internal;
             else if (fieldDef.IsPublic)
                 modifiers |= Modifiers.Public;
-
-            if (fieldDef.IsLiteral)
-            {
+            
+            if (fieldDef.IsLiteral) {
                 modifiers |= Modifiers.Const;
-            }
-            else
-            {
+            } else {
                 if (fieldDef.IsStatic)
                     modifiers |= Modifiers.Static;
-
+                
                 if (fieldDef.IsInitOnly)
                     modifiers |= Modifiers.Readonly;
             }
-
+            
             RequiredModifierType modreq = fieldDef.FieldType as RequiredModifierType;
             if (modreq != null && modreq.ModifierType.FullName == typeof(IsVolatile).FullName)
                 modifiers |= Modifiers.Volatile;
-
+            
             return modifiers;
         }
-
+        
         Modifiers ConvertModifiers(MethodDefinition methodDef)
         {
             if (methodDef == null)
@@ -777,25 +687,19 @@ namespace Campy.TreeWalker
                 modifiers |= Modifiers.Protected | Modifiers.Internal;
             else if (methodDef.IsPublic)
                 modifiers |= Modifiers.Public;
-
+            
             if (methodDef.IsStatic)
                 modifiers |= Modifiers.Static;
-
-            if (methodDef.IsAbstract)
-            {
+            
+            if (methodDef.IsAbstract) {
                 modifiers |= Modifiers.Abstract;
                 if (!methodDef.IsNewSlot)
                     modifiers |= Modifiers.Override;
-            }
-            else if (methodDef.IsFinal)
-            {
-                if (!methodDef.IsNewSlot)
-                {
+            } else if (methodDef.IsFinal) {
+                if (!methodDef.IsNewSlot) {
                     modifiers |= Modifiers.Sealed | Modifiers.Override;
                 }
-            }
-            else if (methodDef.IsVirtual)
-            {
+            } else if (methodDef.IsVirtual) {
                 if (methodDef.IsNewSlot)
                     modifiers |= Modifiers.Virtual;
                 else
@@ -803,48 +707,43 @@ namespace Campy.TreeWalker
             }
             if (!methodDef.HasBody && !methodDef.IsAbstract)
                 modifiers |= Modifiers.Extern;
-
+            
             return modifiers;
         }
 
         #endregion
-
+        
         void AddTypeMembers(TypeDeclaration astType, TypeDefinition typeDef)
         {
             // Nested types
-            foreach (TypeDefinition nestedTypeDef in typeDef.NestedTypes)
-            {
+            foreach (TypeDefinition nestedTypeDef in typeDef.NestedTypes) {
                 if (MemberIsHidden(nestedTypeDef, context.Settings))
                     continue;
                 var nestedType = CreateType(nestedTypeDef);
                 SetNewModifier(nestedType);
                 astType.AddChild(nestedType, Roles.TypeMemberRole);
             }
-
+            
             // Add fields
-            foreach (FieldDefinition fieldDef in typeDef.Fields)
-            {
+            foreach(FieldDefinition fieldDef in typeDef.Fields) {
                 if (MemberIsHidden(fieldDef, context.Settings)) continue;
                 astType.AddChild(CreateField(fieldDef), Roles.TypeMemberRole);
             }
-
+            
             // Add events
-            foreach (EventDefinition eventDef in typeDef.Events)
-            {
+            foreach(EventDefinition eventDef in typeDef.Events) {
                 astType.AddChild(CreateEvent(eventDef), Roles.TypeMemberRole);
             }
 
             // Add properties
-            foreach (PropertyDefinition propDef in typeDef.Properties)
-            {
+            foreach(PropertyDefinition propDef in typeDef.Properties) {
                 astType.Members.Add(CreateProperty(propDef));
             }
-
+            
             // Add methods
-            foreach (MethodDefinition methodDef in typeDef.Methods)
-            {
+            foreach(MethodDefinition methodDef in typeDef.Methods) {
                 if (MemberIsHidden(methodDef, context.Settings)) continue;
-
+                
                 if (methodDef.IsConstructor)
                     astType.Members.Add(CreateConstructor(methodDef));
                 else
@@ -860,45 +759,43 @@ namespace Campy.TreeWalker
             astMethod.Name = CleanName(methodDef.Name);
             astMethod.TypeParameters.AddRange(MakeTypeParameters(methodDef.GenericParameters));
             astMethod.Parameters.AddRange(MakeParameters(methodDef));
+            bool createMethodBody = false;
             // constraints for override and explicit interface implementation methods are inherited from the base method, so they cannot be specified directly
             if (!methodDef.IsVirtual || (methodDef.IsNewSlot && !methodDef.IsPrivate)) astMethod.Constraints.AddRange(MakeConstraints(methodDef.GenericParameters));
-            if (!methodDef.DeclaringType.IsInterface)
-            {
-                if (IsExplicitInterfaceImplementation(methodDef))
-                {
+            if (!methodDef.DeclaringType.IsInterface) {
+                if (IsExplicitInterfaceImplementation(methodDef)) {
                     astMethod.PrivateImplementationType = ConvertType(methodDef.Overrides.First().DeclaringType);
-                }
-                else
-                {
+                } else {
                     astMethod.Modifiers = ConvertModifiers(methodDef);
                     if (methodDef.IsVirtual == methodDef.IsNewSlot)
                         SetNewModifier(astMethod);
                 }
+                createMethodBody = true;
+            } else if (methodDef.IsStatic) {
+                // decompile static method in interface
+                astMethod.Modifiers = ConvertModifiers(methodDef);
+                createMethodBody = true;
+            }
+            if (createMethodBody) {
                 astMethod.Body = CreateMethodBody(methodDef, astMethod.Parameters);
-                if (context.CurrentMethodIsAsync)
-                {
+                if (context.CurrentMethodIsAsync) {
                     astMethod.Modifiers |= Modifiers.Async;
                     context.CurrentMethodIsAsync = false;
                 }
             }
             ConvertAttributes(astMethod, methodDef);
-            if (methodDef.HasCustomAttributes && astMethod.Parameters.Count > 0)
-            {
-                foreach (CustomAttribute ca in methodDef.CustomAttributes)
-                {
-                    if (ca.AttributeType.Name == "ExtensionAttribute" && ca.AttributeType.Namespace == "System.Runtime.CompilerServices")
-                    {
+            if (methodDef.HasCustomAttributes && astMethod.Parameters.Count > 0) {
+                foreach (CustomAttribute ca in methodDef.CustomAttributes) {
+                    if (ca.AttributeType.Name == "ExtensionAttribute" && ca.AttributeType.Namespace == "System.Runtime.CompilerServices") {
                         astMethod.Parameters.First().ParameterModifier = ParameterModifier.This;
                     }
                 }
             }
-
+            
             // Convert MethodDeclaration to OperatorDeclaration if possible
-            if (methodDef.IsSpecialName && !methodDef.HasGenericParameters)
-            {
+            if (methodDef.IsSpecialName && !methodDef.HasGenericParameters) {
                 OperatorType? opType = OperatorDeclaration.GetOperatorType(methodDef.Name);
-                if (opType.HasValue)
-                {
+                if (opType.HasValue) {
                     OperatorDeclaration op = new OperatorDeclaration();
                     op.CopyAnnotationsFrom(astMethod);
                     op.ReturnType = astMethod.ReturnType.Detach();
@@ -912,7 +809,7 @@ namespace Campy.TreeWalker
             }
             return astMethod;
         }
-
+        
         bool IsExplicitInterfaceImplementation(MethodDefinition methodDef)
         {
             return methodDef.HasOverrides && methodDef.IsPrivate;
@@ -920,8 +817,7 @@ namespace Campy.TreeWalker
 
         IEnumerable<TypeParameterDeclaration> MakeTypeParameters(IEnumerable<GenericParameter> genericParameters)
         {
-            foreach (var gp in genericParameters)
-            {
+            foreach (var gp in genericParameters) {
                 TypeParameterDeclaration tp = new TypeParameterDeclaration();
                 tp.Name = CleanName(gp.Name);
                 if (gp.IsContravariant)
@@ -932,11 +828,10 @@ namespace Campy.TreeWalker
                 yield return tp;
             }
         }
-
+        
         IEnumerable<Constraint> MakeConstraints(IEnumerable<GenericParameter> genericParameters)
         {
-            foreach (var gp in genericParameters)
-            {
+            foreach (var gp in genericParameters) {
                 Constraint c = new Constraint();
                 c.TypeParameter = new SimpleType(CleanName(gp.Name));
                 // class/struct must be first
@@ -944,28 +839,26 @@ namespace Campy.TreeWalker
                     c.BaseTypes.Add(new PrimitiveType("class"));
                 if (gp.HasNotNullableValueTypeConstraint)
                     c.BaseTypes.Add(new PrimitiveType("struct"));
-
-                foreach (var constraintType in gp.Constraints)
-                {
+                
+                foreach (var constraintType in gp.Constraints) {
                     if (gp.HasNotNullableValueTypeConstraint && constraintType.FullName == "System.ValueType")
                         continue;
                     c.BaseTypes.Add(ConvertType(constraintType));
                 }
-
+                
                 if (gp.HasDefaultConstructorConstraint && !gp.HasNotNullableValueTypeConstraint)
                     c.BaseTypes.Add(new PrimitiveType("new")); // new() must be last
                 if (c.BaseTypes.Any())
                     yield return c;
             }
         }
-
+        
         ConstructorDeclaration CreateConstructor(MethodDefinition methodDef)
         {
             ConstructorDeclaration astMethod = new ConstructorDeclaration();
             astMethod.AddAnnotation(methodDef);
             astMethod.Modifiers = ConvertModifiers(methodDef);
-            if (methodDef.IsStatic)
-            {
+            if (methodDef.IsStatic) {
                 // don't show visibility for static ctors
                 astMethod.Modifiers &= ~Modifiers.VisibilityMask;
             }
@@ -973,8 +866,7 @@ namespace Campy.TreeWalker
             astMethod.Parameters.AddRange(MakeParameters(methodDef));
             astMethod.Body = CreateMethodBody(methodDef, astMethod.Parameters);
             ConvertAttributes(astMethod, methodDef);
-            if (methodDef.IsStatic && methodDef.DeclaringType.IsBeforeFieldInit && !astMethod.Body.IsNull)
-            {
+            if (methodDef.IsStatic && methodDef.DeclaringType.IsBeforeFieldInit && !astMethod.Body.IsNull) {
                 astMethod.Body.InsertChildAfter(null, new Comment(" Note: this type is marked as 'beforefieldinit'."), Roles.Comment);
             }
             return astMethod;
@@ -1000,77 +892,62 @@ namespace Campy.TreeWalker
             var accessor = propDef.GetMethod ?? propDef.SetMethod;
             Modifiers getterModifiers = Modifiers.None;
             Modifiers setterModifiers = Modifiers.None;
-            if (IsExplicitInterfaceImplementation(accessor))
-            {
+            if (IsExplicitInterfaceImplementation(accessor)) {
                 astProp.PrivateImplementationType = ConvertType(accessor.Overrides.First().DeclaringType);
-            }
-            else if (!propDef.DeclaringType.IsInterface)
-            {
+            } else if (!propDef.DeclaringType.IsInterface) {
                 getterModifiers = ConvertModifiers(propDef.GetMethod);
                 setterModifiers = ConvertModifiers(propDef.SetMethod);
                 astProp.Modifiers = FixUpVisibility(getterModifiers | setterModifiers);
-                try
-                {
-                    if (accessor.IsVirtual && !accessor.IsNewSlot && (propDef.GetMethod == null || propDef.SetMethod == null))
-                    {
-                        foreach (var basePropDef in TypesHierarchyHelpers.FindBaseProperties(propDef))
-                        {
-                            if (basePropDef.GetMethod != null && basePropDef.SetMethod != null)
-                            {
+                try {
+                    if (accessor.IsVirtual && !accessor.IsNewSlot && (propDef.GetMethod == null || propDef.SetMethod == null)) {
+                        foreach (var basePropDef in TypesHierarchyHelpers.FindBaseProperties(propDef)) {
+                            if (basePropDef.GetMethod != null && basePropDef.SetMethod != null) {
                                 var propVisibilityModifiers = ConvertModifiers(basePropDef.GetMethod) | ConvertModifiers(basePropDef.SetMethod);
                                 astProp.Modifiers = FixUpVisibility((astProp.Modifiers & ~Modifiers.VisibilityMask) | (propVisibilityModifiers & Modifiers.VisibilityMask));
                                 break;
-                            }
-                            else if ((basePropDef.GetMethod ?? basePropDef.SetMethod).IsNewSlot)
-                            {
+                            } else if ((basePropDef.GetMethod ?? basePropDef.SetMethod).IsNewSlot) {
                                 break;
                             }
                         }
                     }
-                }
-                catch (ReferenceResolvingException)
-                {
+                } catch (ReferenceResolvingException) {
                     // TODO: add some kind of notification (a comment?) about possible problems with decompiled code due to unresolved references.
                 }
             }
             astProp.Name = CleanName(propDef.Name);
             astProp.ReturnType = ConvertType(propDef.PropertyType, propDef);
-
-            if (propDef.GetMethod != null)
-            {
+            
+            if (propDef.GetMethod != null) {
                 astProp.Getter = new Accessor();
                 astProp.Getter.Body = CreateMethodBody(propDef.GetMethod);
                 astProp.Getter.AddAnnotation(propDef.GetMethod);
                 ConvertAttributes(astProp.Getter, propDef.GetMethod);
-
+                
                 if ((getterModifiers & Modifiers.VisibilityMask) != (astProp.Modifiers & Modifiers.VisibilityMask))
                     astProp.Getter.Modifiers = getterModifiers & Modifiers.VisibilityMask;
             }
-            if (propDef.SetMethod != null)
-            {
+            if (propDef.SetMethod != null) {
                 astProp.Setter = new Accessor();
                 astProp.Setter.Body = CreateMethodBody(propDef.SetMethod);
                 astProp.Setter.AddAnnotation(propDef.SetMethod);
                 ConvertAttributes(astProp.Setter, propDef.SetMethod);
                 ParameterDefinition lastParam = propDef.SetMethod.Parameters.LastOrDefault();
-                if (lastParam != null)
-                {
+                if (lastParam != null) {
                     ConvertCustomAttributes(astProp.Setter, lastParam, "param");
-                    if (lastParam.HasMarshalInfo)
-                    {
+                    if (lastParam.HasMarshalInfo) {
                         astProp.Setter.Attributes.Add(new AttributeSection(ConvertMarshalInfo(lastParam, propDef.Module)) { AttributeTarget = "param" });
                     }
                 }
-
+                
                 if ((setterModifiers & Modifiers.VisibilityMask) != (astProp.Modifiers & Modifiers.VisibilityMask))
                     astProp.Setter.Modifiers = setterModifiers & Modifiers.VisibilityMask;
             }
             ConvertCustomAttributes(astProp, propDef);
 
             EntityDeclaration member = astProp;
-            if (propDef.IsIndexer())
+            if(propDef.IsIndexer())
                 member = ConvertPropertyToIndexer(astProp, propDef);
-            if (!accessor.HasOverrides && !accessor.DeclaringType.IsInterface)
+            if(!accessor.HasOverrides && !accessor.DeclaringType.IsInterface)
                 if (accessor.IsVirtual == accessor.IsNewSlot)
                     SetNewModifier(member);
             return member;
@@ -1089,11 +966,10 @@ namespace Campy.TreeWalker
             astIndexer.Parameters.AddRange(MakeParameters(propDef.Parameters));
             return astIndexer;
         }
-
+        
         EntityDeclaration CreateEvent(EventDefinition eventDef)
         {
-            if (eventDef.AddMethod != null && eventDef.AddMethod.IsAbstract)
-            {
+            if (eventDef.AddMethod != null && eventDef.AddMethod.IsAbstract) {
                 // An abstract event cannot be custom
                 EventDeclaration astEvent = new EventDeclaration();
                 ConvertCustomAttributes(astEvent, eventDef);
@@ -1103,9 +979,7 @@ namespace Campy.TreeWalker
                 if (!eventDef.DeclaringType.IsInterface)
                     astEvent.Modifiers = ConvertModifiers(eventDef.AddMethod);
                 return astEvent;
-            }
-            else
-            {
+            } else {
                 CustomEventDeclaration astEvent = new CustomEventDeclaration();
                 ConvertCustomAttributes(astEvent, eventDef);
                 astEvent.AddAnnotation(eventDef);
@@ -1115,34 +989,29 @@ namespace Campy.TreeWalker
                     astEvent.Modifiers = ConvertModifiers(eventDef.AddMethod);
                 else
                     astEvent.PrivateImplementationType = ConvertType(eventDef.AddMethod.Overrides.First().DeclaringType);
-
-                if (eventDef.AddMethod != null)
-                {
-                    astEvent.AddAccessor = new Accessor
-                    {
+                
+                if (eventDef.AddMethod != null) {
+                    astEvent.AddAccessor = new Accessor {
                         Body = CreateMethodBody(eventDef.AddMethod)
                     }.WithAnnotation(eventDef.AddMethod);
                     ConvertAttributes(astEvent.AddAccessor, eventDef.AddMethod);
                 }
-                if (eventDef.RemoveMethod != null)
-                {
-                    astEvent.RemoveAccessor = new Accessor
-                    {
+                if (eventDef.RemoveMethod != null) {
+                    astEvent.RemoveAccessor = new Accessor {
                         Body = CreateMethodBody(eventDef.RemoveMethod)
                     }.WithAnnotation(eventDef.RemoveMethod);
                     ConvertAttributes(astEvent.RemoveAccessor, eventDef.RemoveMethod);
                 }
                 MethodDefinition accessor = eventDef.AddMethod ?? eventDef.RemoveMethod;
-                if (accessor.IsVirtual == accessor.IsNewSlot)
-                {
+                if (accessor.IsVirtual == accessor.IsNewSlot) {
                     SetNewModifier(astEvent);
                 }
                 return astEvent;
             }
         }
-
+        
         public bool DecompileMethodBodies { get; set; }
-
+        
         BlockStatement CreateMethodBody(MethodDefinition method, IEnumerable<ParameterDeclaration> parameters = null)
         {
             if (DecompileMethodBodies)
@@ -1159,90 +1028,73 @@ namespace Campy.TreeWalker
             astField.AddChild(initializer, Roles.Variable);
             astField.ReturnType = ConvertType(fieldDef.FieldType, fieldDef);
             astField.Modifiers = ConvertModifiers(fieldDef);
-            if (fieldDef.HasConstant)
-            {
+            if (fieldDef.HasConstant) {
                 initializer.Initializer = CreateExpressionForConstant(fieldDef.Constant, fieldDef.FieldType, fieldDef.DeclaringType.IsEnum);
             }
             ConvertAttributes(astField, fieldDef);
             SetNewModifier(astField);
             return astField;
         }
-
+        
         static Expression CreateExpressionForConstant(object constant, TypeReference type, bool isEnumMemberDeclaration = false)
         {
-            if (constant == null)
-            {
+            if (constant == null) {
                 if (type.IsValueType && !(type.Namespace == "System" && type.Name == "Nullable`1"))
                     return new DefaultValueExpression(ConvertType(type));
                 else
                     return new NullReferenceExpression();
-            }
-            else
-            {
+            } else {
                 TypeCode c = Type.GetTypeCode(constant.GetType());
-                if (c >= TypeCode.SByte && c <= TypeCode.UInt64 && !isEnumMemberDeclaration)
-                {
+                if (c >= TypeCode.SByte && c <= TypeCode.UInt64 && !isEnumMemberDeclaration) {
                     return MakePrimitive((long)CSharpPrimitiveCast.Cast(TypeCode.Int64, constant, false), type);
-                }
-                else
-                {
+                } else {
                     return new PrimitiveExpression(constant);
                 }
             }
         }
-
+        
         public static IEnumerable<ParameterDeclaration> MakeParameters(MethodDefinition method, bool isLambda = false)
         {
             var parameters = MakeParameters(method.Parameters, isLambda);
-            if (method.CallingConvention == MethodCallingConvention.VarArg)
-            {
+            if (method.CallingConvention == MethodCallingConvention.VarArg) {
                 return parameters.Concat(new[] { new ParameterDeclaration { Type = new PrimitiveType("__arglist") } });
-            }
-            else
-            {
+            } else {
                 return parameters;
             }
         }
-
+        
         public static IEnumerable<ParameterDeclaration> MakeParameters(IEnumerable<ParameterDefinition> paramCol, bool isLambda = false)
         {
-            foreach (ParameterDefinition paramDef in paramCol)
-            {
+            foreach(ParameterDefinition paramDef in paramCol) {
                 ParameterDeclaration astParam = new ParameterDeclaration();
                 astParam.AddAnnotation(paramDef);
                 if (!(isLambda && paramDef.ParameterType.ContainsAnonymousType()))
                     astParam.Type = ConvertType(paramDef.ParameterType, paramDef);
                 astParam.Name = paramDef.Name;
-
-                if (paramDef.ParameterType is ByReferenceType)
-                {
+                
+                if (paramDef.ParameterType is ByReferenceType) {
                     astParam.ParameterModifier = (!paramDef.IsIn && paramDef.IsOut) ? ParameterModifier.Out : ParameterModifier.Ref;
                     ComposedType ct = astParam.Type as ComposedType;
                     if (ct != null && ct.PointerRank > 0)
                         ct.PointerRank--;
                 }
-
-                if (paramDef.HasCustomAttributes)
-                {
-                    foreach (CustomAttribute ca in paramDef.CustomAttributes)
-                    {
+                
+                if (paramDef.HasCustomAttributes) {
+                    foreach (CustomAttribute ca in paramDef.CustomAttributes) {
                         if (ca.AttributeType.Name == "ParamArrayAttribute" && ca.AttributeType.Namespace == "System")
                             astParam.ParameterModifier = ParameterModifier.Params;
                     }
                 }
-                if (paramDef.IsOptional)
-                {
+                if (paramDef.IsOptional) {
                     astParam.DefaultExpression = CreateExpressionForConstant(paramDef.Constant, paramDef.ParameterType);
                 }
-
+                
                 ConvertCustomAttributes(astParam, paramDef);
                 ModuleDefinition module = ((MethodDefinition)paramDef.Method).Module;
-                if (paramDef.HasMarshalInfo)
-                {
+                if (paramDef.HasMarshalInfo) {
                     astParam.Attributes.Add(new AttributeSection(ConvertMarshalInfo(paramDef, module)));
                 }
-                if (astParam.ParameterModifier != ParameterModifier.Out)
-                {
+                if (astParam.ParameterModifier != ParameterModifier.Out) {
                     if (paramDef.IsIn)
                         astParam.Attributes.Add(new AttributeSection(CreateNonCustomAttribute(typeof(InAttribute), module)));
                     if (paramDef.IsOut)
@@ -1251,28 +1103,27 @@ namespace Campy.TreeWalker
                 yield return astParam;
             }
         }
-
+        
         #region ConvertAttributes
         void ConvertAttributes(EntityDeclaration attributedNode, TypeDefinition typeDefinition)
         {
             ConvertCustomAttributes(attributedNode, typeDefinition);
             ConvertSecurityAttributes(attributedNode, typeDefinition);
-
+            
             // Handle the non-custom attributes:
             #region SerializableAttribute
             if (typeDefinition.IsSerializable)
                 attributedNode.Attributes.Add(new AttributeSection(CreateNonCustomAttribute(typeof(SerializableAttribute))));
             #endregion
-
+            
             #region ComImportAttribute
             if (typeDefinition.IsImport)
                 attributedNode.Attributes.Add(new AttributeSection(CreateNonCustomAttribute(typeof(ComImportAttribute))));
             #endregion
-
+            
             #region StructLayoutAttribute
             LayoutKind layoutKind = LayoutKind.Auto;
-            switch (typeDefinition.Attributes & TypeAttributes.LayoutMask)
-            {
+            switch (typeDefinition.Attributes & TypeAttributes.LayoutMask) {
                 case TypeAttributes.SequentialLayout:
                     layoutKind = LayoutKind.Sequential;
                     break;
@@ -1281,8 +1132,7 @@ namespace Campy.TreeWalker
                     break;
             }
             CharSet charSet = CharSet.None;
-            switch (typeDefinition.Attributes & TypeAttributes.StringFormatMask)
-            {
+            switch (typeDefinition.Attributes & TypeAttributes.StringFormatMask) {
                 case TypeAttributes.AnsiClass:
                     charSet = CharSet.Ansi;
                     break;
@@ -1293,50 +1143,44 @@ namespace Campy.TreeWalker
                     charSet = CharSet.Unicode;
                     break;
             }
-            LayoutKind defaultLayoutKind = (typeDefinition.IsValueType && !typeDefinition.IsEnum) ? LayoutKind.Sequential : LayoutKind.Auto;
-            if (layoutKind != defaultLayoutKind || charSet != CharSet.Ansi || typeDefinition.PackingSize > 0 || typeDefinition.ClassSize > 0)
-            {
+            LayoutKind defaultLayoutKind = (typeDefinition.IsValueType && !typeDefinition.IsEnum) ? LayoutKind.Sequential: LayoutKind.Auto;
+            if (layoutKind != defaultLayoutKind || charSet != CharSet.Ansi || typeDefinition.PackingSize > 0 || typeDefinition.ClassSize > 0) {
                 var structLayout = CreateNonCustomAttribute(typeof(StructLayoutAttribute));
                 structLayout.Arguments.Add(new IdentifierExpression("LayoutKind").Member(layoutKind.ToString()));
-                if (charSet != CharSet.Ansi)
-                {
+                if (charSet != CharSet.Ansi) {
                     structLayout.AddNamedArgument("CharSet", new IdentifierExpression("CharSet").Member(charSet.ToString()));
                 }
-                if (typeDefinition.PackingSize > 0)
-                {
+                if (typeDefinition.PackingSize > 0) {
                     structLayout.AddNamedArgument("Pack", new PrimitiveExpression((int)typeDefinition.PackingSize));
                 }
-                if (typeDefinition.ClassSize > 0)
-                {
+                if (typeDefinition.ClassSize > 0) {
                     structLayout.AddNamedArgument("Size", new PrimitiveExpression((int)typeDefinition.ClassSize));
                 }
                 attributedNode.Attributes.Add(new AttributeSection(structLayout));
             }
             #endregion
         }
-
+        
         void ConvertAttributes(EntityDeclaration attributedNode, MethodDefinition methodDefinition)
         {
             ConvertCustomAttributes(attributedNode, methodDefinition);
             ConvertSecurityAttributes(attributedNode, methodDefinition);
-
+            
             MethodImplAttributes implAttributes = methodDefinition.ImplAttributes & ~MethodImplAttributes.CodeTypeMask;
-
+            
             #region DllImportAttribute
-            if (methodDefinition.HasPInvokeInfo && methodDefinition.PInvokeInfo != null)
-            {
+            if (methodDefinition.HasPInvokeInfo && methodDefinition.PInvokeInfo != null) {
                 PInvokeInfo info = methodDefinition.PInvokeInfo;
                 Ast.Attribute dllImport = CreateNonCustomAttribute(typeof(DllImportAttribute));
                 dllImport.Arguments.Add(new PrimitiveExpression(info.Module.Name));
-
+                
                 if (info.IsBestFitDisabled)
                     dllImport.AddNamedArgument("BestFitMapping", new PrimitiveExpression(false));
                 if (info.IsBestFitEnabled)
                     dllImport.AddNamedArgument("BestFitMapping", new PrimitiveExpression(true));
-
+                
                 CallingConvention callingConvention;
-                switch (info.Attributes & PInvokeAttributes.CallConvMask)
-                {
+                switch (info.Attributes & PInvokeAttributes.CallConvMask) {
                     case PInvokeAttributes.CallConvCdecl:
                         callingConvention = CallingConvention.Cdecl;
                         break;
@@ -1357,10 +1201,9 @@ namespace Campy.TreeWalker
                 }
                 if (callingConvention != CallingConvention.Winapi)
                     dllImport.AddNamedArgument("CallingConvention", new IdentifierExpression("CallingConvention").Member(callingConvention.ToString()));
-
+                
                 CharSet charSet = CharSet.None;
-                switch (info.Attributes & PInvokeAttributes.CharSetMask)
-                {
+                switch (info.Attributes & PInvokeAttributes.CharSetMask) {
                     case PInvokeAttributes.CharSetAnsi:
                         charSet = CharSet.Ansi;
                         break;
@@ -1373,41 +1216,39 @@ namespace Campy.TreeWalker
                 }
                 if (charSet != CharSet.None)
                     dllImport.AddNamedArgument("CharSet", new IdentifierExpression("CharSet").Member(charSet.ToString()));
-
+                
                 if (!string.IsNullOrEmpty(info.EntryPoint) && info.EntryPoint != methodDefinition.Name)
                     dllImport.AddNamedArgument("EntryPoint", new PrimitiveExpression(info.EntryPoint));
-
+                
                 if (info.IsNoMangle)
                     dllImport.AddNamedArgument("ExactSpelling", new PrimitiveExpression(true));
-
+                
                 if ((implAttributes & MethodImplAttributes.PreserveSig) == MethodImplAttributes.PreserveSig)
                     implAttributes &= ~MethodImplAttributes.PreserveSig;
                 else
                     dllImport.AddNamedArgument("PreserveSig", new PrimitiveExpression(false));
-
+                
                 if (info.SupportsLastError)
                     dllImport.AddNamedArgument("SetLastError", new PrimitiveExpression(true));
-
+                
                 if (info.IsThrowOnUnmappableCharDisabled)
                     dllImport.AddNamedArgument("ThrowOnUnmappableChar", new PrimitiveExpression(false));
                 if (info.IsThrowOnUnmappableCharEnabled)
                     dllImport.AddNamedArgument("ThrowOnUnmappableChar", new PrimitiveExpression(true));
-
+                
                 attributedNode.Attributes.Add(new AttributeSection(dllImport));
             }
             #endregion
-
+            
             #region PreserveSigAttribute
-            if (implAttributes == MethodImplAttributes.PreserveSig)
-            {
+            if (implAttributes == MethodImplAttributes.PreserveSig) {
                 attributedNode.Attributes.Add(new AttributeSection(CreateNonCustomAttribute(typeof(PreserveSigAttribute))));
                 implAttributes = 0;
             }
             #endregion
-
+            
             #region MethodImplAttribute
-            if (implAttributes != 0)
-            {
+            if (implAttributes != 0) {
                 Ast.Attribute methodImpl = CreateNonCustomAttribute(typeof(MethodImplAttribute));
                 TypeReference methodImplOptions = new TypeReference(
                     "System.Runtime.CompilerServices", "MethodImplOptions",
@@ -1416,47 +1257,43 @@ namespace Campy.TreeWalker
                 attributedNode.Attributes.Add(new AttributeSection(methodImpl));
             }
             #endregion
-
+            
             ConvertAttributes(attributedNode, methodDefinition.MethodReturnType, methodDefinition.Module);
         }
-
+        
         void ConvertAttributes(EntityDeclaration attributedNode, MethodReturnType methodReturnType, ModuleDefinition module)
         {
             ConvertCustomAttributes(attributedNode, methodReturnType, "return");
-            if (methodReturnType.HasMarshalInfo)
-            {
+            if (methodReturnType.HasMarshalInfo) {
                 var marshalInfo = ConvertMarshalInfo(methodReturnType, module);
                 attributedNode.Attributes.Add(new AttributeSection(marshalInfo) { AttributeTarget = "return" });
             }
         }
-
+        
         internal static void ConvertAttributes(EntityDeclaration attributedNode, FieldDefinition fieldDefinition, string attributeTarget = null)
         {
             ConvertCustomAttributes(attributedNode, fieldDefinition);
-
+            
             #region FieldOffsetAttribute
-            if (fieldDefinition.HasLayoutInfo)
-            {
+            if (fieldDefinition.HasLayoutInfo) {
                 Ast.Attribute fieldOffset = CreateNonCustomAttribute(typeof(FieldOffsetAttribute), fieldDefinition.Module);
                 fieldOffset.Arguments.Add(new PrimitiveExpression(fieldDefinition.Offset));
                 attributedNode.Attributes.Add(new AttributeSection(fieldOffset) { AttributeTarget = attributeTarget });
             }
             #endregion
-
+            
             #region NonSerializedAttribute
-            if (fieldDefinition.IsNotSerialized)
-            {
+            if (fieldDefinition.IsNotSerialized) {
                 Ast.Attribute nonSerialized = CreateNonCustomAttribute(typeof(NonSerializedAttribute), fieldDefinition.Module);
                 attributedNode.Attributes.Add(new AttributeSection(nonSerialized) { AttributeTarget = attributeTarget });
             }
             #endregion
-
-            if (fieldDefinition.HasMarshalInfo)
-            {
-                attributedNode.Attributes.Add(new AttributeSection(ConvertMarshalInfo(fieldDefinition, fieldDefinition.Module)) { AttributeTarget = attributeTarget });
+            
+            if (fieldDefinition.HasMarshalInfo) {
+                attributedNode.Attributes.Add(new AttributeSection(ConvertMarshalInfo(fieldDefinition, fieldDefinition.Module))  { AttributeTarget = attributeTarget });
             }
         }
-
+        
         #region MarshalAsAttribute (ConvertMarshalInfo)
         static Ast.Attribute ConvertMarshalInfo(IMarshalInfoProvider marshalInfoProvider, ModuleDefinition module)
         {
@@ -1464,23 +1301,20 @@ namespace Campy.TreeWalker
             Ast.Attribute attr = CreateNonCustomAttribute(typeof(MarshalAsAttribute), module);
             var unmanagedType = new TypeReference("System.Runtime.InteropServices", "UnmanagedType", module, module.TypeSystem.Corlib);
             attr.Arguments.Add(MakePrimitive((int)marshalInfo.NativeType, unmanagedType));
-
+            
             FixedArrayMarshalInfo fami = marshalInfo as FixedArrayMarshalInfo;
-            if (fami != null)
-            {
+            if (fami != null) {
                 attr.AddNamedArgument("SizeConst", new PrimitiveExpression(fami.Size));
                 if (fami.ElementType != NativeType.None)
                     attr.AddNamedArgument("ArraySubType", MakePrimitive((int)fami.ElementType, unmanagedType));
             }
             SafeArrayMarshalInfo sami = marshalInfo as SafeArrayMarshalInfo;
-            if (sami != null && sami.ElementType != VariantType.None)
-            {
+            if (sami != null && sami.ElementType != VariantType.None) {
                 var varEnum = new TypeReference("System.Runtime.InteropServices", "VarEnum", module, module.TypeSystem.Corlib);
                 attr.AddNamedArgument("SafeArraySubType", MakePrimitive((int)sami.ElementType, varEnum));
             }
             ArrayMarshalInfo ami = marshalInfo as ArrayMarshalInfo;
-            if (ami != null)
-            {
+            if (ami != null) {
                 if (ami.ElementType != NativeType.Max)
                     attr.AddNamedArgument("ArraySubType", MakePrimitive((int)ami.ElementType, unmanagedType));
                 if (ami.Size >= 0)
@@ -1489,93 +1323,78 @@ namespace Campy.TreeWalker
                     attr.AddNamedArgument("SizeParamIndex", new PrimitiveExpression(ami.SizeParameterIndex));
             }
             CustomMarshalInfo cmi = marshalInfo as CustomMarshalInfo;
-            if (cmi != null)
-            {
+            if (cmi != null) {
                 attr.AddNamedArgument("MarshalType", new PrimitiveExpression(cmi.ManagedType.FullName));
                 if (!string.IsNullOrEmpty(cmi.Cookie))
                     attr.AddNamedArgument("MarshalCookie", new PrimitiveExpression(cmi.Cookie));
             }
             FixedSysStringMarshalInfo fssmi = marshalInfo as FixedSysStringMarshalInfo;
-            if (fssmi != null)
-            {
+            if (fssmi != null) {
                 attr.AddNamedArgument("SizeConst", new PrimitiveExpression(fssmi.Size));
             }
             return attr;
         }
         #endregion
-
+        
         Ast.Attribute CreateNonCustomAttribute(Type attributeType)
         {
             return CreateNonCustomAttribute(attributeType, context.CurrentType != null ? context.CurrentType.Module : null);
         }
-
+        
         static Ast.Attribute CreateNonCustomAttribute(Type attributeType, ModuleDefinition module)
         {
             Debug.Assert(attributeType.Name.EndsWith("Attribute", StringComparison.Ordinal));
             Ast.Attribute attr = new Ast.Attribute();
             attr.Type = new SimpleType(attributeType.Name.Substring(0, attributeType.Name.Length - "Attribute".Length));
-            if (module != null)
-            {
+            if (module != null) {
                 attr.Type.AddAnnotation(new TypeReference(attributeType.Namespace, attributeType.Name, module, module.TypeSystem.Corlib));
             }
             return attr;
         }
-
+        
         static void ConvertCustomAttributes(AstNode attributedNode, ICustomAttributeProvider customAttributeProvider, string attributeTarget = null)
         {
             EntityDeclaration entityDecl = attributedNode as EntityDeclaration;
-            if (customAttributeProvider.HasCustomAttributes)
-            {
+            if (customAttributeProvider.HasCustomAttributes) {
                 var attributes = new List<ICSharpCode.NRefactory.CSharp.Attribute>();
-                foreach (var customAttribute in customAttributeProvider.CustomAttributes.OrderBy(a => a.AttributeType.FullName))
-                {
-                    if (customAttribute.AttributeType.Name == "ExtensionAttribute" && customAttribute.AttributeType.Namespace == "System.Runtime.CompilerServices")
-                    {
+                foreach (var customAttribute in customAttributeProvider.CustomAttributes.OrderBy(a => a.AttributeType.FullName)) {
+                    if (customAttribute.AttributeType.Name == "ExtensionAttribute" && customAttribute.AttributeType.Namespace == "System.Runtime.CompilerServices") {
                         // don't show the ExtensionAttribute (it's converted to the 'this' modifier)
                         continue;
                     }
-                    if (customAttribute.AttributeType.Name == "ParamArrayAttribute" && customAttribute.AttributeType.Namespace == "System")
-                    {
+                    if (customAttribute.AttributeType.Name == "ParamArrayAttribute" && customAttribute.AttributeType.Namespace == "System") {
                         // don't show the ParamArrayAttribute (it's converted to the 'params' modifier)
                         continue;
                     }
                     // if the method is async, remove [DebuggerStepThrough] and [Async
-                    if (entityDecl != null && entityDecl.HasModifier(Modifiers.Async))
-                    {
-                        if (customAttribute.AttributeType.Name == "DebuggerStepThroughAttribute" && customAttribute.AttributeType.Namespace == "System.Diagnostics")
-                        {
+                    if (entityDecl != null && entityDecl.HasModifier(Modifiers.Async)) {
+                        if (customAttribute.AttributeType.Name == "DebuggerStepThroughAttribute" && customAttribute.AttributeType.Namespace == "System.Diagnostics") {
                             continue;
                         }
-                        if (customAttribute.AttributeType.Name == "AsyncStateMachineAttribute" && customAttribute.AttributeType.Namespace == "System.Runtime.CompilerServices")
-                        {
+                        if (customAttribute.AttributeType.Name == "AsyncStateMachineAttribute" && customAttribute.AttributeType.Namespace == "System.Runtime.CompilerServices") {
                             continue;
                         }
                     }
-
+                    
                     var attribute = new ICSharpCode.NRefactory.CSharp.Attribute();
                     attribute.AddAnnotation(customAttribute);
                     attribute.Type = ConvertType(customAttribute.AttributeType);
                     attributes.Add(attribute);
-
+                    
                     SimpleType st = attribute.Type as SimpleType;
-                    if (st != null && st.Identifier.EndsWith("Attribute", StringComparison.Ordinal))
-                    {
+                    if (st != null && st.Identifier.EndsWith("Attribute", StringComparison.Ordinal)) {
                         st.Identifier = st.Identifier.Substring(0, st.Identifier.Length - "Attribute".Length);
                     }
 
-                    if (customAttribute.HasConstructorArguments)
-                    {
-                        foreach (var parameter in customAttribute.ConstructorArguments)
-                        {
+                    if(customAttribute.HasConstructorArguments) {
+                        foreach (var parameter in customAttribute.ConstructorArguments) {
                             Expression parameterValue = ConvertArgumentValue(parameter);
                             attribute.Arguments.Add(parameterValue);
                         }
                     }
-                    if (customAttribute.HasProperties)
-                    {
+                    if (customAttribute.HasProperties) {
                         TypeDefinition resolvedAttributeType = customAttribute.AttributeType.Resolve();
-                        foreach (var propertyNamedArg in customAttribute.Properties)
-                        {
+                        foreach (var propertyNamedArg in customAttribute.Properties) {
                             var propertyReference = resolvedAttributeType != null ? resolvedAttributeType.Properties.FirstOrDefault(pr => pr.Name == propertyNamedArg.Name) : null;
                             var propertyName = new IdentifierExpression(propertyNamedArg.Name).WithAnnotation(propertyReference);
                             var argumentValue = ConvertArgumentValue(propertyNamedArg.Argument);
@@ -1583,11 +1402,9 @@ namespace Campy.TreeWalker
                         }
                     }
 
-                    if (customAttribute.HasFields)
-                    {
+                    if (customAttribute.HasFields) {
                         TypeDefinition resolvedAttributeType = customAttribute.AttributeType.Resolve();
-                        foreach (var fieldNamedArg in customAttribute.Fields)
-                        {
+                        foreach (var fieldNamedArg in customAttribute.Fields) {
                             var fieldReference = resolvedAttributeType != null ? resolvedAttributeType.Fields.FirstOrDefault(f => f.Name == fieldNamedArg.Name) : null;
                             var fieldName = new IdentifierExpression(fieldNamedArg.Name).WithAnnotation(fieldReference);
                             var argumentValue = ConvertArgumentValue(fieldNamedArg.Argument);
@@ -1596,19 +1413,15 @@ namespace Campy.TreeWalker
                     }
                 }
 
-                if (attributeTarget == "module" || attributeTarget == "assembly")
-                {
+                if (attributeTarget == "module" || attributeTarget == "assembly") {
                     // use separate section for each attribute
-                    foreach (var attribute in attributes)
-                    {
+                    foreach (var attribute in attributes) {
                         var section = new AttributeSection();
                         section.AttributeTarget = attributeTarget;
                         section.Attributes.Add(attribute);
                         attributedNode.AddChild(section, EntityDeclaration.AttributeRole);
                     }
-                }
-                else if (attributes.Count > 0)
-                {
+                } else if (attributes.Count > 0) {
                     // use single section for all attributes
                     var section = new AttributeSection();
                     section.AttributeTarget = attributeTarget;
@@ -1617,36 +1430,31 @@ namespace Campy.TreeWalker
                 }
             }
         }
-
+        
         static void ConvertSecurityAttributes(AstNode attributedNode, ISecurityDeclarationProvider secDeclProvider, string attributeTarget = null)
         {
             if (!secDeclProvider.HasSecurityDeclarations)
                 return;
             var attributes = new List<ICSharpCode.NRefactory.CSharp.Attribute>();
-            foreach (var secDecl in secDeclProvider.SecurityDeclarations.OrderBy(d => d.Action))
-            {
-                foreach (var secAttribute in secDecl.SecurityAttributes.OrderBy(a => a.AttributeType.FullName))
-                {
+            foreach (var secDecl in secDeclProvider.SecurityDeclarations.OrderBy(d => d.Action)) {
+                foreach (var secAttribute in secDecl.SecurityAttributes.OrderBy(a => a.AttributeType.FullName)) {
                     var attribute = new ICSharpCode.NRefactory.CSharp.Attribute();
                     attribute.AddAnnotation(secAttribute);
                     attribute.Type = ConvertType(secAttribute.AttributeType);
                     attributes.Add(attribute);
-
+                    
                     SimpleType st = attribute.Type as SimpleType;
-                    if (st != null && st.Identifier.EndsWith("Attribute", StringComparison.Ordinal))
-                    {
+                    if (st != null && st.Identifier.EndsWith("Attribute", StringComparison.Ordinal)) {
                         st.Identifier = st.Identifier.Substring(0, st.Identifier.Length - "Attribute".Length);
                     }
-
+                    
                     var module = secAttribute.AttributeType.Module;
                     var securityActionType = new TypeReference("System.Security.Permissions", "SecurityAction", module, module.TypeSystem.Corlib);
                     attribute.Arguments.Add(MakePrimitive((int)secDecl.Action, securityActionType));
-
-                    if (secAttribute.HasProperties)
-                    {
+                    
+                    if (secAttribute.HasProperties) {
                         TypeDefinition resolvedAttributeType = secAttribute.AttributeType.Resolve();
-                        foreach (var propertyNamedArg in secAttribute.Properties)
-                        {
+                        foreach (var propertyNamedArg in secAttribute.Properties) {
                             var propertyReference = resolvedAttributeType != null ? resolvedAttributeType.Properties.FirstOrDefault(pr => pr.Name == propertyNamedArg.Name) : null;
                             var propertyName = new IdentifierExpression(propertyNamedArg.Name).WithAnnotation(propertyReference);
                             var argumentValue = ConvertArgumentValue(propertyNamedArg.Argument);
@@ -1654,11 +1462,9 @@ namespace Campy.TreeWalker
                         }
                     }
 
-                    if (secAttribute.HasFields)
-                    {
+                    if (secAttribute.HasFields) {
                         TypeDefinition resolvedAttributeType = secAttribute.AttributeType.Resolve();
-                        foreach (var fieldNamedArg in secAttribute.Fields)
-                        {
+                        foreach (var fieldNamedArg in secAttribute.Fields) {
                             var fieldReference = resolvedAttributeType != null ? resolvedAttributeType.Fields.FirstOrDefault(f => f.Name == fieldNamedArg.Name) : null;
                             var fieldName = new IdentifierExpression(fieldNamedArg.Name).WithAnnotation(fieldReference);
                             var argumentValue = ConvertArgumentValue(fieldNamedArg.Argument);
@@ -1667,19 +1473,15 @@ namespace Campy.TreeWalker
                     }
                 }
             }
-            if (attributeTarget == "module" || attributeTarget == "assembly")
-            {
+            if (attributeTarget == "module" || attributeTarget == "assembly") {
                 // use separate section for each attribute
-                foreach (var attribute in attributes)
-                {
+                foreach (var attribute in attributes) {
                     var section = new AttributeSection();
                     section.AttributeTarget = attributeTarget;
                     section.Attributes.Add(attribute);
                     attributedNode.AddChild(section, EntityDeclaration.AttributeRole);
                 }
-            }
-            else if (attributes.Count > 0)
-            {
+            } else if (attributes.Count > 0) {
                 // use single section for all attributes
                 var section = new AttributeSection();
                 section.AttributeTarget = attributeTarget;
@@ -1687,40 +1489,31 @@ namespace Campy.TreeWalker
                 attributedNode.AddChild(section, EntityDeclaration.AttributeRole);
             }
         }
-
+        
         private static Expression ConvertArgumentValue(CustomAttributeArgument argument)
         {
-            if (argument.Value is CustomAttributeArgument[])
-            {
+            if (argument.Value is CustomAttributeArgument[]) {
                 ArrayInitializerExpression arrayInit = new ArrayInitializerExpression();
-                foreach (CustomAttributeArgument element in (CustomAttributeArgument[])argument.Value)
-                {
+                foreach (CustomAttributeArgument element in (CustomAttributeArgument[])argument.Value) {
                     arrayInit.Elements.Add(ConvertArgumentValue(element));
                 }
                 ArrayType arrayType = argument.Type as ArrayType;
-                return new ArrayCreateExpression
-                {
+                return new ArrayCreateExpression {
                     Type = ConvertType(arrayType != null ? arrayType.ElementType : argument.Type),
                     AdditionalArraySpecifiers = { new ArraySpecifier() },
                     Initializer = arrayInit
                 };
-            }
-            else if (argument.Value is CustomAttributeArgument)
-            {
+            } else if (argument.Value is CustomAttributeArgument) {
                 // occurs with boxed arguments
                 return ConvertArgumentValue((CustomAttributeArgument)argument.Value);
             }
             var type = argument.Type.Resolve();
-            if (type != null && type.IsEnum)
-            {
-                return MakePrimitive(Convert.ToInt64(argument.Value), type);
-            }
-            else if (argument.Value is TypeReference)
-            {
+            if (type != null && type.IsEnum) {
+                long val = (long)CSharpPrimitiveCast.Cast(TypeCode.Int64, argument.Value, false);
+                return MakePrimitive(val, type);
+            } else if (argument.Value is TypeReference) {
                 return CreateTypeOfExpression((TypeReference)argument.Value);
-            }
-            else
-            {
+            } else {
                 return new PrimitiveExpression(argument.Value);
             }
         }
@@ -1737,24 +1530,20 @@ namespace Campy.TreeWalker
             if (type != null)
             { // cannot rely on type.IsValueType, it's not set for typerefs (but is set for typespecs)
                 TypeDefinition enumDefinition = type.Resolve();
-                if (enumDefinition != null && enumDefinition.IsEnum)
-                {
+                if (enumDefinition != null && enumDefinition.IsEnum) {
                     TypeCode enumBaseTypeCode = TypeCode.Int32;
-                    foreach (FieldDefinition field in enumDefinition.Fields)
-                    {
+                    foreach (FieldDefinition field in enumDefinition.Fields) {
                         if (field.IsStatic && object.Equals(CSharpPrimitiveCast.Cast(TypeCode.Int64, field.Constant, false), val))
                             return ConvertType(type).Member(field.Name).WithAnnotation(field);
                         else if (!field.IsStatic)
                             enumBaseTypeCode = TypeAnalysis.GetTypeCode(field.FieldType); // use primitive type of the enum
                     }
-                    if (IsFlagsEnum(enumDefinition))
-                    {
+                    if (IsFlagsEnum(enumDefinition)) {
                         long enumValue = val;
                         Expression expr = null;
                         long negatedEnumValue = ~val;
                         // limit negatedEnumValue to the appropriate range
-                        switch (enumBaseTypeCode)
-                        {
+                        switch (enumBaseTypeCode) {
                             case TypeCode.Byte:
                             case TypeCode.SByte:
                                 negatedEnumValue &= byte.MaxValue;
@@ -1769,14 +1558,12 @@ namespace Campy.TreeWalker
                                 break;
                         }
                         Expression negatedExpr = null;
-                        foreach (FieldDefinition field in enumDefinition.Fields.Where(fld => fld.IsStatic))
-                        {
+                        foreach (FieldDefinition field in enumDefinition.Fields.Where(fld => fld.IsStatic)) {
                             long fieldValue = (long)CSharpPrimitiveCast.Cast(TypeCode.Int64, field.Constant, false);
                             if (fieldValue == 0)
-                                continue;	// skip None enum value
+                                continue;   // skip None enum value
 
-                            if ((fieldValue & enumValue) == fieldValue)
-                            {
+                            if ((fieldValue & enumValue) == fieldValue) {
                                 var fieldExpression = ConvertType(type).Member(field.Name).WithAnnotation(field);
                                 if (expr == null)
                                     expr = fieldExpression;
@@ -1785,8 +1572,7 @@ namespace Campy.TreeWalker
 
                                 enumValue &= ~fieldValue;
                             }
-                            if ((fieldValue & negatedEnumValue) == fieldValue)
-                            {
+                            if ((fieldValue & negatedEnumValue) == fieldValue) {
                                 var fieldExpression = ConvertType(type).Member(field.Name).WithAnnotation(field);
                                 if (negatedExpr == null)
                                     negatedExpr = fieldExpression;
@@ -1796,15 +1582,12 @@ namespace Campy.TreeWalker
                                 negatedEnumValue &= ~fieldValue;
                             }
                         }
-                        if (enumValue == 0 && expr != null)
-                        {
-                            if (!(negatedEnumValue == 0 && negatedExpr != null && negatedExpr.Descendants.Count() < expr.Descendants.Count()))
-                            {
+                        if (enumValue == 0 && expr != null) {
+                            if (!(negatedEnumValue == 0 && negatedExpr != null && negatedExpr.Descendants.Count() < expr.Descendants.Count())) {
                                 return expr;
                             }
                         }
-                        if (negatedEnumValue == 0 && negatedExpr != null)
-                        {
+                        if (negatedEnumValue == 0 && negatedExpr != null) {
                             return new UnaryOperatorExpression(UnaryOperatorType.BitNot, negatedExpr);
                         }
                     }
@@ -1831,24 +1614,20 @@ namespace Campy.TreeWalker
         /// <param name="member">The node of the member which new modifier state should be determined.</param>
         static void SetNewModifier(EntityDeclaration member)
         {
-            try
-            {
+            try {
                 bool addNewModifier = false;
-                if (member is IndexerDeclaration)
-                {
+                if (member is IndexerDeclaration) {
                     var propertyDef = member.Annotation<PropertyDefinition>();
                     var baseProperties =
                         TypesHierarchyHelpers.FindBaseProperties(propertyDef);
                     addNewModifier = baseProperties.Any();
-                }
-                else
+                } else
                     addNewModifier = HidesBaseMember(member);
 
                 if (addNewModifier)
                     member.Modifiers |= Modifiers.New;
             }
-            catch (ReferenceResolvingException)
-            {
+            catch (ReferenceResolvingException) {
                 // TODO: add some kind of notification (a comment?) about possible problems with decompiled code due to unresolved references.
             }
         }
@@ -1858,13 +1637,11 @@ namespace Campy.TreeWalker
             var memberDefinition = member.Annotation<IMemberDefinition>();
             bool addNewModifier = false;
             var methodDefinition = memberDefinition as MethodDefinition;
-            if (methodDefinition != null)
-            {
+            if (methodDefinition != null) {
                 addNewModifier = HidesByName(memberDefinition, includeBaseMethods: false);
                 if (!addNewModifier)
                     addNewModifier = TypesHierarchyHelpers.FindBaseMethods(methodDefinition).Any();
-            }
-            else
+            } else
                 addNewModifier = HidesByName(memberDefinition, includeBaseMethods: true);
             return addNewModifier;
         }
@@ -1879,11 +1656,9 @@ namespace Campy.TreeWalker
         {
             Debug.Assert(!(member is PropertyDefinition) || !((PropertyDefinition)member).IsIndexer());
 
-            if (member.DeclaringType.BaseType != null)
-            {
+            if (member.DeclaringType.BaseType != null) {
                 var baseTypeRef = member.DeclaringType.BaseType;
-                while (baseTypeRef != null)
-                {
+                while (baseTypeRef != null) {
                     var baseType = baseTypeRef.ResolveOrThrow();
                     if (baseType.HasProperties && AnyIsHiddenBy(baseType.Properties, member, m => !m.IsIndexer()))
                         return true;
