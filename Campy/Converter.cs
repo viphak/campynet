@@ -427,12 +427,15 @@ public:
                 if (dd as System.Reflection.MethodInfo != null)
                 {
                     System.Reflection.MethodInfo ddm = dd as System.Reflection.MethodInfo;
+                    if (ddm.IsConstructor) continue;
                     String tys = Campy.Utils.Utility.GetFriendlyTypeName(ddm.ReturnType);
                     tys = Campy.Utils.Utility.NormalizeSystemReflectionName(tys);
                     result += tys + " " + Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
                 }
                 else
                 {
+                    if (dd.IsConstructor)
+                        continue;
                     result += Campy.Utils.Utility.NormalizeSystemReflectionName(md.Name);
                 }
                 // Find method of delegate.
