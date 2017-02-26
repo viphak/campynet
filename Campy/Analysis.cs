@@ -101,7 +101,7 @@ namespace Campy
         {
         }
 
-        // Create an intermediate representation of data_graph and control_flow_grpah
+        // Create an intermediate representation of data_graph and control_flow_graph
         // that contains the nodes in the graphs as Structures, and edges between
         // nodes represented by nesting of Structures. This representation is
         // needed for translation to C++ AMP.
@@ -109,6 +109,7 @@ namespace Campy
         {
             map_target_to_structure = new Dictionary<object, Structure>();
             Structure top_level_structure = new Structure();
+            var ddlist = data_graph.Vertices;
             object dd = data_graph.Vertices.First();
             top_level_structure._class_instance = dd;
             top_level_structure._main_method = main_method;
@@ -355,8 +356,7 @@ namespace Campy
 
     internal class Analysis
     {
-        public Dictionary<String, String> _filter_namespace = new Dictionary<String, String>();
-        public Dictionary<String, String> _filter_assembly = new Dictionary<String, String>();
+        public Dictionary<String, String> _filter = new Dictionary<String, String>();
 
         CFG _control_flow_graph;
 
@@ -385,10 +385,12 @@ namespace Campy
             if (File.Exists(file_name))
             {
                 Regex comment = new Regex(@"\s?--");
-                Regex ignore_namespace = new Regex(@"^\s?\-namespace\s?\(\s?([^)\s]+)\s?\)");
-                Regex add_namespace = new Regex(@"^\s?\+namespace\s?\(\s?([^)\s]+)\s?\)");
-                Regex ignore_assembly = new Regex(@"^\s?\-assembly\s?\(\s?([^)\s]+)\s?\)");
-                Regex add_assembly = new Regex(@"^\s?\+assembly\s?\(\s?([^)\s]+)\s?\)");
+                Regex ignore_method =    new Regex(@"^\s?\-method\s?\{\s?([^}]+)\s?\}");
+                Regex allow_method =     new Regex(@"^\s?\+method\s?\{\s?([^}]+)\s?\}");
+                Regex ignore_namespace = new Regex(@"^\s?\-namespace\s?\{\s?([^}]+)\s?\}");
+                Regex allow_namespace =  new Regex(@"^\s?\+namespace\s?\{\s?([^}]+)\s?\}");
+                Regex ignore_assembly =  new Regex(@"^\s?\-assembly\s?\{\s?([^}]+)\s?\}");
+                Regex allow_assembly =   new Regex(@"^\s?\+assembly\s?\{\s?([^}]+)\s?\}");
                 string[] lines = System.IO.File.ReadAllLines(file_name);
                 foreach (string line in lines)
                 {
@@ -401,28 +403,49 @@ namespace Campy
                         continue;
                     }
 
-                    String m2n = ignore_namespace.Replace(line, @"$1");
-                    if (!m2n.Equals(line))
+                    String fixed_line = line.Replace(" .", ".");
+                    fixed_line = fixed_line.Replace(". ", ".");
+                    fixed_line = fixed_line.Replace(" ,", ",");
+                    fixed_line = fixed_line.Replace(", ", ",");
+
+                    String m1n = ignore_method.Replace(fixed_line, @"$1");
+                    if (!m1n.Equals(fixed_line))
                     {
-                        _filter_namespace.Add(m2n, "-");
+                        _filter.Add(m1n, "-method");
                     }
 
-                    String m2p = add_namespace.Replace(line, @"$1");
-                    if (!m2p.Equals(line))
+                    String m1p = allow_method.Replace(fixed_line, @"$1");
+                    if (!m1p.Equals(fixed_line))
                     {
-                        _filter_namespace.Add(m2p, "+");
+                        _filter.Add(m1p, "+method");
                     }
 
-                    String m3n = ignore_assembly.Replace(line, @"$1");
-                    if (!m3n.Equals(line))
+                    //---------------
+
+                    String m2n = ignore_namespace.Replace(fixed_line, @"$1");
+                    if (!m2n.Equals(fixed_line))
                     {
-                        _filter_assembly.Add(m3n, "-");
+                        _filter.Add(m2n, "-namespace");
                     }
 
-                    String m3p = ignore_assembly.Replace(line, @"$1");
-                    if (!m3p.Equals(line))
+                    String m2p = allow_namespace.Replace(fixed_line, @"$1");
+                    if (!m2p.Equals(fixed_line))
                     {
-                        _filter_assembly.Add(m3p, "+");
+                        _filter.Add(m2p, "+namespace");
+                    }
+
+                    //---------------
+
+                    String m3n = ignore_assembly.Replace(fixed_line, @"$1");
+                    if (!m3n.Equals(fixed_line))
+                    {
+                        _filter.Add(m3n, "-assembly");
+                    }
+
+                    String m3p = ignore_assembly.Replace(fixed_line, @"$1");
+                    if (!m3p.Equals(fixed_line))
+                    {
+                        _filter.Add(m3p, "+assembly");
                     }
                 }
             }
@@ -446,6 +469,13 @@ namespace Campy
         {
             Dictionary<Delegate, object> delegate_to_instance = new Dictionary<Delegate, object>();
             Delegate lambda_delegate = (Delegate)obj;
+            BindingFlags findFlags = BindingFlags.NonPublic |
+                                                BindingFlags.Public |
+                                                BindingFlags.Static |
+                                                BindingFlags.Instance |
+                                                BindingFlags.InvokeMethod |
+                                                BindingFlags.OptionalParamBinding |
+                                                BindingFlags.DeclaredOnly;
 
             _control_flow_graph.Add(Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilMethodDefinition(lambda_delegate.Method));
             _control_flow_graph.ExtractBasicBlocks();
@@ -459,6 +489,8 @@ namespace Campy
                 object node = stack.Pop();
 
                 // Case 1: object is multicast delegate.
+                // A multicast delegate is a list of delegates called in the order
+                // they appear in the list.
                 System.MulticastDelegate md = node as System.MulticastDelegate;
                 if (md != null)
                 {
@@ -470,9 +502,12 @@ namespace Campy
                             stack.Push(node2);
                         }
                     }
+                    // Note, if multicast delegate, then it does not make sense to continue.
+                    // Handle normal delegates.
+                    //continue;
                 }
 
-                // Case 2: object is plain delegate. Note fall through from previous case.
+                // Case 2: object is plain delegate.
                 System.Delegate del = node as System.Delegate;
                 if (del != null)
                 {
@@ -481,7 +516,7 @@ namespace Campy
                     {
                         // If target is null, then the delegate is a function that
                         // uses either static data, or does not require any additional
-                        // data.
+                        // data. If target isn't null, then it's probably a class.
                         target = Activator.CreateInstance(del.Method.DeclaringType);
                         if (data_graph.Vertices.Contains(target))
                             continue;
@@ -498,7 +533,7 @@ namespace Campy
                         // Target isn't null for delegate. Most likely, the method
                         // is part of the target, so let's assert that.
                         bool found = false;
-                        foreach (System.Reflection.MethodInfo mi in target.GetType().GetMethods())
+                        foreach (System.Reflection.MethodInfo mi in target.GetType().GetMethods(findFlags))
                         {
                             if (mi == del.Method)
                             {

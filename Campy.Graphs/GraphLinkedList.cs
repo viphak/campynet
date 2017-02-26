@@ -14,6 +14,7 @@ namespace Campy.Graphs
         public NODE[] VertexSpace = new NODE[10];
         public bool[] VertexSpaceDefined = new bool[10];
         public EDGE[] EdgeSpace = new EDGE[10];
+        public bool[] EdgeSpaceDefined = new bool[10];
 
         class VertexEnumerator : IEnumerable<NAME>
         {
@@ -129,7 +130,7 @@ namespace Campy.Graphs
             if (iv >= VertexSpace.Length)
             {
                 Array.Resize(ref VertexSpace, VertexSpace.Length * 2);
-                Array.Resize(ref VertexSpaceDefined, VertexSpace.Length * 2);
+                Array.Resize(ref VertexSpaceDefined, VertexSpaceDefined.Length * 2);
             }
             if (!VertexSpaceDefined[iv])
             {
@@ -166,6 +167,19 @@ namespace Campy.Graphs
             edge.to = vt;
             edge.from._Successors.Add(edge);
             edge.to._Predecessors.Add(edge);
+            int iv = 0;
+            for (; iv < EdgeSpaceDefined.Length; ++iv)
+            {
+                if (!EdgeSpaceDefined[iv])
+                    break;
+            }
+            if (iv >= EdgeSpace.Length)
+            {
+                Array.Resize(ref EdgeSpace, EdgeSpace.Length * 2);
+                Array.Resize(ref EdgeSpaceDefined, EdgeSpaceDefined.Length * 2);
+            }
+            EdgeSpace[iv] = (EDGE)edge;
+            EdgeSpaceDefined[iv] = true;
             return edge;
         }
 
@@ -186,11 +200,25 @@ namespace Campy.Graphs
             //Edge edge = new Edge((Vertex)f, (Vertex)t);
             edge.from._Successors.Add(edge);
             edge.to._Predecessors.Add(edge);
+            int iv = 0;
+            for (; iv < EdgeSpaceDefined.Length; ++iv)
+            {
+                if (!EdgeSpaceDefined[iv])
+                    break;
+            }
+            if (iv >= EdgeSpace.Length)
+            {
+                Array.Resize(ref EdgeSpace, EdgeSpace.Length * 2);
+                Array.Resize(ref EdgeSpaceDefined, EdgeSpaceDefined.Length * 2);
+            }
+            EdgeSpace[iv] = (EDGE)edge;
+            EdgeSpaceDefined[iv] = true;
             return edge;
         }
 
         virtual public void DeleteEdge(Edge edge)
         {
+            DeleteEdge(edge.from, edge.to);
         }
 
         virtual public void DeleteEdge(Vertex vf, Vertex vt)
@@ -199,6 +227,15 @@ namespace Campy.Graphs
             {
                 if (search.to == vt)
                 {
+                    for (int iv = 0; iv < EdgeSpaceDefined.Length; ++iv)
+                    {
+                        if (EdgeSpaceDefined[iv] && EdgeSpace[iv].to == search.to && EdgeSpace[iv].from == search.from)
+                        {
+                            EdgeSpaceDefined[iv] = false;
+                            EdgeSpace[iv] = null;
+                            break;
+                        }
+                    }
                     vf._Successors.Remove(search);
                     vt._Predecessors.Remove(search);
                     search.from = null;

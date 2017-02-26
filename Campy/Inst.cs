@@ -16,7 +16,22 @@ namespace Campy
         protected State _state_in;
         protected State _state_out;
 
+
+        protected static List<Inst> _call_instructions = new List<Inst>();
+
+        public static List<Inst> CallInstructions
+        {
+            get { return _call_instructions; }
+        }
+
         protected CFG _graph;
+
+        public CFG.CFGVertex Block
+        {
+            get {
+                return _graph.partition_of_instructions[this._instruction];
+            }
+        }
 
         public Mono.Cecil.Cil.Instruction Instruction
         {
@@ -81,13 +96,14 @@ namespace Campy
 
         public Inst(Mono.Cecil.Cil.Instruction i, CFG graph)
         {
-            _def = ValueBase.Top;
-            _use = ValueBase.Top;
-            _kill = ValueBase.Top;
             _instruction = i;
             _stack_level_in = 0;
             _stack_level_out = 0;
             _graph = graph;
+            if (i.OpCode.FlowControl == Mono.Cecil.Cil.FlowControl.Call)
+            {
+                Inst._call_instructions.Add(this);
+            }
         }
 
         public Mono.Cecil.Cil.OpCode OpCode
@@ -116,20 +132,6 @@ namespace Campy
 
         virtual public void ComputeSSA(ref State state)
         {
-        }
-
-        protected ValueBase _def;
-        protected ValueBase _kill;
-        protected ValueBase _use;
-
-        virtual public ValueBase Def()
-        {
-            return new ValueBase();
-        }
-
-        virtual public ValueBase Use()
-        {
-            return new ValueBase();
         }
 
         static public Inst Wrap(Mono.Cecil.Cil.Instruction i, CFG g)
@@ -2185,7 +2187,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._stack.PeekTop()));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._stack.PeekTop()));
         }
     }
 
@@ -2297,7 +2299,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2318,7 +2320,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2339,7 +2341,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2360,7 +2362,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2381,7 +2383,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2405,7 +2407,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._arguments[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._arguments[_arg]));
         }
     }
 
@@ -2430,7 +2432,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     ssa.inst_address_of(this, state._arguments[_arg])));
         }
     }
@@ -2456,7 +2458,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     ssa.inst_address_of(this, state._arguments[_arg])));
         }
     }
@@ -2531,7 +2533,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2554,7 +2556,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2577,7 +2579,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2600,7 +2602,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2623,7 +2625,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2646,7 +2648,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2669,7 +2671,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2692,7 +2694,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2715,7 +2717,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2738,7 +2740,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2761,7 +2763,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -2835,7 +2837,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.integer32(this, SSA.Variable.Generate(), _arg));
+            state._stack.Push(ssa.integer32(this, new SSA.Variable(), _arg));
         }
     }
 
@@ -3419,7 +3421,7 @@ namespace Campy
             // Convert method reference into block.
             CFG.CFGVertex n = _graph.FindEntry(mr);
             SSA.Block b = new SSA.Block(n);
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), b));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), b));
         }
     }
 
@@ -3437,7 +3439,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3455,7 +3457,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3473,7 +3475,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3491,7 +3493,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3509,7 +3511,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3527,7 +3529,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3545,7 +3547,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3563,7 +3565,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3581,7 +3583,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3599,7 +3601,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3617,7 +3619,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), ssa.inst_indirect_of(this, state._stack.Pop())));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), ssa.inst_indirect_of(this, state._stack.Pop())));
         }
     }
 
@@ -3653,7 +3655,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3676,7 +3678,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3699,7 +3701,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3722,7 +3724,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3745,7 +3747,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3769,7 +3771,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), state._locals[_arg]));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), state._locals[_arg]));
         }
     }
 
@@ -3794,7 +3796,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     ssa.inst_address_of(this, state._locals[_arg])));
         }
     }
@@ -3820,7 +3822,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     ssa.inst_address_of(this, state._locals[_arg])));
         }
     }
@@ -3841,7 +3843,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     null));
         }
     }
@@ -3862,7 +3864,7 @@ namespace Campy
             SSA ssa = SSA.Singleton();
             SSA.Value src = state._stack.Pop();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     null));
         }
     }
@@ -3881,10 +3883,11 @@ namespace Campy
         
         public override void ComputeSSA(ref State state)
         {
+            Mono.Cecil.FieldReference field = (Mono.Cecil.FieldReference)this._instruction.Operand;
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
-                    null));
+                ssa.inst_load(this, new SSA.Variable(),
+                    new SSA.StaticField(field)));
         }
     }
 
@@ -3902,10 +3905,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
+            Mono.Cecil.FieldReference field = (Mono.Cecil.FieldReference)this._instruction.Operand;
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
-                    null));
+                ssa.inst_load(this, new SSA.Variable(),
+                new SSA.AddressOf(new SSA.StaticField(field))));
         }
     }
 
@@ -3925,7 +3929,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(
-                ssa.inst_load(this, SSA.Variable.Generate(),
+                ssa.inst_load(this, new SSA.Variable(),
                     null));
         }
     }
@@ -3945,7 +3949,7 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            state._stack.Push(ssa.inst_load(this, SSA.Variable.Generate(), (SSA.Value)null));
+            state._stack.Push(ssa.inst_load(this, new SSA.Variable(), (SSA.Value)null));
         }
     }
 
@@ -4169,99 +4173,6 @@ namespace Campy
         {
         }
 
-        public override void Execute(ref State state)
-        {
-            //// Successor is fallthrough.
-            //int args = 0;
-            //int ret = 0;
-            //bool have_delegate = false;
-            //object method = this.Operand;
-            //Type t = null;
-
-            //if (method as Mono.Cecil.MethodReference != null)
-            //{
-            //    Mono.Cecil.MethodReference mr = method as Mono.Cecil.MethodReference;
-
-            //    // Get owning class.
-            //    Mono.Cecil.TypeReference tr = (Mono.Cecil.TypeReference)mr.DeclaringType;
-            //    Mono.Cecil.TypeDefinition td = tr.Resolve();
-
-            //    // Count args and return.
-            //    have_delegate = true;
-            //    args += mr.Parameters.Count;
-            //    if (mr.MethodReturnType != null)
-            //    {
-            //        Mono.Cecil.MethodReturnType rt = mr.MethodReturnType;
-            //        Mono.Cecil.TypeReference trr = rt.ReturnType;
-            //        if (!trr.FullName.Equals("System.Void"))
-            //            ret++;
-            //    }
-            //    ret++;
-
-            //    // Create object of type tr.
-            //    Type srtr = Campy.Types.Utils.ReflectionCecilInterop.ConvertToSystemReflectionType(tr);
-            //    //t = ValueBase.CreateValueBaseType(srtr, true, false);
-            //    if (t != null)
-            //    {
-            //        // For _Kernel_type and _Kernel_tiled_type, method body will
-            //        // be empty. This is because it's really just a type definition.
-            //        // For all delegate types without bodies, we're going to have to
-            //        // fake out the analysis by manually setting up the delegate structure
-            //        // here. HACK!
-            //        // I think untimately, the type definition has to be resolved into
-            //        // a type, and all calls/references to the method have to be resolved
-            //        // to a real function. Or, we create a fake method body that CFA can
-            //        // work with.
-            //        object obj = Activator.CreateInstance(t);
-            //        Type bt = obj.GetType().BaseType;
-
-            //        if (Campy.Types.TypesUtility.IsBaseType(srtr, typeof(Delegate)))
-            //        {
-            //            ValueBase v1 = state._value_stack.Pop();
-            //            ValueBase v2 = state._value_stack.Pop();
-            //            // set.
-            //            // Top arg is method, top-1 arg is target.
-            //            foreach (System.Reflection.FieldInfo fi in t.GetFields())
-            //            {
-            //                if (fi.Name.Equals("_target"))
-            //                {
-            //                    fi.SetValue(obj, v2);
-            //                }
-            //                else if (fi.Name.Equals("_methodPtr"))
-            //                {
-            //                    fi.SetValue(obj, v1);
-            //                }
-            //            }
-            //            state._value_stack.Push(new RValue<object>(obj));
-            //        }
-            //        else
-            //        {
-            //            // When the interprocedural call is made,
-            //            // stack values will be copied from both before
-            //            // this instruction state, and after.
-            //            for (int i = 0; i < args; ++i)
-            //                state._value_stack.Pop();
-            //            state._value_stack.Push(new RValue<object>(obj));
-            //        }
-            //    }
-            //    else
-            //    {
-            //        for (int i = 0; i < args; ++i)
-            //            state._value_stack.Pop();
-            //        state._value_stack.Push(ValueBase.Bottom);
-            //    }
-            //}
-            //else
-            //{
-            //    if (args > ret)
-            //        for (int i = 0; i < args - ret; ++i)
-            //            state._value_stack.Pop();
-            //    else
-            //        for (int i = 0; i < ret - args; ++i)
-            //            state._value_stack.Push(ValueBase.Bottom);
-            //}
-        }
-
         public override void ComputeStackLevel(ref int level_after)
         {
             // Successor is fallthrough.
@@ -4297,21 +4208,21 @@ namespace Campy
         public override void ComputeSSA(ref State state)
         {
             SSA ssa = SSA.Singleton();
-            SSA.Variable v = SSA.Variable.Generate();
+            SSA.Variable v = new SSA.Variable();
             int args = 0;
             int ret = 0;
             object method = this.Operand;
             Mono.Cecil.MethodReference mr = method as Mono.Cecil.MethodReference;
             if (mr == null)
             {
-                SSA.Structure a = ssa.alloc_structure(null);
+                SSA.Structure a = ssa.alloc_structure(state, null);
                 ssa.inst_assign(this, v, a);
             }
             else
             {
                 Mono.Cecil.TypeReference tr = (Mono.Cecil.TypeReference)mr.DeclaringType;
                 Mono.Cecil.TypeDefinition td = tr.Resolve();
-                SSA.Structure a = ssa.alloc_structure(tr);
+                SSA.Structure a = ssa.alloc_structure(state, tr);
                 ssa.inst_assign(this, v, a);
 
                 // Count args + return value.
@@ -4544,7 +4455,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(ssa.inst_load(this,
-                SSA.Variable.Generate(),
+                new SSA.Variable(),
                 ssa.binary_expression(SSA.Operator.shl,
                     state._stack.Pop(), state._stack.Pop())));
         }
@@ -4566,7 +4477,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(ssa.inst_load(this,
-                SSA.Variable.Generate(),
+                new SSA.Variable(),
                 ssa.binary_expression(SSA.Operator.shr,
                     state._stack.Pop(), state._stack.Pop())));
         }
@@ -4588,7 +4499,7 @@ namespace Campy
         {
             SSA ssa = SSA.Singleton();
             state._stack.Push(ssa.inst_load(this,
-                SSA.Variable.Generate(),
+                new SSA.Variable(),
                 ssa.binary_expression(SSA.Operator.shr_un,
                     state._stack.Pop(), state._stack.Pop())));
         }
@@ -4664,9 +4575,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4684,9 +4597,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4704,9 +4619,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4724,9 +4641,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4744,9 +4663,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4764,9 +4685,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4784,9 +4707,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4804,9 +4729,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -4824,9 +4751,11 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
-            state._stack.Pop();
-            state._stack.Pop();
-            state._stack.Pop();
+            SSA ssa = SSA.Singleton();
+            SSA.Value val = state._stack.Pop();
+            SSA.Value index = state._stack.Pop();
+            SSA.Value arr = state._stack.Pop();
+            ssa.inst_store_element(this, arr, index, val);
         }
     }
 
@@ -5178,10 +5107,12 @@ namespace Campy
 
         public override void ComputeSSA(ref State state)
         {
+            Mono.Cecil.FieldReference field = (Mono.Cecil.FieldReference)this._instruction.Operand;
             SSA ssa = SSA.Singleton();
             SSA.Value val = state._stack.Pop();
-            Mono.Cecil.FieldReference field = (Mono.Cecil.FieldReference)this._instruction.Operand;
-            ssa.inst_store_field(this, null, field, val);
+            ssa.inst_assign(this,
+                new SSA.StaticField(field),
+                val);
         }
     }
 

@@ -194,6 +194,7 @@ namespace Campy.Builder
                     "Uncrustify.exe is required by Campy to clean up converted code."
                     + " Download and install on path, from http://uncrustify.sourceforge.net/");
                 throw new Exception("uncrustify not found.");
+                break;
             }
 
         }

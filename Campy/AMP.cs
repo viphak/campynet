@@ -13,6 +13,7 @@ using Campy.Graphs;
 using Campy.Types;
 using Campy.Utils;
 using Campy.Builder;
+using Campy.Types.Utils;
 
 namespace Campy
 {
@@ -27,10 +28,10 @@ namespace Campy
         [DllImport("kernel32.dll")]
         static extern bool GetModuleHandleExA(int dwFlags, string ModuleName, ref IntPtr phModule);
 
-        static Build builder = new Build();
+        private static Build builder;
         static Dictionary<String, Assembly> assemblies = new Dictionary<String, Assembly>();
 
-        public delegate void _Kernel_type(Campy.Types.Index idx);
+        public delegate void _Kernel_type(Index idx);
         public delegate void _Kernel_tiled_type(Tiled_Index idx);
 
 
@@ -77,12 +78,32 @@ namespace Campy
 
         static public void AnalyzeThisAssembly()
         {
+            builder = new Build();
             System.Diagnostics.StackTrace stack_trace = new System.Diagnostics.StackTrace(true);
             System.Diagnostics.StackFrame stack_frame = stack_trace.GetFrame(1);
             System.Reflection.Assembly assembly = stack_frame.GetMethod().DeclaringType.Assembly;
             CFG control_flow_graph = CFG.Singleton(Analysis.Singleton());
+
+            // Handle the following code:
+            //    delegate int fun(int xxx);
+            //    fun x = (int y) => { return y + 1; };
+            //
+            // I don't really understand, but when a delegate type is created,
+            // it seems to call the function System.MulticastDelegate.CtorClosed(Object, IntPtr).
+            // There is no body for the constructor of the delegate "fun"
+            // which does this--at least, I can't find it anywhere. So, when we see a newobj
+            // of an object derived from MulticastDelegate, make SSA match this function.
+            // This function DOES hava a method body which does seem to do what is
+            // necessary.
+            SR.MethodInfo delegate_constructor = ReflectionCecilInterop.FindMethod("System.MulticastDelegate.CtorClosed(Object, IntPtr)");
+            control_flow_graph.Add(delegate_constructor);
+            control_flow_graph.ExtractBasicBlocks();
+
             control_flow_graph.AddAssembly(assembly);
             control_flow_graph.ExtractBasicBlocks();
+
+            control_flow_graph.FindNewBlocks(assembly);
+
         }
 
         static public void Parallel_For_Each(Extent extent, _Kernel_type _kernel)
@@ -114,7 +135,7 @@ namespace Campy
             CopyViewToStaging(view, ref obj);
 
             // Get address of thunk method.
-            SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
+            SR.MethodInfo mi2 = thunk.GetMethod(Campy.Utils.Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
 
             // Call thunk method.
             mi2.Invoke(obj, new object[] { });
@@ -149,7 +170,7 @@ namespace Campy
             CopyViewToStaging(view, ref obj);
 
             // Get address of thunk method.
-            SR.MethodInfo mi2 = thunk.GetMethod(Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
+            SR.MethodInfo mi2 = thunk.GetMethod(Campy.Utils.Utility.NormalizeSystemReflectionName(_kernel.Method.Name));
 
             // Call thunk method.
             mi2.Invoke(obj, new object[] { });
@@ -162,7 +183,7 @@ namespace Campy
             object target = kernel.Target;
             Type target_type = target.GetType();
             String target_type_name = target_type.FullName;
-            target_type_name = Utility.NormalizeSystemReflectionName(target_type_name);
+            target_type_name = Campy.Utils.Utility.NormalizeSystemReflectionName(target_type_name);
 
             // Get assembly name which encloses code for kernel.
             String kernel_assembly_file_name = mi.DeclaringType.Assembly.Location;
@@ -172,8 +193,8 @@ namespace Campy
             full_path = Path.GetDirectoryName(full_path);
 
             // Get full name of kernel, including normalization because they cannot be compared directly with Mono.Cecil names.
-            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
-            kernel_full_name = Utility.NormalizeSystemReflectionName(kernel_full_name) + "_managed";
+            String kernel_full_name = string.Format("{0} {1}.{2}({3})", mi.ReturnType.FullName, Campy.Utils.Utility.RemoveGenericParameters(mi.ReflectedType), mi.Name, string.Join(",", mi.GetParameters().Select(o => string.Format("{0}", o.ParameterType)).ToArray()));
+            kernel_full_name = Campy.Utils.Utility.NormalizeSystemReflectionName(kernel_full_name) + "_managed";
 
             // Get short name of Campy kernel.
             String campy_kernel_class_short_name = target_type_name
@@ -272,7 +293,7 @@ namespace Campy
             {
                 object field_value = fi.GetValue(structure._class_instance);
                 String na = fi.Name;
-                String tys = Utility.GetFriendlyTypeName(fi.FieldType);
+                String tys = Campy.Utils.Utility.GetFriendlyTypeName(fi.FieldType);
                 // Copy.
                 SR.FieldInfo hostObjectField = fi;
                 object value = field_value;

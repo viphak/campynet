@@ -21,6 +21,7 @@ namespace Campy
         List<Mono.Cecil.ModuleDefinition> _analyzed_modules = new List<ModuleDefinition>();
         StackQueue<Mono.Cecil.MethodDefinition> _to_do = new StackQueue<Mono.Cecil.MethodDefinition>();
         List<Mono.Cecil.MethodDefinition> _done = new List<MethodDefinition>();
+        List<CFG.CFGVertex> _entries = new List<CFGVertex>();
         CFA _cfa;
         Analysis _analysis;
 
@@ -29,6 +30,11 @@ namespace Campy
         {
             _cfa = new CFA(this);
             _analysis = analysis;
+        }
+
+        public List<CFG.CFGVertex> Entries
+        {
+            get { return _entries; }
         }
 
         static CFG _singleton = null;
@@ -40,23 +46,44 @@ namespace Campy
             return _singleton;
         }
 
-        public void FindNewBlocks()
+        public void FindNewBlocks(Assembly assembly)
         {
+            // Starting from all blocks in this assembly,
+            // find all PFE's, then compute control-flow/
+            // data-flow analysis in order to compute call
+            // structure and new blocks to analyze.
+
+            List<Inst> pfe_list = new List<Inst>();
+            List<CFG.CFGVertex> pfe_entries = new List<CFGVertex>();
+
+            // Find all pfe's all nodes in assembly.
             foreach (CFG.CFGVertex node in this.VertexNodes)
             {
-                foreach (Inst i in node.Instructions)
+                foreach (Inst inst in node._instructions)
                 {
-                    Mono.Cecil.Cil.OpCode op = i.OpCode;
+                    Mono.Cecil.Cil.OpCode op = inst.OpCode;
                     Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
-                    if (!(fc == Mono.Cecil.Cil.FlowControl.Call))
-                        continue;
-                    object operand = i.Operand;
+                    object operand = inst.Operand;
                     Mono.Cecil.MethodReference call_to = operand as Mono.Cecil.MethodReference;
-                    if (call_to == null)
-                        continue;
-                    Add(call_to);
+                    if (fc == Mono.Cecil.Cil.FlowControl.Call && call_to != null && call_to.Name.Equals("Parallel_For_Each"))
+                    {
+                        System.Console.WriteLine("Found PFE in block " + node.Name);
+                        pfe_list.Add(inst);
+                    }
                 }
             }
+
+            // Convert PFE instructions into a list of entries.
+            foreach (Inst inst in pfe_list)
+            {
+                CFG.CFGVertex entry = FindEntry(inst);
+                if (!pfe_entries.Contains(entry))
+                    pfe_entries.Add(entry);
+            }
+
+            // Perform sparse data flow propagation in order to
+            // get all indirect calls. Add those blocks to the graph.
+            this._cfa.SparseDataFlowPropagation(pfe_entries);
         }
 
         public void HeuristicAdd(Mono.Cecil.ModuleDefinition module)
@@ -87,7 +114,14 @@ namespace Campy
         public void Add(Type type)
         {
             // Add all methods of type.
-            foreach (System.Reflection.MethodInfo definition in type.GetMethods())
+            BindingFlags findFlags = BindingFlags.NonPublic |
+                                                BindingFlags.Public |
+                                                BindingFlags.Static |
+                                                BindingFlags.Instance |
+                                                BindingFlags.InvokeMethod |
+                                                BindingFlags.OptionalParamBinding |
+                                                BindingFlags.DeclaredOnly;
+            foreach (System.Reflection.MethodInfo definition in type.GetMethods(findFlags))
                 Add(definition);
         }
 
@@ -116,24 +150,95 @@ namespace Campy
                 return;
             if (_to_do.Contains(definition))
                 return;
+
             bool ignore = false;
-            foreach (KeyValuePair<String, String> pair in _analysis._filter_namespace)
+
+            foreach (KeyValuePair<String, String> pair in _analysis._filter)
             {
                 String pat = pair.Key;
-                TypeDefinition td = definition.DeclaringType.Resolve();
-                Regex reg = new Regex(@"^" + pat + @"$");
-                Match m = reg.Match(td.Namespace);
-                int ind = m.Index;
-                int l = m.Length;
-                if (ind >= 0 && l > 0)
+                String ty = pair.Value;
+
+                // Match based on type "ty".
+                if (ty.Equals("-method"))
                 {
-                    if (pair.Value == "-")
-                        ignore = true;
-                    else
-                        ignore = false;
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = true;
+                    break;
+                }
+                else if (ty.Equals("+method"))
+                {
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = false;
+                    break;
+                }
+                else if (ty.Equals("-namespace"))
+                {
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.DeclaringType.Namespace.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = true;
+                    break;
+                }
+                else if (ty.Equals("+namespace"))
+                {
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.DeclaringType.Namespace.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = false;
+                    break;
+                }
+                else if (ty.Equals("-assembly"))
+                {
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.Module.Assembly.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = true;
+                    break;
+                }
+                else if (ty.Equals("+assembly"))
+                {
+                    // match on name/parameters.
+                    Regex reg = new Regex(@"^" + pat + @"$");
+                    String def = definition.Module.Assembly.ToString();
+                    Match m = reg.Match(def);
+                    int ind = m.Index;
+                    int l = m.Length;
+                    if (!(ind >= 0 && l > 0))
+                        continue;
+                    ignore = false;
                     break;
                 }
             }
+
             System.Console.WriteLine((ignore ? "Ignoring " : "Adding ") + definition);
             if (ignore)
                 return;
@@ -191,26 +296,43 @@ namespace Campy
         
         public void ExtractBasicBlocks()
         {
+            this.StartChangeSet(this);
             while (_to_do.Count > 0)
             {
-                while (_to_do.Count > 0)
-                {
-                    Mono.Cecil.MethodDefinition definition = _to_do.Pop();
-                    ExtractBasicBlocksOfMethod(definition);
-                }
-                _cfa.AnalyzeCFG();
-                FindNewBlocks();
+                Mono.Cecil.MethodDefinition definition = _to_do.Pop();
+                ExtractBasicBlocksOfMethod(definition);
+            }
+            _cfa.ConvertToSSA();
+        }
+
+
+
+        Dictionary<object, List<CFG.CFGVertex>> _change_set = new Dictionary<object, List<CFGVertex>>();
+
+        public void StartChangeSet(object observer)
+        {
+            if (_change_set.ContainsKey(observer))
+            {
+                _change_set[observer] = new List<CFGVertex>();
+            }
+            else
+            {
+                _change_set.Add(observer, new List<CFGVertex>());
             }
         }
 
-        public List<CFG.CFGVertex> new_nodes = new List<CFGVertex>();
-
-        public List<CFG.CFGVertex> ChangeSet()
+        public List<CFG.CFGVertex> EndChangeSet(object observer)
         {
-            List<CFG.CFGVertex> list = new_nodes;
-            new_nodes = new List<CFGVertex>();
-            return list;
+            if (_change_set.ContainsKey(observer))
+            {
+                List<CFG.CFGVertex> list = _change_set[observer];
+                _change_set.Remove(observer);
+                return list;
+            }
+            else
+                return null;
         }
+
 
         public override GraphLinkedList<object,CFG.CFGVertex,CFG.CFGEdge>.Vertex AddVertex(object v)
         {
@@ -221,7 +343,11 @@ namespace Campy
             }
             System.Console.WriteLine("adding vertex " + v);
             CFG.CFGVertex x = (CFGVertex)base.AddVertex(v);
-            new_nodes.Add(x);
+            foreach (KeyValuePair<object, List<CFG.CFGVertex>> pair in this._change_set)
+            {
+                pair.Value.Add(x);
+                Debug.Assert(_change_set[pair.Key].Contains(x));
+            }
             return x;
         }
 
@@ -246,6 +372,7 @@ namespace Campy
             v.Method = definition;
             v.HasReturnValue = definition.IsReuseSlot;
             v._entry = v;
+            this._entries.Add(v);
             v._ordered_list_of_blocks = new List<CFGVertex>();
             v._ordered_list_of_blocks.Add(v);
             for (int j = 0; j < instruction_count; ++j)
@@ -258,6 +385,7 @@ namespace Campy
                 Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
                 
                 v._instructions.Add(i);
+
                 // Verify that mi not owned already.
                 CFG.CFGVertex asdfasdf;
                 Debug.Assert(! partition_of_instructions.TryGetValue(mi, out asdfasdf));
@@ -456,17 +584,18 @@ namespace Campy
 
         /// <summary>
         /// Return block corresponding to the instruction.
-        /// Instruction must be the start of the basic block.
         /// </summary>
         /// <param name="inst"></param>
         /// <returns></returns>
         public CFGVertex FindEntry(Inst inst)
         {
             CFGVertex result = null;
-            foreach (CFG.CFGVertex node in this.VertexNodes)
-                if (node._instructions.First() == inst)
-                    return node;
-            return result;
+
+            // Find owning block.
+            result = inst.Block;
+
+            // Return entry block for method.
+            return result._entry;
         }
 
         public CFGVertex FindEntry(Mono.Cecil.Cil.Instruction inst)
@@ -486,12 +615,17 @@ namespace Campy
             return null;
         }
 
-        static int fuck_you = 1;
+        static int kens_id = 1;
 
         public class CFGVertex
             : GraphLinkedList<object, CFG.CFGVertex, CFG.CFGEdge>.Vertex
         {
-            private int kens_id = fuck_you++;
+            private int _kens_id = kens_id++;
+
+            public int ID
+            {
+                get { return _kens_id; }
+            }
 
             private Mono.Cecil.MethodDefinition _method;
 
@@ -728,8 +862,26 @@ namespace Campy
                 System.Console.WriteLine("Level in " + v.StackLevelIn);
                 System.Console.WriteLine("Level out " + v.StackLevelOut);
                 System.Console.WriteLine("Instructions:");
+                SSA ssa = SSA.Singleton();
+                if (v.StateIn != null)
+                {
+                    System.Console.WriteLine("State in");
+                    v.StateIn.Dump();
+                }
                 foreach (Inst i in v._instructions)
+                {
+                    if (i.StateIn != null)
+                        i.StateIn.Dump();
                     System.Console.WriteLine(i);
+                    if (ssa._operation.ContainsKey(i))
+                    {
+                        System.Console.WriteLine(" SSA: ");
+                        foreach (SSA.Operation o in ssa._operation[i])
+                        {
+                            System.Console.WriteLine(" [" + o + "]");
+                        }
+                    }
+                }
                 System.Console.WriteLine("Edges from:");
                 foreach (object t in this._Graph.Predecessors(v.Name))
                 {
@@ -739,11 +891,6 @@ namespace Campy
                 foreach (object t in this._Graph.Successors(v.Name))
                 {
                     System.Console.WriteLine("-> " + t);
-                }
-                if (v.StateIn != null)
-                {
-                    System.Console.WriteLine("State in");
-                    v.StateIn.Dump();
                 }
                 if (v.StateOut != null)
                 {
@@ -855,6 +1002,35 @@ namespace Campy
         {
             System.Console.WriteLine("Graph:");
             System.Console.WriteLine();
+            System.Console.WriteLine("List of entries:");
+            foreach (CFGVertex n in this._entries)
+            {
+                System.Console.WriteLine("Method " + n.Method.FullName
+                    + " Node: " + n.Name);
+            }
+            System.Console.WriteLine();
+            System.Console.WriteLine("List of callers:");
+            foreach (Inst caller in Inst.CallInstructions)
+            {
+                System.Console.WriteLine(caller.Block
+                    + " " + caller);
+            }
+            System.Console.WriteLine();
+            System.Console.WriteLine("List of callee with empty caller:");
+            foreach (CFGVertex n in this._entries)
+            {
+                if (n.StateIn != null &&
+                    n.StateIn._bindings != null &&
+                    n.StateIn._bindings.Count == 1)
+                {
+                    if (n.StateIn._bindings.First()._caller != null)
+                        System.Console.WriteLine("hmm");
+                    System.Console.WriteLine("Method " + n.Method.FullName
+                        + " Node: " + n.Name);
+                }
+            }
+            System.Console.WriteLine();
+
             foreach (CFGVertex n in VertexNodes)
             {
                 if (n._ordered_list_of_blocks != null)

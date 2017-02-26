@@ -145,9 +145,16 @@ namespace Campy.Types.Utils
             method = method.Replace(" )", ")");
             method = method.Replace(" .", ".");
             method = method.Replace(". ", ".");
+            method = method.Replace(" ,", ",");
+            method = method.Replace(", ", ",");
+
             int space = method.IndexOf(' ');
-            String return_type = method.Substring(0, space);
-            method = method.Substring(space + 1);
+            String return_type = "";
+            if (space >= 0)
+            {
+                return_type = method.Substring(0, space);
+                method = method.Substring(space + 1);
+            }
             int parenthesis = method.IndexOf('(');
             String full_name = method.Substring(0, parenthesis);
             String parameters = method.Substring(parenthesis);
@@ -155,10 +162,53 @@ namespace Campy.Types.Utils
             String name = full_name.Substring(method_index + 1);
             if (method_index >= 0) full_name = full_name.Substring(0, method_index);
             Type t = Type.GetType(full_name);
-            System.Reflection.MethodInfo[] mi = t.GetMethods();
+            System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.DeclaredOnly;
+            System.Reflection.MethodInfo[] mi = t.GetMethods(flags);
             foreach (System.Reflection.MethodInfo m in mi)
             {
                 if (m.Name.Equals(name))
+                    return m;
+            }
+            return null;
+        }
+
+        public static System.Reflection.ConstructorInfo FindConstructor(String method)
+        {
+            // Split name into its parts, being type, namespace, type, parameters.
+            method = method.Trim();
+            method = method.Replace("  ", " ");
+            method = method.Replace(" (", "(");
+            method = method.Replace(" )", ")");
+            method = method.Replace(" .", ".");
+            method = method.Replace(". ", ".");
+            method = method.Replace(" ,", ",");
+            method = method.Replace(", ", ",");
+
+            int space = method.IndexOf(' ');
+            int parenthesis = method.IndexOf('(');
+            String full_name = method.Substring(0, parenthesis);
+            String parameters = method.Substring(parenthesis);
+            Type t = Type.GetType(full_name);
+            System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.DeclaredOnly;
+            System.Reflection.ConstructorInfo[] mi = t.GetConstructors(flags);
+            foreach (System.Reflection.ConstructorInfo m in mi)
+            {
+                // Parameters used to match function.
+                String mat = "";
+                System.Reflection.ParameterInfo[] pi = m.GetParameters();
+                foreach (System.Reflection.ParameterInfo p in pi)
+                {
+                    String s = p.ParameterType.Name;
+                    mat += s;
+                    mat += ",";
+                }
+                if (mat.Length > 0)
+                    mat = mat.Substring(0, mat.Length - 1);
+                if (mat.Equals(parameters))
                     return m;
             }
             return null;
