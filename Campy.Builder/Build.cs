@@ -74,8 +74,8 @@ namespace Campy.Builder
             // Try in order: VS140COMNTOOLS, VS120COMNTOOLS.
             String root_14;
             String root_12;
-            root_14 = null; // Environment.GetEnvironmentVariable("VS140COMNTOOLS");
-            root_12 = Environment.GetEnvironmentVariable("VS120COMNTOOLS");
+            root_14 = Environment.GetEnvironmentVariable("VS140COMNTOOLS");
+            root_12 = null; // Environment.GetEnvironmentVariable("VS120COMNTOOLS");
             if (root_14 != null && root_14 != "")
             {
                 for (; ; )
@@ -156,7 +156,8 @@ namespace Campy.Builder
                 }
                 if (!found)
                     throw new Exception("Windows Kit not found.");
-                wk_include_path = path;
+				wk_include_path = path;
+				wk_include_path = $@"C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0";
                 wk_lib_path = Path.GetFullPath(path + "..\\lib\\winv6.3\\um\\x86");
             }
             if (ver.IndexOf("6.1") == 0)
@@ -411,6 +412,7 @@ eat_blanks_after_open_brace	= TRUE
                     + " /I\"" + vc_include_path + "\""
                     + " /I\"" + vc_atlmfc_include_path + "\""
                     + " /I\"" + wk_include_path + "\\shared\""
+                    + " /I\"" + wk_include_path + "\\ucrt\""
                     + " /I\"" + wk_include_path + "\\um\""
                     + " /I\"" + wk_include_path + "\\winrt\""
                     + " /GS"
@@ -421,7 +423,7 @@ eat_blanks_after_open_brace	= TRUE
                     + " /Zi"
                     + " /Od"
                     + " /sdl"
-                    + " /Fd\"vc120.pdb\""
+                    + " /Fd\"vc140.pdb\""
                     + " /D \"WIN32\""
                     + " /D \"_DEBUG\""
                     + " /D \"_WINDLL\""
@@ -441,6 +443,7 @@ eat_blanks_after_open_brace	= TRUE
                     + " /EHa"
                     + " /Fp\"" + pch_file_name + "\""
                     + " /nologo"
+                    + " /ShowIncludes"
                     + " " + cpp_source_file_name;
                 using (StreamWriter sw = File.AppendText("save.save"))
                 {
@@ -475,6 +478,7 @@ eat_blanks_after_open_brace	= TRUE
                     + " /I\"" + vc_include_path + "\""
                     + " /I\"" + vc_atlmfc_include_path + "\""
                     + " /I\"" + wk_include_path + "\\shared\""
+                    + " /I\"" + wk_include_path + "\\ucrt\""
                     + " /I\"" + wk_include_path + "\\um\""
                     + " /I\"" + wk_include_path + "\\winrt\""
                     + " /GS"
@@ -485,7 +489,7 @@ eat_blanks_after_open_brace	= TRUE
                     + " /Gm"
                     + " /Od"
                     + " /sdl"
-                    + " /Fd\"vc120.pdb\""
+                    + " /Fd\"vc140.pdb\""
                     + " /D \"WIN32\""
                     + " /D \"_DEBUG\""
                     + " /D \"_CONSOLE\""
@@ -540,24 +544,25 @@ eat_blanks_after_open_brace	= TRUE
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.FileName = link_path;
             p.StartInfo.Arguments =
-                "/OUT:" + "\"" + assembly.Name + "\""
-                + " /MANIFEST"
-                + " /NXCOMPAT"
-                + " /PDB:" + "\"" + pdb_file_name + "\""
-                + " /DYNAMICBASE"
-                + " /FIXED:NO"
-                + " /DEBUG"
-                + " /DLL"
-                + " /MACHINE:X86"
+                " /ERRORREPORT:PROMPT"
+                + " /OUT:" + "\"" + assembly.Name + "\""
                 + " /INCREMENTAL"
-                + " /LIBPATH:\"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\lib\""
-                + " /LIBPATH:\"C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x86\""
-                // + " /MANIFESTUAC:\"level='asInvoker' uiAccess='false'\""
-                + " /ManifestFile:" + "\"" + manifest_file_name + "\""
-                + " /ERRORREPORT:PROMPT"
                 + " /NOLOGO"
+                + " /MANIFEST"
+                + " /LIBPATH:\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\lib\""
+                + " /LIBPATH:\"C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x86\""
+                + $@" /LIBPATH:""C:\Program Files (x86)\Windows Kits\10\lib\10.0.10240.0\ucrt\x86"""
+                + " /ManifestFile:" + "\"" + manifest_file_name + "\""
+                + " /DEBUG"
+                + " /PDB:" + "\"" + pdb_file_name + "\""
                 + " /ASSEMBLYDEBUG"
                 + " /TLBID:1"
+                + " /DYNAMICBASE"
+                + " /FIXED:NO"
+                + " /NXCOMPAT"
+                + " /MACHINE:X86"
+                + " /VERBOSE:LIB "
+                + " /DLL"
                 ;
 
             foreach (KeyValuePair<String, String> kvp in assembly.managed_cpp_files)

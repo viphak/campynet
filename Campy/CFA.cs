@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Campy.Utils;
+using Campy.Types;
 
 namespace Campy
 {
@@ -60,12 +61,12 @@ namespace Campy
             //
             //******************************************************
             List<CFG.CFGVertex> change_set = _cfg.EndChangeSet(_cfg);
-            System.Console.WriteLine("Change set:");
-            foreach (CFG.CFGVertex xxxxxx in change_set)
-            {
-                System.Console.WriteLine(xxxxxx);
-            }
-            System.Console.WriteLine();
+            //System.Console.WriteLine("Change set:");
+            //foreach (CFG.CFGVertex xxxxxx in change_set)
+            //{
+            //    System.Console.WriteLine(xxxxxx);
+            //}
+            //System.Console.WriteLine();
 
             //******************************************************
             //
@@ -478,25 +479,25 @@ namespace Campy
                 }
             }
 
-            System.Console.WriteLine("Final graph:");
+            //System.Console.WriteLine("Final graph:");
             _cfg.Dump();
 
             // Dump SSA phi functions.
-            System.Console.WriteLine("Phi functions");
-            foreach (KeyValuePair<SSA.Value, SSA.Phi> p in ssa.phi_functions)
-            {
-                System.Console.WriteLine(p.Key + " "
-                    + p.Value._merge.Aggregate(
-                            new StringBuilder(),
-                            (sb, x) =>
-                                sb.Append(x).Append(", "),
-                            sb =>
-                            {
-                                if (0 < sb.Length)
-                                    sb.Length -= 2;
-                                return sb.ToString();
-                            }));
-            }
+            //System.Console.WriteLine("Phi functions");
+            //foreach (KeyValuePair<SSA.Value, SSA.Phi> p in ssa.phi_functions)
+            //{
+            //    System.Console.WriteLine(p.Key + " "
+            //        + p.Value._merge.Aggregate(
+            //                new StringBuilder(),
+            //                (sb, x) =>
+             //                   sb.Append(x).Append(", "),
+             //               sb =>
+            //                {
+            //                    if (0 < sb.Length)
+            //                        sb.Length -= 2;
+            //                    return sb.ToString();
+            //                }));
+            //}
 
         }
 

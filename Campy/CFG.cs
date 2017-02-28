@@ -1000,6 +1000,7 @@ namespace Campy
 
         public void Dump()
         {
+            return;
             System.Console.WriteLine("Graph:");
             System.Console.WriteLine();
             System.Console.WriteLine("List of entries:");

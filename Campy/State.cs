@@ -87,6 +87,7 @@ namespace Campy
 
         public void Dump()
         {
+            return;
             int args = _arguments.Len;
             int locs = _locals.Len;
             System.Console.Write("[args");

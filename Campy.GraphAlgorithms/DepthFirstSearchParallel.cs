@@ -48,6 +48,7 @@ namespace Campy.GraphAlgorithms
 
         void Dump()
         {
+            return;
             lock (obj)
             {
                 // Dump all stacks.

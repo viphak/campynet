@@ -308,6 +308,7 @@ namespace Campy
 
         public void Dump()
         {
+            return;
             System.Console.WriteLine("Dump of structure IR.");
             StackQueue<Structure> stack = new StackQueue<Structure>();
             stack.Push(this);
@@ -498,7 +499,7 @@ namespace Campy
                     {
                         if ((object)node2 != (object)node)
                         {
-                            System.Console.WriteLine("Pushing2 " + MyToString(node2));
+                            //System.Console.WriteLine("Pushing2 " + MyToString(node2));
                             stack.Push(node2);
                         }
                     }

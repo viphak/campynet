@@ -19,10 +19,10 @@ namespace Campy {
             {
 
             private:
-				array<_Value_type> ^ _data;
-				IntPtr _native_data_buffer;
+                array<_Value_type> ^ _data;
+                IntPtr _native_data_buffer;
 
-				String^ _element_cppcli_type_string;
+                String^ _element_cppcli_type_string;
                 String^ _element_cppnat_type_string;
                 Type^ _blittable_element_type; // type in C++ world.
                 int _blittable_element_size; // bytes.
@@ -34,20 +34,20 @@ namespace Campy {
                 GCHandle gchandle;
                 static array<_Value_type>^ default_data = gcnew array<_Value_type>(1);
                 static Array_View^ default_value = gcnew Array_View(default_data);
-				bool dirty_managed_side;
-				void do_late_binding();
+                bool dirty_managed_side;
+                void do_late_binding();
 
-				void InitializeCommon(array<_Value_type> ^% data);
+                void InitializeCommon(array<_Value_type> ^% data);
 
             public:
                 Array_View(array<_Value_type> ^% data);
-				Array_View(IntPtr data, int length, Native_Array_View_Base * nav);
-				Array_View(int length, Native_Array_View_Base * nav);
+                Array_View(IntPtr data, int length, Native_Array_View_Base * nav);
+                Array_View(int length, Native_Array_View_Base * nav);
 
                 property Extent^ Extent
                 {
                     Campy::Types::Extent^ get();
-					void set(Campy::Types::Extent^ extent);
+                    void set(Campy::Types::Extent^ extent);
                 }
 
                 property _Value_type default[int]
@@ -61,16 +61,16 @@ namespace Campy {
                 {
                     Array_View^ get();
                 }
-				void Discard_Data();
-				void Refresh();
-				void Reinterpret_As();
-				Array_View<_Value_type>^ Section(int  _I0, int _E0);
-				void Synchronize();
-				void Synchronize_Async();
+                void Discard_Data();
+                void Refresh();
+                void Reinterpret_As();
+                Array_View<_Value_type>^ Section(int  _I0, int _E0);
+                void Synchronize();
+                void Synchronize_Async();
 
             public:
                 // Native array view, provided for kernels.
-				virtual void * native() override;
+                virtual void * native() override;
             };
     }
 }
