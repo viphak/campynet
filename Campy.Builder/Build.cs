@@ -219,15 +219,20 @@ namespace Campy.Builder
                     // Compile and link all work.
                     Process p = new Process();
                     p.StartInfo.UseShellExecute = false;
+                    p.StartInfo.RedirectStandardInput = true;
                     p.StartInfo.RedirectStandardOutput = true;
                     p.StartInfo.RedirectStandardError = true;
                     p.StartInfo.CreateNoWindow = true;
                     p.StartInfo.FileName = link_path;
                     p.StartInfo.Arguments = line;
                     p.Start();
-                    p.WaitForExit();
+                    StreamWriter writer = p.StandardInput;
+                    writer.Write("\r\n");
+                    writer.Flush();
+                    writer.Close();
                     string output = p.StandardOutput.ReadToEnd();
                     String more_output = p.StandardError.ReadToEnd();
+                    p.WaitForExit();
                     if (p.ExitCode > 0)
                     {
                         failed = true;
@@ -539,6 +544,7 @@ eat_blanks_after_open_brace	= TRUE
 
             Process p = new Process();
             p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardInput = true;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
@@ -588,6 +594,10 @@ eat_blanks_after_open_brace	= TRUE
                 sw.WriteLine("\"" + p.StartInfo.FileName + "\"" + " " + p.StartInfo.Arguments);
             }
             p.Start();
+            StreamWriter writer = p.StandardInput;
+            writer.Write("\r\n");
+            writer.Flush();
+            writer.Close();
             String output = p.StandardOutput.ReadToEnd();
             String more_output = p.StandardError.ReadToEnd();
             p.WaitForExit();

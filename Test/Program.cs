@@ -37,6 +37,7 @@ namespace Test
                 d[j] = d[j] + d2[j];
             });
             d.Synchronize();
+            d2.Synchronize();
             for (int i = 0; i < size; ++i)
             {
                 System.Console.WriteLine(data[i]);
