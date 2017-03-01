@@ -65,10 +65,14 @@ namespace Campy
                     Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
                     object operand = inst.Operand;
                     Mono.Cecil.MethodReference call_to = operand as Mono.Cecil.MethodReference;
-                    if (fc == Mono.Cecil.Cil.FlowControl.Call && call_to != null && call_to.Name.Equals("Parallel_For_Each"))
+                    if (fc == Mono.Cecil.Cil.FlowControl.Call)
                     {
-                        System.Console.WriteLine("Found PFE in block " + node.Name);
-                        pfe_list.Add(inst);
+                        if (call_to != null && call_to.Name.Equals("For")
+                            && call_to.DeclaringType != null && call_to.DeclaringType.FullName.Equals("Campy.Parallel"))
+                        {
+                            System.Console.WriteLine("Found PFE in block " + node.Name);
+                            pfe_list.Add(inst);
+                        }
                     }
                 }
             }
@@ -100,9 +104,13 @@ namespace Campy
                     Mono.Cecil.Cil.FlowControl fc = op.FlowControl;
                     object operand = i.Operand;
                     Mono.Cecil.MethodReference call_to = operand as Mono.Cecil.MethodReference;
-                    if (fc == Mono.Cecil.Cil.FlowControl.Call && call_to.Name.Equals("Parallel_For_Each"))
+                    if (fc == Mono.Cecil.Cil.FlowControl.Call)
                     {
-                        Add(method);
+                        if (call_to != null && call_to.Name.Equals("For")
+                            && call_to.DeclaringType != null && call_to.DeclaringType.FullName.Equals("Campy.Parallel"))
+                        {
+                            Add(method);
+                        }
                     }
                 }
             }
@@ -440,7 +448,7 @@ namespace Campy
                 CFG.CFGVertex new_node = v.Split(i);
             }
 
-            this.Dump();
+            //this.Dump();
 
             StackQueue<CFG.CFGVertex> stack = new StackQueue<CFG.CFGVertex>();
             foreach (CFG.CFGVertex node in this.VertexNodes) stack.Push(node);
@@ -579,7 +587,7 @@ namespace Campy
                 }
             }
 
-            this.Dump();
+            //this.Dump();
         }
 
         /// <summary>
@@ -1000,7 +1008,7 @@ namespace Campy
 
         public void Dump()
         {
-            return;
+           
             System.Console.WriteLine("Graph:");
             System.Console.WriteLine();
             System.Console.WriteLine("List of entries:");

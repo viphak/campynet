@@ -480,7 +480,7 @@ namespace Campy
             }
 
             //System.Console.WriteLine("Final graph:");
-            _cfg.Dump();
+            //_cfg.Dump();
 
             // Dump SSA phi functions.
             //System.Console.WriteLine("Phi functions");
@@ -707,9 +707,10 @@ namespace Campy
                     if (call_to_def == null)
                         break;
 
-                    if (call_to_def.FullName.Contains("Campy.AMP::Parallel_For_Each"))
+                    if (call_to_def != null && call_to_def.Name.Equals("For")
+                        && call_to_def.DeclaringType != null && call_to_def.DeclaringType.FullName.Equals("Campy.Parallel"))
                     {
-                        System.Console.WriteLine("Parallel_For_Each caller/callee matching.");
+                        System.Console.WriteLine("Campy.Parallel::For caller/callee matching.");
                         System.Console.WriteLine("Caller: " + inst);
 
                         // The state for the PFE instruction should have the top of stack

@@ -109,6 +109,9 @@ namespace Campy
 
             control_flow_graph.FindNewBlocks(assembly);
 
+            System.Console.WriteLine("Final graph:");
+            control_flow_graph.Dump();
+
         }
 
         static public void For(Extent extent, _Kernel_type _kernel)
