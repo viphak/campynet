@@ -61,7 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Analysis.cs" />
-    <Compile Include="AMP.cs" />
+    <Compile Include="Parallel.cs" />
     <Compile Include="CFA.cs" />
     <Compile Include="CFG.cs" />
     <Compile Include="Converter.cs" />

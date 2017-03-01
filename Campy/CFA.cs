@@ -734,7 +734,7 @@ namespace Campy
                         SSA.Structure s = addr as SSA.Structure;
                         // Define a Field which accesses the "_methodPtr" of
                         // the structure, which we can then evaluate.
-                        AMP._Kernel_type d = (Campy.Types.Index x) => { };
+                        Parallel._Kernel_type d = (Campy.Types.Index x) => { };
                         Mono.Cecil.TypeDefinition d_mono = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilTypeDefinition(d.GetType());
                         IEnumerable<Mono.Cecil.FieldDefinition> fies = d_mono.BaseType.Resolve().BaseType.Resolve().Fields.Where(
                             (f) => { if (f.Name.Equals("_methodPtr")) return true; else return false; });
@@ -1636,7 +1636,7 @@ namespace Campy
                 return;
             }
             // Get field System.Delegate::_methodPtr of delegate.
-            AMP._Kernel_type d = (Campy.Types.Index x) => {  };
+            Parallel._Kernel_type d = (Campy.Types.Index x) => {  };
             Mono.Cecil.TypeDefinition d_mono = Campy.Types.Utils.ReflectionCecilInterop.ConvertToMonoCecilTypeDefinition(d.GetType());
             foreach (Mono.Cecil.FieldDefinition fd in d_mono.BaseType.Resolve().BaseType.Resolve().Fields)
             {
