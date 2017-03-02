@@ -48,6 +48,10 @@ namespace Campy
 
         public void FindNewBlocks(Assembly assembly)
         {
+            // Do not analyze Campy modules generally...
+            if (Options.Singleton.Get(Options.OptionType.DoNotAnalyzeCampyAssemblies))
+                return;
+
             // Starting from all blocks in this assembly,
             // find all PFE's, then compute control-flow/
             // data-flow analysis in order to compute call
@@ -154,6 +158,13 @@ namespace Campy
 
         public void Add(Mono.Cecil.MethodDefinition definition)
         {
+            // Do not analyze Campy modules generally...
+            if (Options.Singleton.Get(Options.OptionType.DoNotAnalyzeCampyAssemblies))
+            {
+                if (definition.Module != null && Analysis.IsCampyModuleName(definition.Module.Name))
+                    return;
+            }
+
             if (_done.Contains(definition))
                 return;
             if (_to_do.Contains(definition))
@@ -247,7 +258,8 @@ namespace Campy
                 }
             }
 
-            System.Console.WriteLine((ignore ? "Ignoring " : "Adding ") + definition);
+            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                System.Console.WriteLine((ignore ? "Ignoring " : "Adding ") + definition);
             if (ignore)
                 return;
             _to_do.Push(definition);
@@ -313,8 +325,6 @@ namespace Campy
             _cfa.ConvertToSSA();
         }
 
-
-
         Dictionary<object, List<CFG.CFGVertex>> _change_set = new Dictionary<object, List<CFGVertex>>();
 
         public void StartChangeSet(object observer)
@@ -341,7 +351,6 @@ namespace Campy
                 return null;
         }
 
-
         public override GraphLinkedList<object,CFG.CFGVertex,CFG.CFGEdge>.Vertex AddVertex(object v)
         {
             foreach (CFG.CFGVertex vertex in this.VertexNodes)
@@ -349,7 +358,8 @@ namespace Campy
                 if (vertex.Name == v)
                     return vertex;
             }
-            System.Console.WriteLine("adding vertex " + v);
+            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                System.Console.WriteLine("adding vertex " + v);
             CFG.CFGVertex x = (CFGVertex)base.AddVertex(v);
             foreach (KeyValuePair<object, List<CFG.CFGVertex>> pair in this._change_set)
             {
@@ -506,7 +516,8 @@ namespace Campy
                                             return false;
                                         return true;
                                     });
-                                System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                    System.Console.WriteLine("Create edge a " + node.Name + " to " + target_node.Name);
                                 this.AddEdge(node, target_node);
                             }
                             else if (i.Operand as Mono.Cecil.Cil.Instruction[] != null)
@@ -862,55 +873,69 @@ namespace Campy
             public void Dump()
             {
                 CFG.CFGVertex v = this;
+                System.Console.WriteLine();
                 System.Console.WriteLine("Node: " + v.Name + " ");
-                System.Console.WriteLine("Method " + v.Method.FullName);
-                System.Console.WriteLine("Args   " + v.NumberOfArguments);
-                System.Console.WriteLine("Locals " + v.NumberOfLocals);
-                System.Console.WriteLine("Return (reuse) " + v.HasReturnValue);
-                System.Console.WriteLine("Level in " + v.StackLevelIn);
-                System.Console.WriteLine("Level out " + v.StackLevelOut);
-                System.Console.WriteLine("Instructions:");
-                SSA ssa = SSA.Singleton();
-                if (v.StateIn != null)
+                System.Console.WriteLine(new String(' ', 4) + "Method " + v.Method.FullName);
+                System.Console.WriteLine(new String(' ', 4) + "Args   " + v.NumberOfArguments);
+                System.Console.WriteLine(new String(' ', 4) + "Locals " + v.NumberOfLocals);
+                System.Console.WriteLine(new String(' ', 4) + "Return (reuse) " + v.HasReturnValue);
+                System.Console.WriteLine(new String(' ', 4) + "Stack level in " + v.StackLevelIn);
+                System.Console.WriteLine(new String(' ', 4) + "Stack level out " + v.StackLevelOut);
+                if (this._Graph.Predecessors(v.Name).Any())
                 {
-                    System.Console.WriteLine("State in");
-                    v.StateIn.Dump();
+                    System.Console.Write(new String(' ', 4) + "Edges from:");
+                    foreach (object t in this._Graph.Predecessors(v.Name))
+                    {
+                        System.Console.Write(" " + t);
+                    }
+                    System.Console.WriteLine();
                 }
+                if (this._Graph.Successors(v.Name).Any())
+                {
+                    System.Console.Write(new String(' ', 4) + "Edges to:");
+                    foreach (object t in this._Graph.Successors(v.Name))
+                    {
+                        System.Console.Write(" " + t);
+                    }
+                    System.Console.WriteLine();
+                }
+                System.Console.WriteLine(new String(' ', 4) + "Instructions:");
+                SSA ssa = SSA.Singleton();
+                //if (v.StateIn != null)
+                //{
+                //    System.Console.WriteLine("State in");
+                //    v.StateIn.Dump();
+                //}
                 foreach (Inst i in v._instructions)
                 {
-                    if (i.StateIn != null)
-                        i.StateIn.Dump();
-                    System.Console.WriteLine(i);
+                    //if (i.StateIn != null)
+                    //    i.StateIn.Dump();
+
+                    System.Console.Write(new String(' ', 8) + i + new String(' ', 4));
+
                     if (ssa._operation.ContainsKey(i))
                     {
-                        System.Console.WriteLine(" SSA: ");
                         foreach (SSA.Operation o in ssa._operation[i])
                         {
-                            System.Console.WriteLine(" [" + o + "]");
+                            System.Console.Write(" [" + o + "]");
                         }
                     }
+
+                    System.Console.WriteLine();
                 }
-                System.Console.WriteLine("Edges from:");
-                foreach (object t in this._Graph.Predecessors(v.Name))
-                {
-                    System.Console.WriteLine(t + " ->");
-                }
-                System.Console.WriteLine("Edges to:");
-                foreach (object t in this._Graph.Successors(v.Name))
-                {
-                    System.Console.WriteLine("-> " + t);
-                }
-                if (v.StateOut != null)
-                {
-                    System.Console.WriteLine("State out");
-                    v.StateOut.Dump();
-                }
+
+                //if (v.StateOut != null)
+                //{
+                //    System.Console.WriteLine("State out");
+                //    v.StateOut.Dump();
+                //}
                 System.Console.WriteLine();
             }
 
             public CFGVertex Split(int i)
             {
-                System.Console.WriteLine("Split at " + i + " " + _instructions[i]);
+                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                    System.Console.WriteLine("Split at " + i + " " + _instructions[i]);
                 Debug.Assert(_instructions.Count != 0);
                 // Split this node into two nodes, with all instructions after "i" in new node.
                 CFG cfg = (CFG)this._Graph;
@@ -1008,24 +1033,30 @@ namespace Campy
 
         public void Dump()
         {
-           
             System.Console.WriteLine("Graph:");
             System.Console.WriteLine();
-            System.Console.WriteLine("List of entries:");
+            System.Console.WriteLine("List of entries blocks:");
+            System.Console.WriteLine(new String(' ', 4) + new String(' ', 4) + "Node" + new string(' ', 4) + "Method");
             foreach (CFGVertex n in this._entries)
             {
-                System.Console.WriteLine("Method " + n.Method.FullName
-                    + " Node: " + n.Name);
+                System.Console.Write(new String(' ', 4));
+                System.Console.Write("{0,8}", n);
+                System.Console.Write(new string(' ', 4));
+                System.Console.WriteLine(n.Method.FullName);
             }
             System.Console.WriteLine();
             System.Console.WriteLine("List of callers:");
+            System.Console.WriteLine(new String(' ', 4) + new String(' ', 4) + "Node" + new string(' ', 4) + "Instruction");
             foreach (Inst caller in Inst.CallInstructions)
             {
-                System.Console.WriteLine(caller.Block
-                    + " " + caller);
+                CFGVertex n = caller.Block;
+                System.Console.Write(new String(' ', 4));
+                System.Console.Write("{0,8}", n);
+                System.Console.Write(new string(' ', 4));
+                System.Console.WriteLine(caller);
             }
             System.Console.WriteLine();
-            System.Console.WriteLine("List of callee with empty caller:");
+            System.Console.WriteLine("List of callees with empty caller:");
             foreach (CFGVertex n in this._entries)
             {
                 if (n.StateIn != null &&
@@ -1085,5 +1116,4 @@ namespace Campy
         }
 
     }
-
 }

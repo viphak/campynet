@@ -78,6 +78,9 @@ namespace Campy
 
         static public void AnalyzeThisAssembly()
         {
+            Options.Singleton.Set(Options.OptionType.DisplayFinalGraph, true);
+            Options.Singleton.Set(Options.OptionType.DoNotAnalyzeCampyAssemblies, true);
+
             if (Environment.Is64BitProcess)
             {
                 System.Console.WriteLine("Thunk between 64-bit C# and C++ AMP unimplemented.");
@@ -109,9 +112,11 @@ namespace Campy
 
             control_flow_graph.FindNewBlocks(assembly);
 
-            System.Console.WriteLine("Final graph:");
-            control_flow_graph.Dump();
-
+            if (Options.Singleton.Get(Options.OptionType.DisplayFinalGraph))
+            {
+                System.Console.WriteLine("Final graph:");
+                control_flow_graph.Dump();
+            }
         }
 
         static public void For(Extent extent, _Kernel_type _kernel)

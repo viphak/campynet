@@ -137,7 +137,8 @@ namespace Campy
 
                 object target = current_node;
                 targets.Add(target);
-                System.Console.WriteLine("Target " + Utility.GetFriendlyTypeName(target.GetType()));
+                if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                    System.Console.WriteLine("Target " + Utility.GetFriendlyTypeName(target.GetType()));
 
                 foreach (object next in data_graph.Successors(current_node))
                 {
@@ -308,7 +309,8 @@ namespace Campy
 
         public void Dump()
         {
-            return;
+            if (!Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                return;
             System.Console.WriteLine("Dump of structure IR.");
             StackQueue<Structure> stack = new StackQueue<Structure>();
             stack.Push(this);
@@ -346,7 +348,8 @@ namespace Campy
                 }
                 String indent = "";
                 for (int i = 0; i < structure.level; ++i) indent += "   ";
-                System.Console.WriteLine(indent + result.Replace("\n", "\n" + indent));
+                if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                    System.Console.WriteLine(indent + result.Replace("\n", "\n" + indent));
                 foreach (Structure child in structure._nested_structures)
                 {
                     stack.Push(child);
@@ -499,7 +502,8 @@ namespace Campy
                     {
                         if ((object)node2 != (object)node)
                         {
-                            //System.Console.WriteLine("Pushing2 " + MyToString(node2));
+                            if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                                System.Console.WriteLine("Pushing2 " + MyToString(node2));
                             stack.Push(node2);
                         }
                     }
@@ -543,7 +547,8 @@ namespace Campy
                             }
                         }
                         Debug.Assert(found);
-                        System.Console.WriteLine("Pushing " + MyToString(target));
+                        if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                            System.Console.WriteLine("Pushing " + MyToString(target));
                         if (delegate_to_instance.ContainsKey(del))
                         {
                             Debug.Assert(delegate_to_instance[del] == target);
@@ -581,13 +586,14 @@ namespace Campy
                         if (TypesUtility.IsSimpleCampyType(field.FieldType))
                             continue;
                         // chase pointer type.
-                        System.Console.WriteLine("Pushingf " + MyToString(value));
+                        if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                            System.Console.WriteLine("Pushingf " + MyToString(value));
                         stack.Push(value);
                     }
                 }
             }
 
-            if (true)
+            if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
             {
                 System.Console.WriteLine();
                 System.Console.WriteLine("Dump of nodes.");
@@ -654,7 +660,7 @@ namespace Campy
                 }
             }
 
-            if (true)
+            if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
             {
                 foreach (object node in data_graph.Vertices)
                 {
@@ -674,9 +680,22 @@ namespace Campy
             }
 
             Structure res = Structure.Initialize(delegate_to_instance, lambda_delegate.Method, data_graph, _control_flow_graph);
-            res.Dump();
+            if (Options.Singleton.Get(Options.OptionType.DisplayStructureComputation))
+                res.Dump();
 
             return res;
+        }
+
+        public static bool IsCampyModuleName(String name)
+        {
+            if (name.Equals("Campy.dll")) return true;
+            if (name.Equals("Campy.Builder.dll")) return true;
+            if (name.Equals("Campy.GraphAlgorithms.dll")) return true;
+            if (name.Equals("Campy.Graphs.dll")) return true;
+            if (name.Equals("Campy.Types.dll")) return true;
+            if (name.Equals("Campy.Types.Utils.dll")) return true;
+            if (name.Equals("Campy.Utils.dll")) return true;
+            return false;
         }
     }
 }

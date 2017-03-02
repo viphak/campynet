@@ -126,16 +126,17 @@ namespace Campy
             {
                 // Create DFT order of all nodes.
                 IEnumerable<object> objs = entries.Select(x => x.Name);
-                System.Console.WriteLine("Entries " +
-                    objs.Aggregate(new StringBuilder(),
-                        (sb, v) =>
-                            sb.Append(v).Append(", "),
-                        sb =>
-                            {
-                                if (0 < sb.Length)
-                                    sb.Length -= 2;
-                                return sb.ToString();
-                            }));
+                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                    System.Console.WriteLine("Entries " +
+                        objs.Aggregate(new StringBuilder(),
+                            (sb, v) =>
+                                sb.Append(v).Append(", "),
+                            sb =>
+                                {
+                                    if (0 < sb.Length)
+                                        sb.Length -= 2;
+                                    return sb.ToString();
+                                }));
                 GraphAlgorithms.DepthFirstPreorderTraversal<object>
                     dfs = new GraphAlgorithms.DepthFirstPreorderTraversal<object>(
                         _cfg,
@@ -145,7 +146,8 @@ namespace Campy
                 foreach (object ob in dfs)
                 {
                     CFG.CFGVertex node = _cfg.VertexSpace[_cfg.NameSpace.BijectFromBasetype(ob)];
-                    System.Console.WriteLine("Visiting " + node);
+                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                        System.Console.WriteLine("Visiting " + node);
                     visited.Add(node);
                 }
                 foreach (CFG.CFGVertex v in change_set)
@@ -170,7 +172,8 @@ namespace Campy
             {
                 if (change_set_minus_unreachable.Contains(v))
                 {
-                    System.Console.WriteLine("NODE " + v + " IS UNREACHABLE.");
+                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                        System.Console.WriteLine("NODE " + v + " IS UNREACHABLE.");
                     change_set_minus_unreachable.Remove(v);
                 }
             }
@@ -211,7 +214,8 @@ namespace Campy
                         if (node.IsEntry)
                         {
                             node.StackLevelIn = node.NumberOfLocals + node.NumberOfArguments;
-                            System.Console.WriteLine("No predecessors for node " + node + ". Setting stack size to args+locals = " + node.StackLevelIn);
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                System.Console.WriteLine("No predecessors for node " + node + ". Setting stack size to args+locals = " + node.StackLevelIn);
                         }
                         else
                         {
@@ -224,35 +228,43 @@ namespace Campy
                                 // If predecessor has not been visited, warn and do not consider.
                                 if (pred.StackLevelOut == null)
                                 {
-                                    System.Console.WriteLine("Warning: Predecessor " + pred
-                                        + ", of node " + node
-                                        + ", has not been visited.");
+                                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                        System.Console.WriteLine("Warning: Predecessor " + pred
+                                            + ", of node " + node
+                                            + ", has not been visited.");
                                     continue;
                                 }
                                 // Warn if predecessor does not concur with another predecessor.
                                 if (in_level != -1 && in_level != pred.StackLevelOut)
                                 {
-                                    System.Console.WriteLine("Warning: Predecessor " + pred
-                                        + ", of node " + node
-                                        + ", has a stack level different from another predecessor.");
+                                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                        System.Console.WriteLine("Warning: Predecessor " + pred
+                                            + ", of node " + node
+                                            + ", has a stack level different from another predecessor.");
                                 }
-                                System.Console.WriteLine("Node " + node + " level in set to " + pred.StackLevelOut + " via pred " + pred);
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                    System.Console.WriteLine("Node " + node + " level in set to " + pred.StackLevelOut + " via pred " + pred);
                                 node.StackLevelIn = pred.StackLevelOut;
                                 in_level = (int)node.StackLevelIn;
                             }
                             // Warn if no predecessors have been visited.
                             if (in_level == -1)
                             {
-                                System.Console.WriteLine("Node " + node
-                                    + " has no predecessors visited. Cannot process.");
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                    System.Console.WriteLine("Node " + node
+                                        + " has no predecessors visited. Cannot process.");
                                 continue;
                             }
                         }
 
-                        System.Console.WriteLine();
-                        System.Console.WriteLine("Processing block " + node);
-                        System.Console.WriteLine("Args " + node.NumberOfArguments + " locs = " + node.NumberOfLocals);
-                        System.Console.WriteLine("Level in = " + node.StackLevelIn + " level out = " + node.StackLevelOut);
+                        if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                        {
+                            System.Console.WriteLine();
+                            System.Console.WriteLine("Processing block " + node);
+                            System.Console.WriteLine("Args " + node.NumberOfArguments + " locs = " + node.NumberOfLocals);
+                            System.Console.WriteLine("Level in = " + node.StackLevelIn + " level out = " +
+                                                     node.StackLevelOut);
+                        }
                         int level_after = (int)node.StackLevelIn;
                         int level_pre = level_after;
                         foreach (Inst i in node._instructions)
@@ -274,9 +286,12 @@ namespace Campy
                                 ;
                             else
                             {
-                                System.Console.WriteLine();
-                                System.Console.WriteLine("Failed stack level out check for block " + node);
-                                _cfg.Dump();
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                {
+                                    System.Console.WriteLine();
+                                    System.Console.WriteLine("Failed stack level out check for block " + node);
+                                    _cfg.Dump();
+                                }
                                 throw new Exception("Failed stack level out check");
                             }
                         }
@@ -295,26 +310,33 @@ namespace Campy
                             // Nothing to update if no change.
                             if (succ.StackLevelIn > level_after)
                             {
-                                System.Console.WriteLine("WARNING: level decrease " + succ);
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                    System.Console.WriteLine("WARNING: level decrease " + succ);
                                 continue;
                             }
                             else if (succ.StackLevelIn == level_after)
                             {
                                 continue;
                             }
-                            System.Console.WriteLine("Update successor " + succ);
-                            System.Console.WriteLine("level in = " + level_after + " level out (pre) " + node.StackLevelOut);
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                System.Console.WriteLine("Update successor " + succ);
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                System.Console.WriteLine("level in = " + level_after + " level out (pre) " + node.StackLevelOut);
                             if (!work.Contains(succ))
                             {
                                 work.Add(succ);
                             }
                         }
-                        System.Console.WriteLine();
-                        foreach (CFG.CFGVertex xx in _cfg.VertexNodes)
+                        if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
                         {
-                            System.Console.WriteLine("Node " + xx + " level in " + xx.StackLevelIn + " level out " + xx.StackLevelOut);
+                            System.Console.WriteLine();
+                            foreach (CFG.CFGVertex xx in _cfg.VertexNodes)
+                            {
+                                System.Console.WriteLine("Node " + xx + " level in " + xx.StackLevelIn + " level out " +
+                                                         xx.StackLevelOut);
+                            }
+                            System.Console.WriteLine();
                         }
-                        System.Console.WriteLine();
                     }
                 }
             }
@@ -355,8 +377,9 @@ namespace Campy
                         // Check if stack levels computed.
                         if (node.StackLevelIn == null)
                         {
-                            System.Console.WriteLine("Node " + node
-                                + " is on queue, but hasn't been processed. Skipping.");
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                System.Console.WriteLine("Node " + node
+                                    + " is on queue, but hasn't been processed. Skipping.");
                             continue;
                         }
 
@@ -375,8 +398,10 @@ namespace Campy
                         node.StateIn = new State(node.Method, level_in);
                         State state_after = new State(node.StateIn);
                         State state_pre = new State(state_after);
-                        System.Console.WriteLine();
-                        System.Console.WriteLine("Node " + node + " in state");
+                        if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                            System.Console.WriteLine();
+                        if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                            System.Console.WriteLine("Node " + node + " in state");
                         int level_after = level_in;
                         int level_pre = level_after;
                         foreach (Inst i in node._instructions)
@@ -385,7 +410,8 @@ namespace Campy
                             state_pre.Dump();
                             level_pre = level_after;
                             i.StateIn = new State(state_pre);
-                            System.Console.WriteLine(i);
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                System.Console.WriteLine(i);
                             i.ComputeStackLevel(ref level_after);
                             i.ComputeSSA(ref state_after);
                             Debug.Assert(level_after == state_after._stack.Size());
@@ -394,7 +420,8 @@ namespace Campy
                             //if (i.Instruction.OpCode.FlowControl == Mono.Cecil.Cil.FlowControl.Call)
                                 i.StateOut = new State(state_after);
                         }
-                        state_after.Dump();
+                        if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                            state_after.Dump();
                         node.StateOut = state_after;
                     }
                 }
@@ -413,18 +440,20 @@ namespace Campy
                 {
                     CFG.CFGVertex node = work.First();
                     work.Remove(node);
-                    System.Console.WriteLine("Compute phi-function for node " + node);
-                    System.Console.WriteLine("predecessors " +
-                        _cfg.PredecessorNodes(node).Aggregate(
-                            new StringBuilder(),
-                            (sb, v) =>
-                                sb.Append(v).Append(", "),
-                            sb =>
-                            {
-                                if (0 < sb.Length)
-                                    sb.Length -= 2;
-                                return sb.ToString();
-                            }));
+                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                        System.Console.WriteLine("Compute phi-function for node " + node);
+                    if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                        System.Console.WriteLine("predecessors " +
+                            _cfg.PredecessorNodes(node).Aggregate(
+                                new StringBuilder(),
+                                (sb, v) =>
+                                    sb.Append(v).Append(", "),
+                                sb =>
+                                {
+                                    if (0 < sb.Length)
+                                        sb.Length -= 2;
+                                    return sb.ToString();
+                                }));
 
                     // Verify all predecessors have identical stack sizes.
                     IEnumerable<int?> levels = _cfg.PredecessorNodes(node).Select(
@@ -447,8 +476,9 @@ namespace Campy
                         {
                             if (l != previous)
                             {
-                                System.Console.WriteLine(
-                                    "Predecessor stack sizes do not agree.");
+                                if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                    System.Console.WriteLine(
+                                        "Predecessor stack sizes do not agree.");
                                 cannot_check = true;
                                 break;
                             }
@@ -707,6 +737,9 @@ namespace Campy
                     if (call_to_def == null)
                         break;
 
+                    // The following is big time special case for Campy calls,
+                    // where the function is called indirectly. If it's the parallel.for
+                    // call, find out what we're calling.
                     if (call_to_def != null && call_to_def.Name.Equals("For")
                         && call_to_def.DeclaringType != null && call_to_def.DeclaringType.FullName.Equals("Campy.Parallel"))
                     {
