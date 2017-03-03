@@ -13,11 +13,8 @@ namespace Campy {
 		template<typename T>
 		Native_Array_View<T>::Native_Array_View(int length, int element_length, void * data, char * representation)
 		{
-			std::cout << "Here3" << std::endl;
 			native = (void*) new array_view<T, 1>(length, (T*)data);
-			std::cout << "Here2" << std::endl;
 			array_view<T, 1> xxx = *(array_view<T, 1>*)native;
-			std::cout << "Here " << native << std::endl;
 		}
 
 		template<typename T>

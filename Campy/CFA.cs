@@ -290,7 +290,7 @@ namespace Campy
                                 {
                                     System.Console.WriteLine();
                                     System.Console.WriteLine("Failed stack level out check for block " + node);
-                                    _cfg.Dump();
+                                    _cfg.OutputEntireGraph();
                                 }
                                 throw new Exception("Failed stack level out check");
                             }
@@ -407,7 +407,8 @@ namespace Campy
                         foreach (Inst i in node._instructions)
                         {
                             state_pre = new State(state_after);
-                            state_pre.Dump();
+                            if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))
+                                state_pre.Dump();
                             level_pre = level_after;
                             i.StateIn = new State(state_pre);
                             if (Options.Singleton.Get(Options.OptionType.DisplaySSAComputation))

@@ -2514,7 +2514,6 @@ namespace Campy
             return b;
         }
 
-
         public Variable add(Inst inst, Value lhs, Value rhs)
         {
             SSA.BinaryExpression e = new SSA.BinaryExpression(Operator.add, lhs, rhs);

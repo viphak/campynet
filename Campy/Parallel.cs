@@ -115,7 +115,7 @@ namespace Campy
             if (Options.Singleton.Get(Options.OptionType.DisplayFinalGraph))
             {
                 System.Console.WriteLine("Final graph:");
-                control_flow_graph.Dump();
+                control_flow_graph.OutputEntireGraph();
             }
         }
 

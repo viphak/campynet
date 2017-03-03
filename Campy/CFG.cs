@@ -548,6 +548,7 @@ namespace Campy
                             // produced. That's not good because it makes
                             // code too "messy".
                             break;
+
                             object o = i.Operand;
                             if (o as Mono.Cecil.MethodReference != null)
                             {
@@ -870,7 +871,7 @@ namespace Campy
                 StackLevelIn = null;
             }
 
-            public void Dump()
+            public void OutputEntireNode()
             {
                 CFG.CFGVertex v = this;
                 System.Console.WriteLine();
@@ -1031,45 +1032,48 @@ namespace Campy
             }
         }
 
-        public void Dump()
+        public void OutputEntireGraph()
         {
             System.Console.WriteLine("Graph:");
             System.Console.WriteLine();
             System.Console.WriteLine("List of entries blocks:");
-            System.Console.WriteLine(new String(' ', 4) + new String(' ', 4) + "Node" + new string(' ', 4) + "Method");
+            System.Console.WriteLine(new String(' ', 4) + "Node" + new string(' ', 4) + "Method");
             foreach (CFGVertex n in this._entries)
             {
-                System.Console.Write(new String(' ', 4));
                 System.Console.Write("{0,8}", n);
                 System.Console.Write(new string(' ', 4));
                 System.Console.WriteLine(n.Method.FullName);
             }
             System.Console.WriteLine();
             System.Console.WriteLine("List of callers:");
-            System.Console.WriteLine(new String(' ', 4) + new String(' ', 4) + "Node" + new string(' ', 4) + "Instruction");
+            System.Console.WriteLine(new String(' ', 4) + "Node" + new string(' ', 4) + "Instruction");
             foreach (Inst caller in Inst.CallInstructions)
             {
                 CFGVertex n = caller.Block;
-                System.Console.Write(new String(' ', 4));
                 System.Console.Write("{0,8}", n);
                 System.Console.Write(new string(' ', 4));
                 System.Console.WriteLine(caller);
             }
-            System.Console.WriteLine();
-            System.Console.WriteLine("List of callees with empty caller:");
-            foreach (CFGVertex n in this._entries)
+            if (this._entries.Any())
             {
-                if (n.StateIn != null &&
-                    n.StateIn._bindings != null &&
-                    n.StateIn._bindings.Count == 1)
+                System.Console.WriteLine();
+                System.Console.WriteLine("List of orphan blocks:");
+                System.Console.WriteLine(new String(' ', 4) + "Node" + new string(' ', 4) + "Method");
+                foreach (CFGVertex n in this._entries)
                 {
-                    if (n.StateIn._bindings.First()._caller != null)
-                        System.Console.WriteLine("hmm");
-                    System.Console.WriteLine("Method " + n.Method.FullName
-                        + " Node: " + n.Name);
+                    if (n.StateIn != null &&
+                        n.StateIn._bindings != null &&
+                        n.StateIn._bindings.Count == 1)
+                    {
+                        System.Console.Write("{0,8}", n);
+                        System.Console.Write(new string(' ', 4));
+                        if (n.StateIn._bindings.First()._caller != null)
+                            System.Console.WriteLine("hmm?? ");
+                        System.Console.WriteLine(n.Method.FullName);
+                    }
                 }
+                System.Console.WriteLine();
             }
-            System.Console.WriteLine();
 
             foreach (CFGVertex n in VertexNodes)
             {
@@ -1077,7 +1081,7 @@ namespace Campy
                 {
                     foreach (CFGVertex v in n._ordered_list_of_blocks)
                     {
-                        v.Dump();
+                        v.OutputEntireNode();
                     }
                 }
             }
